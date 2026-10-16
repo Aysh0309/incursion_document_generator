@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractEventInformation } from "@/lib/ai/extractor";
 import { DocumentType } from "@/types";
+import { dbStore } from "@/lib/db/store";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { rawText, targetDocumentTypes } = body;
+    const { rawText, targetDocumentTypes, templateId } = body;
 
     if (!rawText || typeof rawText !== "string" || rawText.trim().length === 0) {
       return NextResponse.json(
@@ -20,9 +21,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let templateFields = undefined;
+    if (templateId) {
+      const template = dbStore.getTemplateById(templateId);
+      if (template && template.fields) {
+        templateFields = template.fields;
+      }
+    }
+
     const result = await extractEventInformation(
       rawText,
-      targetDocumentTypes as DocumentType[] | undefined
+      targetDocumentTypes as DocumentType[] | undefined,
+      templateFields
     );
 
     return NextResponse.json({

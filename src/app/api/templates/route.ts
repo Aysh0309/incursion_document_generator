@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
 import { dbStore } from "@/lib/db/store";
-import { DocumentType } from "@/types";
+import { DocumentType, TemplateMetadata, TemplateField } from "@/types";
+import { analyzeUploadedTemplate } from "@/lib/document-engine/analyzer";
+import { connectToDatabase } from "@/lib/db/mongoose";
+import { TemplateModel } from "@/models/Template";
 
 export async function GET() {
   try {
@@ -25,13 +26,27 @@ export async function POST(req: NextRequest) {
     const name = formData.get("name") as string;
     const documentType = (formData.get("documentType") as DocumentType) || "EVENT_PROPOSAL";
     const description = (formData.get("description") as string) || "";
-    const requiredFieldsRaw = formData.get("requiredFields") as string;
+    const manualFieldsRaw = formData.get("fields") as string;
 
     if (!file || !name) {
       return NextResponse.json(
         {
           success: false,
-          error: { message: "Both template name and a valid .docx file are required." },
+          error: { message: "Both template name and a valid document file (.docx or .pdf) are required." },
+        },
+        { status: 400 }
+      );
+    }
+
+    const fileNameLower = file.name.toLowerCase();
+    const isDocx = fileNameLower.endsWith(".docx");
+    const isPdf = fileNameLower.endsWith(".pdf");
+
+    if (!isDocx && !isPdf) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { message: "Unsupported file format. Please upload an official DOCX or PDF template file." },
         },
         { status: 400 }
       );
@@ -39,31 +54,6 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-
-    // Validate Docx format and extract placeholders
-    let placeholdersDetected: string[] = [];
-    try {
-      const zip = new PizZip(buffer);
-      const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-      const text = doc.getFullText();
-      const tagRegex = /\{([a-zA-Z0-9_\.]+)\}/g;
-      let match;
-      const tags = new Set<string>();
-      while ((match = tagRegex.exec(text)) !== null) {
-        tags.add(match[1]);
-      }
-      placeholdersDetected = Array.from(tags);
-    } catch (parseErr: any) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            message: `Invalid DOCX template. XML parsing failed: ${parseErr.message}`,
-          },
-        },
-        { status: 400 }
-      );
-    }
 
     // Save template file to public/templates/
     const templatesDir = path.join(process.cwd(), "public", "templates");
@@ -75,40 +65,79 @@ export async function POST(req: NextRequest) {
     const destinationPath = path.join(templatesDir, safeFileName);
     fs.writeFileSync(destinationPath, buffer);
 
-    let requiredFields: string[] = [];
-    if (requiredFieldsRaw) {
+    // Run unified structural analysis
+    const analysis = await analyzeUploadedTemplate(buffer, file.name);
+
+    let fields: TemplateField[] = analysis.fields;
+    if (manualFieldsRaw) {
       try {
-        requiredFields = JSON.parse(requiredFieldsRaw);
+        const parsed = JSON.parse(manualFieldsRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          fields = parsed;
+        }
       } catch {
-        requiredFields = requiredFieldsRaw.split(",").map((s) => s.trim());
+        // use detected fields
       }
-    } else {
-      // Default required fields: take top placeholders that match standard fields
-      requiredFields = placeholdersDetected.filter((p) =>
-        ["eventName", "startDate", "venue", "facultyCoordinator"].includes(p)
-      );
     }
 
-    const newTemplate = dbStore.addTemplate({
-      id: "tmpl_" + Math.random().toString(36).substring(2, 10),
+    const requiredFields = fields.filter((f) => f.required).map((f) => f.name);
+    const optionalFields = fields.filter((f) => !f.required).map((f) => f.name);
+    const placeholdersDetected = fields.map((f) => f.name);
+
+    const templateId = "tmpl_" + Math.random().toString(36).substring(2, 10);
+
+    const newTemplateData: TemplateMetadata = {
+      id: templateId,
       name,
       documentType,
+      format: analysis.format,
       description,
       fileUrl: `/templates/${safeFileName}`,
+      fields,
       requiredFields,
-      optionalFields: placeholdersDetected.filter((p) => !requiredFields.includes(p)),
+      optionalFields,
       placeholdersDetected,
+      pageCount: analysis.pageCount,
+      pageDimensions: analysis.pageDimensions,
+      detectedAssets: analysis.detectedAssets,
+      analysisWarnings: analysis.warnings,
+      status: "PUBLISHED",
       version: 1,
       isActive: true,
       isSystemDefault: false,
       createdAt: new Date().toISOString(),
-    });
+    };
 
-    return NextResponse.json({ success: true, data: newTemplate });
+    // Save to memory store
+    dbStore.addTemplate(newTemplateData);
+
+    // Save to MongoDB if connected
+    try {
+      const conn = await connectToDatabase();
+      if (conn) {
+        await TemplateModel.create({
+          ...newTemplateData,
+          _id: undefined,
+        });
+      }
+    } catch (dbErr) {
+      console.warn("MongoDB template sync note (persisted locally):", dbErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: newTemplateData,
+      analysisSummary: {
+        format: analysis.format,
+        fieldsDetectedCount: fields.length,
+        assetsDetectedCount: analysis.detectedAssets.length,
+        warnings: analysis.warnings,
+      },
+    });
   } catch (err: any) {
-    console.error("Template upload error:", err);
+    console.error("Template upload and analysis error:", err);
     return NextResponse.json(
-      { success: false, error: { message: err.message } },
+      { success: false, error: { message: err.message || "Failed to analyze and save template." } },
       { status: 500 }
     );
   }

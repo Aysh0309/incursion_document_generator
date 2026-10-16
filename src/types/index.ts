@@ -86,19 +86,74 @@ export interface ExtractionResult {
   isComplete: boolean;
 }
 
+export type FieldDataType =
+  | "text"
+  | "date"
+  | "time"
+  | "number"
+  | "currency"
+  | "email"
+  | "phone"
+  | "textarea"
+  | "select";
+
+export interface TemplateField {
+  id: string;
+  name: string;
+  label: string;
+  description?: string;
+  type: FieldDataType;
+  required: boolean;
+  isFixed?: boolean;
+  fixedValue?: string;
+  isSystem?: boolean;
+  pageNumber?: number;
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  formFieldName?: string;
+  sourceEvidence?: string;
+  confidence: number;
+  adminConfirmed: boolean;
+  options?: string[];
+  repeatedFieldKeys?: string[];
+}
+
+export interface DetectedAsset {
+  id: string;
+  type: "logo" | "image" | "graphic";
+  name?: string;
+  pageNumber?: number;
+  width?: number;
+  height?: number;
+  dataUrl?: string;
+  description?: string;
+}
+
 export interface TemplateMetadata {
   id: string;
   name: string;
   documentType: DocumentType;
+  format: "docx" | "pdf";
   description: string;
   fileUrl: string;
+  fields: TemplateField[];
   requiredFields: string[];
   optionalFields: string[];
   placeholdersDetected: string[];
+  pageCount?: number;
+  pageDimensions?: Array<{ width: number; height: number }>;
+  detectedAssets?: DetectedAsset[];
+  analysisWarnings?: string[];
+  status: "DRAFT" | "PUBLISHED";
   version: number;
   isActive: boolean;
   isSystemDefault?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DocumentRecord {
@@ -112,8 +167,8 @@ export interface DocumentRecord {
   currentVersion: number;
   docxUrl: string;
   pdfUrl: string;
-  pdfEngineUsed: "libreoffice" | "institutional_pdfkit";
-  dataSnapshot: StructuredEventData;
+  pdfEngineUsed: "pdf_lib_direct" | "libreoffice" | "institutional_pdfkit";
+  dataSnapshot: Record<string, any>;
   reviewComments?: string;
   approvedBy?: string;
   approvedAt?: string;
@@ -125,7 +180,7 @@ export interface DocumentVersionRecord {
   id: string;
   documentId: string;
   versionNumber: number;
-  dataSnapshot: StructuredEventData;
+  dataSnapshot: Record<string, any>;
   docxUrl: string;
   pdfUrl: string;
   changeSummary: string;

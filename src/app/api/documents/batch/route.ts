@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
-import { generateDocument } from "@/lib/document-engine/generator";
-import { evaluateMissingFields } from "@/schemas/event.schema";
+import { generateDocument, validateTemplateSubmission } from "@/lib/document-engine/generator";
+import { connectToDatabase } from "@/lib/db/mongoose";
+import { DocumentModel, DocumentVersionModel } from "@/models/Document";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { eventId, templateIds } = body;
+    const { eventId, templateIds, fieldValues } = body;
 
     if (!eventId || !templateIds || !Array.isArray(templateIds) || templateIds.length === 0) {
       return NextResponse.json(
-        { success: false, error: { message: "Both eventId and templateIds array are required." } },
+        { success: false, error: { message: "Both eventId and a non-empty templateIds array are required." } },
         { status: 400 }
       );
     }
@@ -27,25 +28,36 @@ export async function POST(req: NextRequest) {
     const generatedDocuments = [];
     const errors = [];
 
+    const sd = (event.structuredData || {}) as Record<string, any>;
+    const combinedData: Record<string, any> = {
+      ...sd,
+      ...(fieldValues || {}),
+      clubName: sd.clubName || club.name,
+      universityName: club.universityName,
+      department: sd.department || club.department,
+    };
+
+    // Keep event structuredData updated
+    dbStore.updateEvent(event.id, {
+      structuredData: combinedData as any,
+    });
+
     for (const templateId of templateIds) {
       const template = dbStore.getTemplateById(templateId);
       if (!template) {
-        errors.push({ templateId, error: "Template not found" });
+        errors.push({ templateId, templateName: "Unknown", error: "Template not found" });
         continue;
       }
 
-      // Check required fields
-      const { missingFields } = evaluateMissingFields(
-        event.structuredData,
-        [template.documentType],
-        { [template.documentType]: template.requiredFields }
-      );
+      // Check required fields using central validation
+      const validation = validateTemplateSubmission(template, combinedData);
 
-      if (missingFields.length > 0) {
+      if (!validation.valid) {
+        const missing = validation.errors.map((e) => e.label).join(", ");
         errors.push({
           templateId,
           templateName: template.name,
-          error: `Missing mandatory fields: ${missingFields.join(", ")}`,
+          error: `Missing or invalid required fields: ${missing}`,
         });
         continue;
       }
@@ -55,14 +67,13 @@ export async function POST(req: NextRequest) {
       try {
         const generationResult = await generateDocument({
           documentId: docId,
-          templateFileUrl: template.fileUrl,
-          documentType: template.documentType,
-          eventData: event.structuredData,
+          template,
+          fieldValues: combinedData,
           club,
         });
 
         const newDoc = dbStore.createDocument({
-          title: `${template.name} - ${event.eventName}`,
+          title: `${template.name} - ${combinedData.eventName || event.eventName}`,
           eventId: event.id,
           templateId: template.id,
           documentType: template.documentType,
@@ -72,8 +83,40 @@ export async function POST(req: NextRequest) {
           docxUrl: generationResult.docxUrl,
           pdfUrl: generationResult.pdfUrl,
           pdfEngineUsed: generationResult.pdfEngineUsed,
-          dataSnapshot: { ...event.structuredData },
+          dataSnapshot: { ...combinedData },
         });
+
+        // Sync to MongoDB if connected
+        try {
+          const conn = await connectToDatabase();
+          if (conn) {
+            await DocumentModel.create({
+              id: newDoc.id,
+              title: newDoc.title,
+              eventId: newDoc.eventId,
+              templateId: newDoc.templateId,
+              documentType: newDoc.documentType,
+              clubId: newDoc.clubId,
+              status: newDoc.status,
+              currentVersion: 1,
+              docxUrl: newDoc.docxUrl,
+              pdfUrl: newDoc.pdfUrl,
+              pdfEngineUsed: newDoc.pdfEngineUsed,
+              dataSnapshot: newDoc.dataSnapshot,
+            });
+
+            await DocumentVersionModel.create({
+              documentId: newDoc.id,
+              versionNumber: 1,
+              dataSnapshot: newDoc.dataSnapshot,
+              docxUrl: newDoc.docxUrl,
+              pdfUrl: newDoc.pdfUrl,
+              changeSummary: "Batch document generation",
+            });
+          }
+        } catch {
+          // MongoDB sync optional
+        }
 
         generatedDocuments.push(newDoc);
       } catch (genErr: any) {
@@ -85,10 +128,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (generatedDocuments.length === 0 && errors.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: errors.map((e) => `${e.templateName}: ${e.error}`).join("; "),
+            errors,
+          },
+        },
+        { status: 422 }
+      );
+    }
+
     const docIds = generatedDocuments.map((d) => d.id).join(",");
-    const zipDownloadUrl = generatedDocuments.length > 0
-      ? `/api/documents/batch-download?documentIds=${docIds}`
-      : null;
+    const zipDownloadUrl =
+      generatedDocuments.length > 0
+        ? `/api/documents/batch-download?documentIds=${docIds}`
+        : null;
 
     return NextResponse.json({
       success: true,

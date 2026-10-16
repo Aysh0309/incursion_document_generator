@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
-import { generateDocument } from "@/lib/document-engine/generator";
+import { generateDocument, validateTemplateSubmission } from "@/lib/document-engine/generator";
 import { evaluateMissingFields } from "@/schemas/event.schema";
 
 export async function POST(
@@ -36,21 +36,18 @@ export async function POST(
       ...(updatedEventData || {}),
     };
 
-    // Check required fields deterministically
-    const { missingFields } = evaluateMissingFields(
-      mergedData,
-      [template.documentType],
-      { [template.documentType]: template.requiredFields }
-    );
+    // Central Server-side validation
+    const validation = validateTemplateSubmission(template, mergedData);
 
-    if (missingFields.length > 0) {
+    if (!validation.valid) {
+      const missing = validation.errors.map((e) => e.label).join(", ");
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "MISSING_REQUIRED_FIELDS",
-            message: `Cannot regenerate document. Mandatory fields missing: ${missingFields.join(", ")}`,
-            missingFields,
+            message: `Cannot regenerate document. Missing required fields: ${missing}`,
+            validationErrors: validation.errors,
           },
         },
         { status: 422 }
@@ -62,9 +59,8 @@ export async function POST(
 
     const generationResult = await generateDocument({
       documentId: docId,
-      templateFileUrl: template.fileUrl,
-      documentType: template.documentType,
-      eventData: mergedData,
+      template,
+      fieldValues: mergedData,
       club,
     });
 

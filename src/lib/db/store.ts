@@ -39,27 +39,103 @@ const DEFAULT_CLUB: ClubBranding = {
   },
 };
 
+function buildDefaultFields(
+  keys: string[],
+  requiredKeys: string[]
+): import("@/types").TemplateField[] {
+  return keys.map((key) => {
+    const label = key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/[_\.]/g, " ")
+      .trim()
+      .replace(/^\w/, (c) => c.toUpperCase());
+
+    const isReq = requiredKeys.includes(key);
+    let type: import("@/types").FieldDataType = "text";
+    if (key.toLowerCase().includes("date")) type = "date";
+    else if (key.toLowerCase().includes("time")) type = "time";
+    else if (key.toLowerCase().includes("budget") || key.toLowerCase().includes("amount")) type = "currency";
+    else if (key.toLowerCase().includes("participant")) type = "number";
+    else if (key.toLowerCase().includes("email")) type = "email";
+    else if (key.toLowerCase().includes("phone")) type = "phone";
+    else if (key.toLowerCase().includes("description")) type = "textarea";
+
+    return {
+      id: `fld_${key}`,
+      name: key,
+      label,
+      type,
+      required: isReq,
+      confidence: 1.0,
+      adminConfirmed: true,
+      repeatedFieldKeys: [key],
+    };
+  });
+}
+
+const PROPOSAL_PLACEHOLDERS = [
+  "eventName",
+  "eventType",
+  "targetAudience",
+  "startDate",
+  "endDate",
+  "startTime",
+  "endTime",
+  "venue",
+  "eventDescription",
+  "expectedParticipants",
+  "budgetRequested",
+  "organizerName",
+  "facultyCoordinator",
+  "clubName",
+];
+
+const PERMISSION_PLACEHOLDERS = [
+  "eventName",
+  "startDate",
+  "startTime",
+  "endTime",
+  "venue",
+  "departmentHOD",
+  "facultyCoordinator",
+  "organizerName",
+  "clubName",
+  "eventDescription",
+  "expectedParticipants",
+  "targetAudience",
+];
+
+const INVITATION_PLACEHOLDERS = [
+  "eventName",
+  "startDate",
+  "startTime",
+  "endTime",
+  "venue",
+  "speakerName",
+  "speakerDesignation",
+  "speakerOrganization",
+  "speakerTopic",
+  "facultyCoordinator",
+  "organizerName",
+  "clubName",
+  "contactEmail",
+  "contactPhone",
+  "eventDescription",
+];
+
 const DEFAULT_TEMPLATES: TemplateMetadata[] = [
   {
     id: "tmpl_proposal_01",
     name: "Official Event Proposal",
     documentType: "EVENT_PROPOSAL",
+    format: "docx",
     description: "Standard institutional proposal format for Dean/Student Affairs sanction and budget clearance.",
     fileUrl: "/templates/event_proposal_template.docx",
+    fields: buildDefaultFields(PROPOSAL_PLACEHOLDERS, TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL),
     requiredFields: TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL,
-    optionalFields: ["speaker.name", "targetAudience", "objectives"],
-    placeholdersDetected: [
-      "eventName",
-      "eventType",
-      "startDate",
-      "endDate",
-      "venue",
-      "expectedParticipants",
-      "budgetRequested",
-      "facultyCoordinator",
-      "clubName",
-      "eventDescription",
-    ],
+    optionalFields: PROPOSAL_PLACEHOLDERS.filter((p) => !TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL.includes(p)),
+    placeholdersDetected: PROPOSAL_PLACEHOLDERS,
+    status: "PUBLISHED",
     version: 1,
     isActive: true,
     isSystemDefault: true,
@@ -69,22 +145,14 @@ const DEFAULT_TEMPLATES: TemplateMetadata[] = [
     id: "tmpl_permission_01",
     name: "HOD Lab / Venue Permission Letter",
     documentType: "PERMISSION_LETTER",
+    format: "docx",
     description: "Formal academic request letter to HOD or Lab In-Charge for booking facilities and hardware.",
     fileUrl: "/templates/permission_letter_template.docx",
+    fields: buildDefaultFields(PERMISSION_PLACEHOLDERS, TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER),
     requiredFields: TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER,
-    optionalFields: ["requiresLabComputers", "targetAudience"],
-    placeholdersDetected: [
-      "eventName",
-      "startDate",
-      "startTime",
-      "endTime",
-      "venue",
-      "departmentHOD",
-      "facultyCoordinator",
-      "organizerName",
-      "clubName",
-      "eventDescription",
-    ],
+    optionalFields: PERMISSION_PLACEHOLDERS.filter((p) => !TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER.includes(p)),
+    placeholdersDetected: PERMISSION_PLACEHOLDERS,
+    status: "PUBLISHED",
     version: 1,
     isActive: true,
     isSystemDefault: true,
@@ -94,22 +162,14 @@ const DEFAULT_TEMPLATES: TemplateMetadata[] = [
     id: "tmpl_invitation_01",
     name: "Guest Speaker / Dignitary Invitation",
     documentType: "INVITATION_LETTER",
+    format: "docx",
     description: "Formal letterhead invitation addressed to external industry resource persons and keynote speakers.",
     fileUrl: "/templates/invitation_letter_template.docx",
-    requiredFields: TEMPLATE_REQUIRED_FIELDS.INVITATION_LETTER,
-    optionalFields: ["speaker.topic", "isOnline", "meetingLink"],
-    placeholdersDetected: [
-      "eventName",
-      "startDate",
-      "startTime",
-      "venue",
-      "facultyCoordinator",
-      "clubName",
-      "contactEmail",
-      "speaker.name",
-      "speaker.organization",
-      "eventDescription",
-    ],
+    fields: buildDefaultFields(INVITATION_PLACEHOLDERS, ["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"]),
+    requiredFields: ["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"],
+    optionalFields: INVITATION_PLACEHOLDERS.filter((p) => !["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"].includes(p)),
+    placeholdersDetected: INVITATION_PLACEHOLDERS,
+    status: "PUBLISHED",
     version: 1,
     isActive: true,
     isSystemDefault: true,
@@ -182,17 +242,31 @@ class MemoryStore {
       if (fs.existsSync(STORAGE_FILE)) {
         const raw = fs.readFileSync(STORAGE_FILE, "utf-8");
         const parsed = JSON.parse(raw);
-        return {
-          club: parsed.club || DEFAULT_CLUB,
-          templates: parsed.templates || DEFAULT_TEMPLATES,
-          events: parsed.events || SAMPLE_EVENTS,
-          documents: parsed.documents || [],
-          versions: parsed.versions || [],
-        };
+        const rawTemplates: TemplateMetadata[] = parsed.templates || DEFAULT_TEMPLATES;
+          const normalizedTemplates = rawTemplates.map((t) => {
+            const format = t.format || (t.fileUrl?.endsWith(".pdf") ? "pdf" : "docx");
+            const fields = (t.fields && t.fields.length > 0)
+              ? t.fields
+              : buildDefaultFields(t.placeholdersDetected || [], t.requiredFields || []);
+            return {
+              ...t,
+              format,
+              status: t.status || "PUBLISHED",
+              fields,
+            };
+          });
+
+          return {
+            club: parsed.club || DEFAULT_CLUB,
+            templates: normalizedTemplates,
+            events: parsed.events || SAMPLE_EVENTS,
+            documents: parsed.documents || [],
+            versions: parsed.versions || [],
+          };
+        }
+      } catch (e) {
+        console.warn("Failed to read disk state, resetting to defaults", e);
       }
-    } catch (e) {
-      console.warn("Failed to read disk state, resetting to defaults", e);
-    }
 
     const initial: DatabaseState = {
       club: DEFAULT_CLUB,

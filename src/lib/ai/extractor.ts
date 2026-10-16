@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { DocumentType, ExtractionResult, StructuredEventData } from "@/types";
+import { DocumentType, ExtractionResult, StructuredEventData, TemplateField } from "@/types";
 import {
   evaluateMissingFields,
   StructuredEventDataSchema,
@@ -9,23 +9,24 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-const SYSTEM_EXTRACTION_PROMPT = `You are a strict, deterministic administrative data extraction engine for university club documents.
-Your goal is to parse raw user text into structured event parameters with 100% factual fidelity.
+const SYSTEM_EXTRACTION_PROMPT = `You are a strict, deterministic administrative data extraction engine for institutional document generation.
+Your goal is to parse raw user text into structured parameters with 100% factual fidelity.
 
 CRITICAL OPERATIONAL RULES:
-1. NEVER INVENT, ASSUME, EXTRAPOLATE, OR HALLUCINATE ANY OFFICIAL FACT.
-2. If a specific field (e.g., venue, facultyCoordinator, departmentHOD, budgetRequested, exact date, time, organizerName) is not explicitly stated or unambiguously deducible from the text, you MUST set its value to null.
-3. For dates, format as YYYY-MM-DD. If ambiguous, set to null.
-4. For times, format as "HH:MM AM/PM" or "HH:MM".
-5. Distinguish between EXPLICITLY PROVIDED facts and MISSING facts.
-6. Identify the user's intended document type(s) based on keywords (e.g., "proposal", "permission", "invite", "sponsor", "notice").
-7. Output pure JSON matching the requested structure.`;
+1. STRICT ZERO-ASSUMPTION POLICY: NEVER INVENT, ASSUME, EXTRAPOLATE, OR HALLUCINATE ANY OFFICIAL FACT.
+2. If a specific field (e.g., eventName, venue, date, time, facultyCoordinator, departmentHOD, budgetRequested, organizerName, speaker, contactEmail) is not explicitly stated or unambiguously deducible from the text, you MUST set its value to null.
+3. For dates: format strictly as YYYY-MM-DD. If ambiguous (e.g. "next month", "soon"), set to null.
+4. For times: format strictly as "HH:MM AM/PM" or "HH:MM". If unspecified, set to null.
+5. Never invent sample phone numbers, names, venues, or amounts.
+6. Output pure JSON matching the requested structure.`;
 
 /**
- * Intelligent fallback extractor when OPENAI_API_KEY is not set or USE_MOCK_AI is enabled.
- * Accurately extracts explicit facts from user text and leaves unmentioned facts strictly as null.
+ * Deterministic fallback extractor that leaves unstated facts strictly as null.
  */
-function mockExtractEventData(rawText: string): {
+function mockExtractEventData(
+  rawText: string,
+  allowedFieldKeys?: string[]
+): {
   data: StructuredEventData;
   detectedTypes: DocumentType[];
 } {
@@ -36,6 +37,7 @@ function mockExtractEventData(rawText: string): {
   const namePatterns = [
     /(?:organizing|host|conducting|plan(?:ning)?)\s+(?:an?|the)?\s*([A-Za-z0-9\s&+\-–—]+?)(?:\s+on|\s+at|\s+for|\s+from|\.|\,)/i,
     /event(?:\s+name)?(?:\s+is|\s*:)\s*([A-Za-z0-9\s&+\-–—]+?)(?:\.|\,|$)/i,
+    /titled\s+["']?([^"'\n\.\,]+)["']?/i,
   ];
   for (const pat of namePatterns) {
     const m = rawText.match(pat);
@@ -43,10 +45,6 @@ function mockExtractEventData(rawText: string): {
       eventName = m[1].trim();
       break;
     }
-  }
-  if (!eventName && (text.includes("workshop") || text.includes("hackathon") || text.includes("seminar"))) {
-    const m = rawText.match(/([A-Za-z0-9\s&+\-–—]+?(?:workshop|hackathon|seminar|session|fest))/i);
-    if (m) eventName = m[1].trim();
   }
 
   // 2. Event Type
@@ -56,7 +54,6 @@ function mockExtractEventData(rawText: string): {
   else if (text.includes("seminar") || text.includes("talk") || text.includes("lecture")) eventType = "SEMINAR";
   else if (text.includes("meeting")) eventType = "MEETING";
   else if (text.includes("competition") || text.includes("contest")) eventType = "COMPETITION";
-  else if (eventName) eventType = "TECHNICAL";
 
   // 3. Dates
   let startDate: string | null = null;
@@ -71,7 +68,6 @@ function mockExtractEventData(rawText: string): {
       if (m[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
         startDate = m[0];
       } else {
-        // Resolve month name
         const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
         const monthStr = (m[1].length > 2 && isNaN(Number(m[1])) ? m[1] : m[2]).toLowerCase().slice(0, 3);
         const dayStr = isNaN(Number(m[1])) ? m[2] : m[1];
@@ -163,7 +159,6 @@ function mockExtractEventData(rawText: string): {
     targetAudience = audMatch[1].trim();
   }
 
-  // Detected document types based on intent
   const detectedTypes: DocumentType[] = [];
   if (text.includes("permission") || text.includes("lab") || text.includes("hall") || text.includes("hod")) {
     detectedTypes.push("PERMISSION_LETTER");
@@ -175,13 +170,14 @@ function mockExtractEventData(rawText: string): {
     detectedTypes.push("INVITATION_LETTER");
   }
   if (detectedTypes.length === 0) {
-    detectedTypes.push("EVENT_PROPOSAL", "PERMISSION_LETTER");
+    detectedTypes.push("EVENT_PROPOSAL");
   }
 
+  // ZERO-ASSUMPTION POLICY: unmentioned fields MUST be null
   const structuredData: StructuredEventData = {
-    eventName: eventName || (text.includes("workshop") ? "Technical Workshop" : null),
-    eventType: eventType || "WORKSHOP",
-    eventDescription: rawText.slice(0, 300),
+    eventName: eventName || null,
+    eventType: eventType || null,
+    eventDescription: rawText.length > 10 ? rawText.slice(0, 400) : null,
     targetAudience: targetAudience || null,
     expectedParticipants: expectedParticipants || null,
     startDate: startDate || null,
@@ -199,8 +195,8 @@ function mockExtractEventData(rawText: string): {
     speaker: speakerName
       ? {
           name: speakerName,
-          designation: "Resource Person / Speaker",
-          organization: speakerOrg || "Industry Expert",
+          designation: null,
+          organization: speakerOrg || null,
         }
       : null,
     registrationDeadline: null,
@@ -213,12 +209,13 @@ function mockExtractEventData(rawText: string): {
 }
 
 /**
- * Main extraction function combining OpenAI Structured Outputs with runtime Zod verification
- * and deterministic missing-field evaluation.
+ * Main AI extraction engine.
+ * Supports template-schema-aware extraction and anti-hallucination clarification question generation.
  */
 export async function extractEventInformation(
   rawText: string,
-  targetDocumentTypes?: DocumentType[]
+  targetDocumentTypes?: DocumentType[],
+  templateFields?: TemplateField[]
 ): Promise<ExtractionResult> {
   const useMock = process.env.USE_MOCK_AI === "true" || !process.env.OPENAI_API_KEY || !openai;
 
@@ -226,24 +223,41 @@ export async function extractEventInformation(
   let detectedTypes: DocumentType[] = targetDocumentTypes || [];
 
   if (useMock) {
-    const mock = mockExtractEventData(rawText);
+    const mock = mockExtractEventData(
+      rawText,
+      templateFields ? templateFields.map((f) => f.name) : undefined
+    );
     extractedData = mock.data;
     if (!detectedTypes || detectedTypes.length === 0) {
       detectedTypes = mock.detectedTypes;
     }
   } else {
     try {
+      const allowedSchemaDescription = templateFields && templateFields.length > 0
+        ? `Target Template Fields allowed: ${templateFields.map((f) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ")}`
+        : "Standard Fields: eventName, eventType, startDate, endDate, startTime, endTime, venue, facultyCoordinator, departmentHOD, organizerName, budgetRequested, expectedParticipants, speaker, targetAudience, contactEmail";
+
+      const promptUser = `Extract administrative event information strictly from user text. Reference today is ${new Date().toISOString().split("T")[0]}.
+${allowedSchemaDescription}
+
+CRITICAL RULES:
+- If a field is not stated in user input, set its value to null. NEVER GUESS OR FABRICATE.
+- If a date is vague (e.g. "next month"), set startDate to null.
+- Output pure JSON.
+
+User Input:
+"""
+${rawText}
+"""`;
+
       const response = await openai!.chat.completions.create({
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         messages: [
           { role: "system", content: SYSTEM_EXTRACTION_PROMPT },
-          {
-            role: "user",
-            content: `Extract structured event information from this text. Reference today is 2026-10-10.\n\nUser Input:\n"""\n${rawText}\n"""`,
-          },
+          { role: "user", content: promptUser },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.1,
+        temperature: 0.0,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -257,18 +271,17 @@ export async function extractEventInformation(
       if (validated.success) {
         extractedData = validated.data as StructuredEventData;
       } else {
-        console.warn("Zod validation adjusted raw AI output", validated.error);
-        extractedData = mockExtractEventData(rawText).data;
+        const mock = mockExtractEventData(rawText);
+        extractedData = mock.data;
       }
 
       if (!detectedTypes || detectedTypes.length === 0) {
         detectedTypes = (parsedJson.detectedDocumentTypes as DocumentType[]) || [
           "EVENT_PROPOSAL",
-          "PERMISSION_LETTER",
         ];
       }
     } catch (err) {
-      console.warn("OpenAI API call failed or rate limited; falling back to deterministic local extractor:", err);
+      console.warn("AI extraction fallback to local extractor:", err);
       const mock = mockExtractEventData(rawText);
       extractedData = mock.data;
       if (!detectedTypes || detectedTypes.length === 0) {
@@ -278,8 +291,31 @@ export async function extractEventInformation(
   }
 
   // Deterministic Anti-Hallucination Gate:
-  // Evaluate missing mandatory fields across detected document types
-  const { missingFields, questions } = evaluateMissingFields(extractedData, detectedTypes);
+  // Evaluate missing fields based on templateFields (if provided) or standard document types
+  let missingFields: string[] = [];
+  const questions: any[] = [];
+
+  if (templateFields && templateFields.length > 0) {
+    const rawRecord = extractedData as any;
+    for (const f of templateFields) {
+      if (f.required && !f.isFixed && !f.isSystem) {
+        const val = rawRecord[f.name];
+        if (val === null || val === undefined || (typeof val === "string" && val.trim() === "")) {
+          missingFields.push(f.name);
+          questions.push({
+            fieldKey: f.name,
+            question: `Please provide the ${f.label || f.name} for this document.`,
+            reason: `Mandatory field required by template.`,
+            suggestedInputType: f.type === "textarea" ? "textarea" : f.type === "number" || f.type === "currency" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text",
+          });
+        }
+      }
+    }
+  } else {
+    const evaluated = evaluateMissingFields(extractedData, detectedTypes);
+    missingFields = evaluated.missingFields;
+    questions.push(...evaluated.questions);
+  }
 
   return {
     extractedData,

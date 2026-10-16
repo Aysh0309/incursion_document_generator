@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
+import { connectToDatabase } from "@/lib/db/mongoose";
+import { TemplateModel } from "@/models/Template";
 
 export async function GET(
   req: NextRequest,
@@ -41,7 +43,31 @@ export async function PATCH(
     }
 
     const updates = await req.json();
+
+    // If fields were updated, synchronize requiredFields, optionalFields, placeholdersDetected
+    if (updates.fields && Array.isArray(updates.fields)) {
+      updates.requiredFields = updates.fields
+        .filter((f: any) => f.required && !f.isFixed)
+        .map((f: any) => f.name);
+      updates.optionalFields = updates.fields
+        .filter((f: any) => !f.required && !f.isFixed)
+        .map((f: any) => f.name);
+      updates.placeholdersDetected = updates.fields.map((f: any) => f.name);
+    }
+
+    updates.updatedAt = new Date().toISOString();
+
     const updated = dbStore.updateTemplate(id, updates);
+
+    // Sync to MongoDB if connected
+    try {
+      const conn = await connectToDatabase();
+      if (conn) {
+        await TemplateModel.updateOne({ id }, { $set: updates });
+      }
+    } catch (e) {
+      // ignore db sync warning
+    }
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err: any) {

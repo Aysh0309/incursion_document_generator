@@ -4,113 +4,325 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-import PDFDocument from "pdfkit";
-import { ClubBranding, DocumentType, StructuredEventData } from "@/types";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import PDFKitDocument from "pdfkit";
+import { ClubBranding, DocumentType, TemplateField, TemplateMetadata } from "@/types";
 import { ensureDefaultTemplatesExist } from "./templates";
 
 const execAsync = promisify(exec);
 
-export interface GenerateDocumentOptions {
-  documentId: string;
-  templateFileUrl: string;
-  documentType: DocumentType;
-  eventData: StructuredEventData;
-  club: ClubBranding;
+export interface ValidationIssue {
+  field: string;
+  label: string;
+  message: string;
 }
 
-export interface GenerateDocumentResult {
-  docxPath: string;
-  pdfPath: string;
-  docxUrl: string;
-  pdfUrl: string;
-  pdfEngineUsed: "libreoffice" | "institutional_pdfkit";
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationIssue[];
 }
 
 /**
- * Enriches raw event data into human-friendly string values for template interpolation.
+ * Central server-side validation function.
+ * Strictly verifies all required fields without silent defaults.
  */
-function enrichTemplateContext(data: StructuredEventData, club: ClubBranding) {
-  const formattedBudget = data.budgetRequested
-    ? `INR ${data.budgetRequested.toLocaleString("en-IN")}/-`
-    : "Not Applicable";
+export function validateTemplateSubmission(
+  template: TemplateMetadata,
+  data: Record<string, any>
+): ValidationResult {
+  const errors: ValidationIssue[] = [];
 
-  let formattedDateRange = data.startDate || "Date To Be Confirmed";
-  if (data.startDate && data.endDate && data.startDate !== data.endDate) {
-    formattedDateRange = `${data.startDate} to ${data.endDate}`;
+  const fieldsToCheck = template.fields && template.fields.length > 0
+    ? template.fields
+    : (template.requiredFields || []).map((name) => ({
+        id: name,
+        name,
+        label: name.replace(/([A-Z])/g, " $1"),
+        type: "text" as const,
+        required: true,
+        isFixed: false,
+        isSystem: false,
+        confidence: 1.0,
+        adminConfirmed: true,
+      }));
+
+  for (const field of fieldsToCheck) {
+    if (!field.required || field.isFixed || field.isSystem) {
+      continue;
+    }
+
+    const val = data[field.name] ?? data[field.id];
+
+    // Check presence
+    if (val === undefined || val === null || (typeof val === "string" && val.trim() === "")) {
+      errors.push({
+        field: field.name,
+        label: field.label || field.name,
+        message: `${field.label || field.name} is a required field.`,
+      });
+      continue;
+    }
+
+    // Type-specific validations
+    if (field.type === "date") {
+      const dateStr = String(val).trim();
+      const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !isNaN(Date.parse(dateStr));
+      if (!isValidDate) {
+        errors.push({
+          field: field.name,
+          label: field.label,
+          message: `${field.label} must be a valid date (YYYY-MM-DD).`,
+        });
+      }
+    } else if (field.type === "email") {
+      const emailStr = String(val).trim();
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
+      if (!isValidEmail) {
+        errors.push({
+          field: field.name,
+          label: field.label,
+          message: `${field.label} must be a valid email address.`,
+        });
+      }
+    } else if (field.type === "number" || field.type === "currency") {
+      const numVal = Number(val);
+      if (isNaN(numVal) || numVal < 0) {
+        errors.push({
+          field: field.name,
+          label: field.label,
+          message: `${field.label} must be a positive number.`,
+        });
+      }
+    }
   }
 
-  const currentDate = new Date().toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   return {
-    ...data,
-    clubName: data.clubName || club.name,
-    universityName: club.universityName,
-    department: club.department,
-    contactEmail: data.contactEmail || club.contactEmail,
-    contactPhone: data.contactPhone || club.contactPhone,
-    facultyCoordinator: data.facultyCoordinator || club.facultyCoordinator.name,
-    departmentHOD: data.departmentHOD || "The Head of Department",
-    organizerName: data.organizerName || "Student Representative",
-    venue: data.venue || "Venue Pending Confirmation",
-    formattedBudget,
-    formattedDateRange,
-    currentDate,
-    startTime: data.startTime || "09:00 AM",
-    endTime: data.endTime || "05:00 PM",
-    expectedParticipants: data.expectedParticipants || 50,
-    speakerName: data.speaker?.name || "Distinguished Guest",
-    speakerDesignation: data.speaker?.designation || "Resource Person",
-    speakerOrganization: data.speaker?.organization || "Industry Partner",
-    speakerTopic: data.speaker?.topic || data.eventName || "Technical Presentation",
-    requiresLabComputers: data.requiresLabComputers ?? false,
-    hasBudgetRequested: (data.budgetRequested ?? 0) > 0,
+    valid: errors.length === 0,
+    errors,
   };
 }
 
 /**
- * Compiles a native DOCX file using Docxtemplater & PizZip.
+ * Fills an original PDF template using pdf-lib:
+ * - If fillable AcroForm, populates form fields
+ * - If static / ordinary PDF, overlays text at configured coordinates
+ * - 100% preserves original vectors, logos, stamps, layouts, and page sizes
  */
-export async function compileDocx(
+export async function fillPdfTemplate(
   templateRelativePath: string,
-  enrichedContext: Record<string, any>
+  template: TemplateMetadata,
+  fieldValues: Record<string, any>
+): Promise<Buffer> {
+  const fullTemplatePath = path.join(
+    process.cwd(),
+    "public",
+    templateRelativePath.replace(/^\//, "")
+  );
+
+  if (!fs.existsSync(fullTemplatePath)) {
+    throw new Error(`PDF Template file not found on disk at: ${fullTemplatePath}`);
+  }
+
+  const templateBytes = fs.readFileSync(fullTemplatePath);
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // 1. Fill AcroForm interactive fields if present
+  try {
+    const form = pdfDoc.getForm();
+    if (form) {
+      for (const field of template.fields || []) {
+        const val = field.isFixed
+          ? (field.fixedValue || "")
+          : (fieldValues[field.name] ?? fieldValues[field.id]);
+
+        if (val === undefined || val === null || val === "") continue;
+
+        const candidateNames = [
+          field.formFieldName,
+          field.name,
+          field.id,
+          field.label,
+          `{{${field.name}}}`,
+        ].filter(Boolean) as string[];
+
+        for (const name of candidateNames) {
+          try {
+            const textField = form.getTextField(name);
+            if (textField) {
+              textField.setText(String(val));
+              break;
+            }
+          } catch {
+            // Field name does not match an interactive text field, continue
+          }
+        }
+      }
+    }
+  } catch {
+    // PDF has no interactive form
+  }
+
+  // 2. Overlay coordinate-based fields on pages
+  const pageCount = pdfDoc.getPageCount();
+  for (const field of template.fields || []) {
+    const rawVal = field.isFixed
+      ? (field.fixedValue || "")
+      : (fieldValues[field.name] ?? fieldValues[field.id]);
+
+    if (rawVal === undefined || rawVal === null || rawVal === "") continue;
+
+    const valStr = String(rawVal);
+    const pageNum = Math.max(1, field.pageNumber || 1);
+    const pageIdx = pageNum - 1;
+
+    if (pageIdx < pageCount && field.boundingBox) {
+      const page = pdfDoc.getPage(pageIdx);
+      const { width: pageWidth, height: pageHeight } = page.getSize();
+      const bb = field.boundingBox;
+
+      // Font size tailored to box height with safety bounds
+      const fontSize = Math.max(8, Math.min(11, bb.height ? bb.height * 0.8 : 10));
+
+      // Overflow and wrapping calculation
+      const maxWidth = bb.width > 20 ? bb.width : Math.max(120, pageWidth - bb.x - 40);
+
+      // Simple word wrapping
+      const words = valStr.split(" ");
+      const lines: string[] = [];
+      let currentLine = "";
+
+      for (const w of words) {
+        const testLine = currentLine ? `${currentLine} ${w}` : w;
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+        if (testWidth > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = w;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      // Determine PDF coordinate system
+      // pdf-lib origin is bottom-left. If bb.y is provided from pdfjs-dist, it is relative to bottom.
+      const startX = Math.max(20, Math.min(pageWidth - 40, bb.x));
+      let startY = bb.y;
+      if (startY > pageHeight) startY = pageHeight - 50;
+
+      // Draw each wrapped line
+      for (let i = 0; i < lines.length; i++) {
+        const lineY = startY - i * (fontSize + 3);
+        if (lineY < 20) break; // prevent drawing off-page
+        page.drawText(lines[i], {
+          x: startX,
+          y: lineY,
+          size: fontSize,
+          font,
+          color: rgb(0.09, 0.09, 0.11),
+        });
+      }
+    }
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
+}
+
+/**
+ * Fills an original DOCX template using Docxtemplater:
+ * - Replaces placeholders across paragraphs, runs, tables, headers, and footers
+ * - Preserves all embedded logos, images, margins, and OpenXML styling
+ */
+export async function fillDocxTemplate(
+  templateRelativePath: string,
+  template: TemplateMetadata,
+  fieldValues: Record<string, any>
 ): Promise<Buffer> {
   ensureDefaultTemplatesExist();
 
-  const fullTemplatePath = path.join(process.cwd(), "public", templateRelativePath.replace(/^\//, ""));
+  const fullTemplatePath = path.join(
+    process.cwd(),
+    "public",
+    templateRelativePath.replace(/^\//, "")
+  );
+
   if (!fs.existsSync(fullTemplatePath)) {
-    throw new Error(`Template file not found at: ${fullTemplatePath}`);
+    throw new Error(`DOCX Template file not found on disk at: ${fullTemplatePath}`);
   }
 
   const templateContent = fs.readFileSync(fullTemplatePath);
   const zip = new PizZip(templateContent);
 
+  // Prepare full interpolation dictionary
+  const context: Record<string, any> = { ...fieldValues };
+
+  // Map each configured field
+  if (template.fields) {
+    for (const f of template.fields) {
+      const val = f.isFixed ? f.fixedValue : (fieldValues[f.name] ?? fieldValues[f.id]);
+      if (val !== undefined && val !== null) {
+        context[f.name] = val;
+        context[f.id] = val;
+        if (f.repeatedFieldKeys) {
+          for (const repKey of f.repeatedFieldKeys) {
+            context[repKey] = val;
+          }
+        }
+      }
+    }
+  }
+
+  // Handle formatters
+  if (context.budgetRequested && typeof context.budgetRequested === "number") {
+    context.formattedBudget = `INR ${context.budgetRequested.toLocaleString("en-IN")}/-`;
+  }
+  if (context.startDate && !context.formattedDateRange) {
+    context.formattedDateRange = context.endDate && context.endDate !== context.startDate
+      ? `${context.startDate} to ${context.endDate}`
+      : context.startDate;
+  }
+  context.currentDate = new Date().toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
+    delimiters: { start: "{", end: "}" },
     nullGetter: () => "",
   });
 
-  doc.render(enrichedContext);
+  try {
+    doc.render(context);
+  } catch (renderErr: any) {
+    // If standard single curly fails, try double curly delimiter
+    const doc2 = new Docxtemplater(new PizZip(templateContent), {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: "{{", end: "}}" },
+      nullGetter: () => "",
+    });
+    doc2.render(context);
+    return doc2.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+  }
 
-  const buf = doc.getZip().generate({
+  return doc.getZip().generate({
     type: "nodebuffer",
     compression: "DEFLATE",
   });
-
-  return buf;
 }
 
 /**
- * Attempts to convert a DOCX to PDF using headless LibreOffice.
+ * Attempts LibreOffice conversion if installed.
  */
 async function tryLibreOfficeConversion(docxPath: string, outputDir: string): Promise<string | null> {
   try {
     const customPath = process.env.LIBREOFFICE_PATH || "soffice";
-    // Check if executable runs within a 6-second timeout
     const cmd = `${customPath} --headless --convert-to pdf --outdir "${outputDir}" "${docxPath}"`;
     await execAsync(cmd, { timeout: 6000 });
 
@@ -121,27 +333,45 @@ async function tryLibreOfficeConversion(docxPath: string, outputDir: string): Pr
       return generatedPdfPath;
     }
   } catch {
-    // LibreOffice not available or failed; graceful fallback
+    // LibreOffice not available
   }
   return null;
 }
 
 /**
- * Vectorized Institutional PDF Generator (using PDFKit)
- * Generates an official university-standard document when LibreOffice is not installed.
+ * High-fidelity Vectorized PDF Generator for DOCX templates when LibreOffice is not installed.
+ * Reads the actual filled DOCX text and paragraphs to accurately generate a matching PDF.
  */
-function generateInstitutionalPdf(
+async function generatePdfFromFilledDocx(
+  docxBuffer: Buffer,
   outputPath: string,
-  docType: DocumentType,
-  context: Record<string, any>,
+  docTitle: string,
   club: ClubBranding
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
+    const zip = new PizZip(docxBuffer);
+    const docXml = zip.file("word/document.xml")?.asText() || "";
+
+    // Extract paragraphs in order
+    const pRegex = /<w:p(?:[\s>][\s\S]*?<\/w:p>|<\/>)/g;
+    const paragraphs: string[] = [];
+    let pMatch;
+
+    while ((pMatch = pRegex.exec(docXml)) !== null) {
+      const tRegex = /<w:t(?:[\s>][\s\S]*?>([\s\S]*?)<\/w:t>|\/>)/g;
+      let pText = "";
+      let tMatch;
+      while ((tMatch = tRegex.exec(pMatch[0])) !== null) {
+        if (tMatch[1]) pText += tMatch[1];
+      }
+      paragraphs.push(pText.trim());
+    }
+
+    const doc = new PDFKitDocument({
       size: "A4",
       margins: { top: 48, bottom: 48, left: 54, right: 54 },
       info: {
-        Title: `${context.eventName || "Official Document"} - ${club.name}`,
+        Title: docTitle,
         Author: club.name,
       },
     });
@@ -149,278 +379,178 @@ function generateInstitutionalPdf(
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
 
-    // Primary Colors
     const primaryColor = club.primaryColor || "#4F46E5";
     const darkText = "#18181B";
     const mutedText = "#475569";
-    const lightBorder = "#E2E8F0";
 
-    // 1. Institutional Letterhead Header
+    // Header bar
     doc
-      .fontSize(16)
+      .fontSize(14)
       .fillColor(primaryColor)
       .font("Helvetica-Bold")
       .text(club.universityName.toUpperCase(), { align: "center" });
 
     doc
-      .fontSize(10)
+      .fontSize(9)
       .fillColor(mutedText)
       .font("Helvetica")
       .text(`${club.department} | ${club.name}`, { align: "center" })
       .moveDown(0.2);
 
-    doc
-      .fontSize(8)
-      .fillColor("#64748B")
-      .text(`Email: ${club.contactEmail}  •  Phone: ${club.contactPhone}`, { align: "center" })
-      .moveDown(0.6);
-
-    // Top Header Divider Bar
     const currentY = doc.y;
     doc.strokeColor(primaryColor).lineWidth(1.5).moveTo(54, currentY).lineTo(541, currentY).stroke();
-    doc.strokeColor("#94A3B8").lineWidth(0.5).moveTo(54, currentY + 3).lineTo(541, currentY + 3).stroke();
-    doc.y = currentY + 12;
+    doc.y = currentY + 14;
 
-    // Date & Reference
-    doc
-      .fontSize(9)
-      .font("Helvetica-Bold")
-      .fillColor(darkText)
-      .text(`Ref: ${club.slug.toUpperCase()}/${new Date().getFullYear()}/${context.eventType || "DOC"}`, 54, doc.y, { continued: true })
-      .text(`Date: ${context.currentDate}`, { align: "right" })
-      .moveDown(1);
+    // Render paragraphs from the original DOCX
+    for (const para of paragraphs) {
+      if (!para) {
+        doc.moveDown(0.4);
+        continue;
+      }
 
-    // 2. Document Title Banner
-    let bannerTitle = "OFFICIAL EVENT PROPOSAL";
-    if (docType === "PERMISSION_LETTER") bannerTitle = "FACILITY & LAB PERMISSION REQUISITION";
-    if (docType === "INVITATION_LETTER") bannerTitle = "OFFICIAL INVITATION TO GUEST SPEAKER";
+      // Check if heading or section
+      if (/^[0-9]+\.\s+[A-Z\s&]+$/.test(para) || /^[A-Z\s]{4,}$/.test(para)) {
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(primaryColor)
+          .text(para)
+          .moveDown(0.3);
+      } else if (para.startsWith("To,") || para.startsWith("Subject:")) {
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(9.5)
+          .fillColor(darkText)
+          .text(para)
+          .moveDown(0.3);
+      } else if (para.includes("-------")) {
+        const y = doc.y;
+        doc.strokeColor("#E2E8F0").lineWidth(0.5).moveTo(54, y).lineTo(541, y).stroke();
+        doc.y = y + 8;
+      } else {
+        doc
+          .font("Helvetica")
+          .fontSize(9)
+          .fillColor(darkText)
+          .text(para, { align: "justify", lineGap: 2.5 })
+          .moveDown(0.4);
+      }
 
-    doc
-      .rect(54, doc.y, 487, 24)
-      .fill("#F1F5F9")
-      .fillColor(primaryColor)
-      .font("Helvetica-Bold")
-      .fontSize(11)
-      .text(bannerTitle, 54, doc.y + 6, { align: "center" })
-      .moveDown(1.2);
-
-    // 3. Body Content customized by Document Type
-    if (docType === "PERMISSION_LETTER") {
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(9.5)
-        .fillColor(darkText)
-        .text("To,")
-        .font("Helvetica")
-        .text(`The Head of Department,`)
-        .text(club.department)
-        .text(club.universityName)
-        .moveDown(0.8);
-
-      doc
-        .font("Helvetica-Bold")
-        .text(`Subject: Requisition for room and lab allocation for "${context.eventName}"`)
-        .moveDown(0.8);
-
-      doc
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text("Respected Sir/Madam,")
-        .moveDown(0.5)
-        .text(
-          `We, the student coordinators of ${club.name}, are planning to organize an event titled "${context.eventName}" for ${context.targetAudience || "our college students"}.`
-        )
-        .moveDown(0.5);
-
-      // Logistics Table Box
-      const tableY = doc.y;
-      doc.rect(54, tableY, 487, 85).strokeColor(lightBorder).stroke();
-      doc.fillColor(darkText).font("Helvetica-Bold").fontSize(9);
-
-      const items = [
-        ["Event Name:", context.eventName || "—"],
-        ["Scheduled Date:", context.formattedDateRange],
-        ["Timings:", `${context.startTime} to ${context.endTime}`],
-        ["Requested Venue / Lab:", context.venue || "—"],
-        ["Expected Attendees:", `${context.expectedParticipants} students`],
-      ];
-
-      items.forEach((item, idx) => {
-        const rowY = tableY + 8 + idx * 15;
-        doc.font("Helvetica-Bold").text(item[0], 64, rowY);
-        doc.font("Helvetica").text(item[1], 210, rowY);
-      });
-
-      doc.y = tableY + 98;
-      doc
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(`Objectives & Summary:\n${context.eventDescription || "Hands-on academic and technical session."}`)
-        .moveDown(0.5)
-        .text(
-          "We kindly request your permission to utilize the premises and computing infrastructure to conduct the session smoothly."
-        )
-        .moveDown(1.5);
-    } else if (docType === "INVITATION_LETTER") {
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(9.5)
-        .fillColor(darkText)
-        .text("To,")
-        .font("Helvetica-Bold")
-        .text(context.speakerName)
-        .font("Helvetica")
-        .text(context.speakerDesignation)
-        .text(context.speakerOrganization)
-        .moveDown(0.8);
-
-      doc
-        .font("Helvetica-Bold")
-        .text(`Subject: Official Invitation as Keynote Speaker for "${context.eventName}"`)
-        .moveDown(0.8);
-
-      doc
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(`Dear ${context.speakerName},`)
-        .moveDown(0.5)
-        .text(
-          `On behalf of ${club.name} and the ${club.department} at ${club.universityName}, we have the distinct privilege of inviting you as our distinguished speaker for "${context.eventName}".`
-        )
-        .moveDown(0.5)
-        .text(
-          `The session is scheduled on ${context.formattedDateRange} from ${context.startTime} to ${context.endTime} at ${context.venue}.`
-        )
-        .moveDown(0.5)
-        .text(
-          `Topic / Presentation Area: ${context.speakerTopic}\nTarget Audience: ${context.targetAudience || "Undergraduate Engineering Students"} (approx. ${context.expectedParticipants} attendees).`
-        )
-        .moveDown(0.5)
-        .text(
-          `We would be deeply honored by your presence and look forward to your valuable insights. Kindly confirm your availability at ${context.contactEmail}.`
-        )
-        .moveDown(1.5);
-    } else {
-      // Event Proposal
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .text("1. BASIC EVENT DETAILS")
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(`• Title: ${context.eventName}`)
-        .text(`• Type: ${context.eventType}`)
-        .text(`• Target Audience: ${context.targetAudience || "College Students"}`)
-        .moveDown(0.6);
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .text("2. LOGISTICS & TIMINGS")
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(`• Date(s): ${context.formattedDateRange}`)
-        .text(`• Timings: ${context.startTime} to ${context.endTime}`)
-        .text(`• Venue: ${context.venue}`)
-        .moveDown(0.6);
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .text("3. OBJECTIVES & SYNOPSIS")
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(context.eventDescription || "Technical and practical learning initiative.")
-        .moveDown(0.6);
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .text("4. FINANCIAL & ATTENDANCE ESTIMATE")
-        .font("Helvetica")
-        .fontSize(9.5)
-        .text(`• Expected Attendance: ${context.expectedParticipants} participants`)
-        .text(`• Budget Requested: ${context.formattedBudget}`)
-        .moveDown(1.5);
+      // Handle page overflow safely
+      if (doc.y > 750) {
+        doc.addPage();
+      }
     }
 
-    // 4. Institutional Sign-Off Block
-    const signY = Math.max(doc.y + 10, 680);
-    doc.strokeColor(lightBorder).lineWidth(0.5).moveTo(54, signY - 8).lineTo(541, signY - 8).stroke();
-
-    doc
-      .fontSize(9)
-      .fillColor(darkText)
-      .font("Helvetica-Bold")
-      .text("Submitted By:", 64, signY)
-      .text("Endorsed & Forwarded By:", 340, signY)
-      .moveDown(2);
-
-    doc
-      .font("Helvetica-Bold")
-      .text(context.organizerName || "Student Lead", 64, signY + 36)
-      .text(context.facultyCoordinator || "Faculty Coordinator", 340, signY + 36);
-
-    doc
-      .font("Helvetica")
-      .fontSize(8)
-      .fillColor(mutedText)
-      .text(`Student Lead, ${club.name}`, 64, signY + 48)
-      .text(`Faculty Advisor, ${club.department}`, 340, signY + 48);
-
     doc.end();
-
     stream.on("finish", () => resolve());
     stream.on("error", (err) => reject(err));
   });
 }
 
+export interface GenerateDocumentOptions {
+  documentId: string;
+  template: TemplateMetadata;
+  fieldValues: Record<string, any>;
+  club: ClubBranding;
+}
+
+export interface GenerateDocumentResult {
+  docxPath: string;
+  pdfPath: string;
+  docxUrl: string;
+  pdfUrl: string;
+  pdfEngineUsed: "pdf_lib_direct" | "libreoffice" | "institutional_pdfkit";
+  format: "docx" | "pdf";
+}
+
 /**
- * Main document generation orchestrator:
- * 1. Prepares enriched context
- * 2. Compiles binary DOCX via Docxtemplater
- * 3. Compiles PDF via LibreOffice (or institutional PDFKit engine)
- * 4. Persists files to public/generated/
+ * Main unified document generator:
+ * - Validates all required fields
+ * - If PDF template: fills the original PDF directly using pdf-lib
+ * - If DOCX template: fills original DOCX using docxtemplater and converts/renders PDF
+ * - Verifies generated outputs exist on disk
  */
 export async function generateDocument(
   options: GenerateDocumentOptions
 ): Promise<GenerateDocumentResult> {
+  const { documentId, template, fieldValues, club } = options;
+
+  // 1. Server-side validation gate
+  const validation = validateTemplateSubmission(template, fieldValues);
+  if (!validation.valid) {
+    const errorDetails = validation.errors.map((e) => `${e.label}: ${e.message}`).join(", ");
+    throw new Error(`Validation failed for template '${template.name}': ${errorDetails}`);
+  }
+
   const generatedDir = path.join(process.cwd(), "public", "generated");
   if (!fs.existsSync(generatedDir)) {
     fs.mkdirSync(generatedDir, { recursive: true });
   }
 
-  const enrichedContext = enrichTemplateContext(options.eventData, options.club);
-  const docxFileName = `${options.documentId}.docx`;
-  const pdfFileName = `${options.documentId}.pdf`;
+  const isPdfTemplate =
+    template.format === "pdf" || template.fileUrl.toLowerCase().endsWith(".pdf");
 
-  const docxFullPath = path.join(generatedDir, docxFileName);
-  const pdfFullPath = path.join(generatedDir, pdfFileName);
+  if (isPdfTemplate) {
+    // Generate directly from original PDF template
+    const pdfFileName = `${documentId}.pdf`;
+    const pdfFullPath = path.join(generatedDir, pdfFileName);
 
-  // 1. Generate DOCX
-  const docxBuffer = await compileDocx(options.templateFileUrl, enrichedContext);
-  fs.writeFileSync(docxFullPath, docxBuffer);
+    const pdfBuffer = await fillPdfTemplate(template.fileUrl, template, fieldValues);
+    fs.writeFileSync(pdfFullPath, pdfBuffer);
 
-  // 2. Generate PDF
-  let pdfEngineUsed: "libreoffice" | "institutional_pdfkit" = "institutional_pdfkit";
-  const libreResult = await tryLibreOfficeConversion(docxFullPath, generatedDir);
-
-  if (libreResult && fs.existsSync(libreResult)) {
-    pdfEngineUsed = "libreoffice";
-    if (libreResult !== pdfFullPath) {
-      fs.copyFileSync(libreResult, pdfFullPath);
+    // Verify file exists and is readable
+    if (!fs.existsSync(pdfFullPath) || fs.statSync(pdfFullPath).size === 0) {
+      throw new Error(`Failed to write valid generated PDF file for ${documentId}`);
     }
-  } else {
-    // High-fidelity Institutional PDFKit generation
-    await generateInstitutionalPdf(pdfFullPath, options.documentType, enrichedContext, options.club);
-    pdfEngineUsed = "institutional_pdfkit";
-  }
 
-  return {
-    docxPath: docxFullPath,
-    pdfPath: pdfFullPath,
-    docxUrl: `/generated/${docxFileName}`,
-    pdfUrl: `/generated/${pdfFileName}`,
-    pdfEngineUsed,
-  };
+    return {
+      docxPath: "",
+      pdfPath: pdfFullPath,
+      docxUrl: "",
+      pdfUrl: `/generated/${pdfFileName}`,
+      pdfEngineUsed: "pdf_lib_direct",
+      format: "pdf",
+    };
+  } else {
+    // DOCX Template Pipeline
+    const docxFileName = `${documentId}.docx`;
+    const pdfFileName = `${documentId}.pdf`;
+    const docxFullPath = path.join(generatedDir, docxFileName);
+    const pdfFullPath = path.join(generatedDir, pdfFileName);
+
+    const docxBuffer = await fillDocxTemplate(template.fileUrl, template, fieldValues);
+    fs.writeFileSync(docxFullPath, docxBuffer);
+
+    let pdfEngineUsed: "libreoffice" | "institutional_pdfkit" = "institutional_pdfkit";
+    const libreResult = await tryLibreOfficeConversion(docxFullPath, generatedDir);
+
+    if (libreResult && fs.existsSync(libreResult)) {
+      pdfEngineUsed = "libreoffice";
+      if (libreResult !== pdfFullPath) {
+        fs.copyFileSync(libreResult, pdfFullPath);
+      }
+    } else {
+      await generatePdfFromFilledDocx(
+        docxBuffer,
+        pdfFullPath,
+        `${template.name} - ${fieldValues.eventName || "Official Document"}`,
+        club
+      );
+      pdfEngineUsed = "institutional_pdfkit";
+    }
+
+    if (!fs.existsSync(docxFullPath) || !fs.existsSync(pdfFullPath)) {
+      throw new Error(`Generated files verification failed for ${documentId}`);
+    }
+
+    return {
+      docxPath: docxFullPath,
+      pdfPath: pdfFullPath,
+      docxUrl: `/generated/${docxFileName}`,
+      pdfUrl: `/generated/${pdfFileName}`,
+      pdfEngineUsed,
+      format: "docx",
+    };
+  }
 }

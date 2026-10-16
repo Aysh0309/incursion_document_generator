@@ -21,236 +21,232 @@ import {
   Loader2,
   RefreshCw,
   Edit3,
+  ShieldCheck,
+  ChevronRight,
+  ArrowLeft,
+  FileDown,
 } from "lucide-react";
-import { DocumentType, ExtractionResult, StructuredEventData, TemplateMetadata } from "@/types";
+import { DocumentType, TemplateField, TemplateMetadata, ExtractionResult } from "@/types";
 
 const SAMPLE_PROMPTS = [
   {
-    label: "Google Cloud AI Workshop",
-    text: "We are organizing an AI workshop on November 14, 2026 at CS Lab 3 from 9:30 AM to 4:30 PM. Organized by GDSC. Faculty coordinator is Prof. Sharma. Requested budget is INR 15,000. Speaker is Dev Sharma from Google. Expected attendees: 85 students.",
+    label: "Comprehensive Workshop Details",
+    text: "We are organizing a hands-on AI Workshop on November 14, 2026 at CS Lab 3 from 09:30 AM to 04:30 PM. Targeted for 2nd and 3rd year CSE students. Organized by GDSC. Faculty coordinator is Dr. Sunita Sharma. Department HOD is Dr. Arvind Verma. Student lead is Aarav Patel. Requested budget is INR 15,000 for student refreshment kits. Expected attendance: 85 participants.",
   },
   {
-    label: "Incomplete Brainstorm (Triggers Clarification)",
-    text: "Planning a hands-on cybersecurity capture the flag competition next month for 2nd and 3rd year CSE students. Lead is Aarav Patel. Need permission from HOD Dr. Verma. Budget is 5000 INR.",
+    label: "Partial Description (Triggers Missing Field Prompts)",
+    text: "I want to organize a coding competition for the Computer Science department next month. Student lead is Aarav Patel. Requested budget is 5000 INR.",
   },
   {
-    label: "Industry Guest Keynote",
-    text: "Inviting Dr. Rajesh Mehta from Microsoft Research to deliver a distinguished keynote on Quantum Computing on December 5, 2026 at Turing Auditorium from 10:00 AM to 1:00 PM. Coordinated by Dr. Sunita Sharma.",
+    label: "Official Guest Speaker Keynote",
+    text: "Inviting Dr. Rajesh Mehta from Microsoft Research to deliver a keynote on Quantum Computing on December 5, 2026 at Turing Auditorium from 10:00 AM to 1:00 PM. Coordinated by Dr. Sunita Sharma. Contact email: gdsc.leads@nit.ac.in.",
   },
 ];
 
 function EventCreationStudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const templateIdParam = searchParams.get("templateId");
   const eventIdParam = searchParams.get("eventId");
 
-  // Workflow Step: 1 = Input, 2 = Clarify & Review, 3 = Select Templates & Generate
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // Workflow Steps:
+  // 1 = Select Template
+  // 2 = Complete Dynamic Questionnaire (AI Assisted or Direct Form)
+  // 3 = Review & Generate Document
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
-  // Input Mode: Plain English vs Structured Form
-  const [inputMode, setInputMode] = useState<"plain" | "form">("plain");
-  const [rawText, setRawText] = useState("");
-  const [extracting, setExtracting] = useState(false);
-  const [extractError, setExtractError] = useState<string | null>(null);
-
-  // Structured State
-  const [structuredData, setStructuredData] = useState<StructuredEventData>({
-    eventName: "",
-    eventType: "WORKSHOP",
-    eventDescription: "",
-    targetAudience: "CSE Students",
-    expectedParticipants: 50,
-    startDate: "2026-11-14",
-    endDate: "2026-11-14",
-    startTime: "09:30 AM",
-    endTime: "04:30 PM",
-    venue: "",
-    isOnline: false,
-    meetingLink: null,
-    organizerName: "Student Representative",
-    clubName: "Google Developer Student Club (GDSC)",
-    facultyCoordinator: "",
-    departmentHOD: "",
-    budgetRequested: 10000,
-    speaker: {
-      name: "",
-      designation: "",
-      organization: "",
-      email: "",
-      topic: "",
-    },
-    registrationDeadline: null,
-    contactEmail: "gdsc.leads@nit.ac.in",
-    contactPhone: "+91 98765 43210",
-    requiresLabComputers: true,
-  });
-
-  // Clarification questions detected by the deterministic gate
-  const [missingQuestions, setMissingQuestions] = useState<any[]>([]);
-  const [clarificationAnswers, setClarificationAnswers] = useState<Record<string, any>>({});
-
-  // Available templates and user selection
+  // Available templates & selected template
   const [templates, setTemplates] = useState<TemplateMetadata[]>([]);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
-  const [generating, setGenerating] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateMetadata | null>(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  // Dynamic field values: keyed by field.name
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
-  // Load existing event or templates
+  // Natural Language AI Input
+  const [naturalLanguageInput, setNaturalLanguageInput] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [aiClarificationQuestions, setAiClarificationQuestions] = useState<any[]>([]);
+
+  // Generation status
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // Load templates on mount
   useEffect(() => {
     fetch("/api/templates")
       .then((r) => r.json())
       .then((res) => {
         if (res.success && res.data) {
           setTemplates(res.data);
-          // By default pre-select top 2 templates for convenience
-          setSelectedTemplateIds(res.data.slice(0, 2).map((t: any) => t.id));
-        }
-      });
-
-    if (eventIdParam) {
-      fetch(`/api/events/${eventIdParam}`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.success && res.data) {
-            setActiveEventId(res.data.id);
-            setStructuredData(res.data.structuredData);
-            if (res.data.rawInputText) setRawText(res.data.rawInputText);
-            setCurrentStep(2);
+          const initial = templateIdParam
+            ? res.data.find((t: any) => t.id === templateIdParam)
+            : res.data[0];
+          if (initial) {
+            handleSelectTemplate(initial);
           }
-        });
-    }
-  }, [eventIdParam]);
+        }
+      })
+      .finally(() => setLoadingTemplates(false));
+  }, [templateIdParam]);
 
-  // Handler: Run deterministic AI Extraction
-  const handleExtract = async () => {
-    if (!rawText.trim()) {
-      setExtractError("Please provide an event description before extracting.");
+  // When a template is selected, initialize form values
+  const handleSelectTemplate = (template: TemplateMetadata) => {
+    setSelectedTemplate(template);
+    const initialValues: Record<string, any> = { ...formData };
+
+    (template.fields || []).forEach((field) => {
+      if (initialValues[field.name] === undefined) {
+        if (field.isFixed && field.fixedValue) {
+          initialValues[field.name] = field.fixedValue;
+        } else if (field.name === "startDate" || field.name === "endDate") {
+          initialValues[field.name] = "";
+        } else if (field.type === "number" || field.type === "currency") {
+          initialValues[field.name] = "";
+        } else {
+          initialValues[field.name] = "";
+        }
+      }
+    });
+
+    setFormData(initialValues);
+  };
+
+  // Field change handler
+  const handleFieldChange = (key: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  // AI Extraction for selected template
+  const handleExtractFromDescription = async () => {
+    if (!naturalLanguageInput.trim()) {
+      setExtractError("Please describe your event in English before extracting.");
       return;
     }
 
     setExtracting(true);
     setExtractError(null);
+    setGenerationError(null);
 
     try {
       const res = await fetch("/api/ai/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText }),
+        body: JSON.stringify({
+          rawText: naturalLanguageInput,
+          templateId: selectedTemplate?.id,
+          targetDocumentTypes: selectedTemplate ? [selectedTemplate.documentType] : undefined,
+        }),
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (!data.success) {
         throw new Error(data.error?.message || "Extraction failed");
       }
 
       const result: ExtractionResult = data.data;
+      const extracted = result.extractedData as any;
 
-      // Merge extracted fields into structured state
-      setStructuredData((prev) => ({
-        ...prev,
-        ...result.extractedData,
-        speaker: result.extractedData.speaker || prev.speaker,
-      }));
-
-      setMissingQuestions(result.missingFieldQuestions || []);
-
-      // Save as event in backend
-      const saveRes = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventName: result.extractedData.eventName || "New Event",
-          rawInputText: rawText,
-          structuredData: result.extractedData,
-          targetDocumentTypes: result.detectedDocumentTypes,
-        }),
-      });
-      const saved = await saveRes.json();
-      if (saved.success) {
-        setActiveEventId(saved.data.id);
+      // Map extracted values strictly to matching template fields
+      const updatedValues = { ...formData };
+      if (selectedTemplate?.fields) {
+        for (const field of selectedTemplate.fields) {
+          const extractedVal = extracted[field.name] ?? extracted[field.id];
+          if (extractedVal !== null && extractedVal !== undefined && extractedVal !== "") {
+            updatedValues[field.name] = extractedVal;
+          }
+        }
       }
 
-      // Move to Clarify & Review step
-      setCurrentStep(2);
+      setFormData(updatedValues);
+      setAiClarificationQuestions(result.missingFieldQuestions || []);
     } catch (err: any) {
-      setExtractError(err.message || "Failed to extract information");
+      setExtractError(err.message || "Failed to extract parameters from text");
     } finally {
       setExtracting(false);
     }
   };
 
-  // Handler: Save Clarification Answers
-  const handleSaveClarifications = async () => {
-    const updated = { ...structuredData, ...clarificationAnswers };
+  // Calculate completion for required fields
+  const fields = selectedTemplate?.fields || [];
+  const requiredFields = fields.filter((f) => f.required && !f.isFixed && !f.isSystem);
+  const completedRequiredCount = requiredFields.filter((f) => {
+    const val = formData[f.name];
+    return val !== undefined && val !== null && String(val).trim() !== "";
+  }).length;
+  const totalRequiredCount = requiredFields.length;
+  const isFormComplete = totalRequiredCount === 0 || completedRequiredCount === totalRequiredCount;
 
-    // Update state
-    setStructuredData(updated);
+  // Final generation submission
+  const handleGenerate = async () => {
+    if (!selectedTemplate) return;
 
-    if (activeEventId) {
-      await fetch(`/api/events/${activeEventId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: clarificationAnswers }),
-      });
-    }
+    if (!isFormComplete) {
+      const missingList = requiredFields
+        .filter((f) => {
+          const val = formData[f.name];
+          return val === undefined || val === null || String(val).trim() === "";
+        })
+        .map((f) => f.label || f.name);
 
-    // Clear resolved questions and advance to Template Selection
-    setMissingQuestions([]);
-    setCurrentStep(3);
-  };
-
-  // Handler: Batch Document Generation
-  const handleGenerateDocuments = async () => {
-    if (selectedTemplateIds.length === 0) {
-      alert("Please select at least one document template.");
+      setGenerationError(
+        `Cannot generate document. Please complete all mandatory fields: ${missingList.join(", ")}`
+      );
       return;
     }
 
     setGenerating(true);
+    setGenerationError(null);
 
     try {
-      // Ensure event is saved first
+      // 1. Create or update event record
       let eventId = activeEventId;
-      if (!eventId) {
-        const createRes = await fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: structuredData.eventName || "New Event",
-            rawInputText: rawText,
-            structuredData,
-          }),
-        });
-        const created = await createRes.json();
-        eventId = created.data.id;
-        setActiveEventId(eventId);
-      }
+      const eventName = formData.eventName || formData.event_name || formData.title || "Official Event";
 
-      // Trigger Batch Generation
-      const genRes = await fetch("/api/documents/batch", {
+      const eventRes = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventName,
+          rawInputText: naturalLanguageInput || `Event: ${eventName}`,
+          structuredData: formData,
+        }),
+      });
+
+      const eventJson = await eventRes.json();
+      if (!eventJson.success) {
+        throw new Error(eventJson.error?.message || "Failed to persist event record");
+      }
+      eventId = eventJson.data.id;
+      setActiveEventId(eventId);
+
+      // 2. Generate Document from selected template
+      const genRes = await fetch("/api/documents/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId,
-          templateIds: selectedTemplateIds,
+          templateId: selectedTemplate.id,
+          fieldValues: formData,
         }),
       });
 
       const genData = await genRes.json();
-
-      if (!genData.success) {
-        throw new Error(genData.error?.message || "Generation failed");
+      if (!genRes.ok || !genData.success) {
+        throw new Error(
+          genData.error?.message || "Generation failed. Please verify required fields."
+        );
       }
 
-      const docs = genData.data.generatedDocuments || [];
-      if (docs.length > 0) {
-        // Redirect to the first generated document's review page
-        router.push(`/documents/${docs[0].id}`);
-      } else {
-        router.push("/documents");
-      }
+      // 3. Redirect immediately to the document review studio
+      router.push(`/documents/${genData.data.id}`);
     } catch (err: any) {
-      alert(err.message || "Document generation encountered an error");
+      setGenerationError(err.message || "Failed to generate document");
     } finally {
       setGenerating(false);
     }
@@ -263,437 +259,66 @@ function EventCreationStudioContent() {
         <div className="p-4 rounded-lg border border-[#E2E8F0] bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
           <div>
             <h1 className="text-base font-bold text-[#18181B] tracking-tight">
-              Event Document Creation Studio
+              Smart Document Generator
             </h1>
             <p className="text-xs text-[#64748B]">
-              Provide event requirements once; generate compliant institutional letters and proposals.
+              Select a verified template, complete all dynamic required fields, and generate from the original layout.
             </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
             <span
-              className={`px-2.5 py-1 rounded-md font-semibold ${
+              onClick={() => setCurrentStep(1)}
+              className={`px-2.5 py-1 rounded-md font-semibold cursor-pointer ${
                 currentStep === 1
                   ? "bg-[#4F46E5] text-white"
-                  : "bg-[#F1F5F9] text-[#64748B]"
+                  : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#EEF2FF]"
               }`}
             >
-              1. Input
+              1. Select Template
             </span>
             <span className="text-[#CBD5E1]">→</span>
             <span
-              className={`px-2.5 py-1 rounded-md font-semibold ${
+              onClick={() => {
+                if (selectedTemplate) setCurrentStep(2);
+              }}
+              className={`px-2.5 py-1 rounded-md font-semibold cursor-pointer ${
                 currentStep === 2
                   ? "bg-[#4F46E5] text-white"
-                  : "bg-[#F1F5F9] text-[#64748B]"
+                  : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#EEF2FF]"
               }`}
             >
-              2. Clarify & Review
-            </span>
-            <span className="text-[#CBD5E1]">→</span>
-            <span
-              className={`px-2.5 py-1 rounded-md font-semibold ${
-                currentStep === 3
-                  ? "bg-[#4F46E5] text-white"
-                  : "bg-[#F1F5F9] text-[#64748B]"
-              }`}
-            >
-              3. Generate
+              2. Complete Questionnaire & Generate
             </span>
           </div>
         </div>
 
-        {/* STEP 1: DUAL INPUT INTERFACE */}
+        {/* STEP 1: TEMPLATE SELECTION */}
         {currentStep === 1 && (
-          <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
-            <div className="border-b border-[#E2E8F0] px-5 py-3 flex items-center justify-between bg-[#FCFDFE]">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setInputMode("plain")}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
-                    inputMode === "plain"
-                      ? "bg-[#4F46E5] text-white"
-                      : "text-[#64748B] hover:text-[#18181B] hover:bg-[#F1F5F9]"
-                  }`}
-                >
-                  Plain English Brainstorm
-                </button>
-                <button
-                  onClick={() => setInputMode("form")}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
-                    inputMode === "form"
-                      ? "bg-[#4F46E5] text-white"
-                      : "text-[#64748B] hover:text-[#18181B] hover:bg-[#F1F5F9]"
-                  }`}
-                >
-                  Structured Form Entry
-                </button>
-              </div>
-
-              <span className="text-[11px] text-[#059669] font-medium flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Zero Hallucination Guaranteed</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold text-[#18181B] uppercase tracking-wider">
+                Step 1: Choose Your Document Template
+              </h2>
+              <span className="text-[11px] text-[#64748B]">
+                {templates.length} Active Templates Available
               </span>
             </div>
 
-            {inputMode === "plain" ? (
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
-                    Describe your upcoming event in natural language:
-                  </label>
-                  <textarea
-                    rows={6}
-                    value={rawText}
-                    onChange={(e) => setRawText(e.target.value)}
-                    placeholder="e.g. We are organizing an AI workshop on November 14, 2026 at CS Lab 3 from 9 AM to 5 PM. Organized by GDG Club. Faculty coordinator is Prof. Sharma. Requested budget is INR 15,000..."
-                    className="w-full p-3.5 rounded-md border border-[#E2E8F0] text-xs font-sans text-[#18181B] focus:outline-none focus:ring-1 focus:ring-[#4F46E5] focus:border-[#4F46E5] placeholder-[#94A3B8]"
-                  />
-                </div>
-
-                {/* Example prompt chips */}
-                <div>
-                  <span className="text-[11px] font-semibold text-[#64748B] block mb-2">
-                    Or click a sample scenario to test immediately:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {SAMPLE_PROMPTS.map((p, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setRawText(p.text)}
-                        className="text-[11px] px-2.5 py-1 rounded border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#EEF2FF] hover:border-[#C7D2FE] text-[#475569] text-left transition-colors"
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {extractError && (
-                  <div className="p-3 rounded-md bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#E11D48] flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{extractError}</span>
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-[#E2E8F0] flex items-center justify-between">
-                  <span className="text-[11px] text-[#64748B]">
-                    Parameters extracted deterministically via OpenAI Structured Outputs.
-                  </span>
-
-                  <button
-                    onClick={handleExtract}
-                    disabled={extracting}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold transition-colors disabled:opacity-50 shadow-xs"
-                  >
-                    {extracting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Extracting & Validating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        <span>Extract Event Details</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+            {loadingTemplates ? (
+              <div className="p-12 text-center text-xs text-[#64748B]">Loading template catalog...</div>
             ) : (
-              /* Structured Direct Form */
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Event Title *</label>
-                    <input
-                      type="text"
-                      value={structuredData.eventName || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, eventName: e.target.value })}
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Event Category</label>
-                    <input
-                      type="text"
-                      value={structuredData.eventType || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, eventType: e.target.value })}
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Start Date (YYYY-MM-DD) *</label>
-                    <input
-                      type="date"
-                      value={structuredData.startDate || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, startDate: e.target.value })}
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Venue / Lab *</label>
-                    <input
-                      type="text"
-                      value={structuredData.venue || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, venue: e.target.value })}
-                      placeholder="e.g. CS Lab 3"
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Faculty Coordinator *</label>
-                    <input
-                      type="text"
-                      value={structuredData.facultyCoordinator || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, facultyCoordinator: e.target.value })}
-                      placeholder="e.g. Dr. Sunita Sharma"
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-medium text-[#475569] block mb-1">Head of Department (HOD) *</label>
-                    <input
-                      type="text"
-                      value={structuredData.departmentHOD || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, departmentHOD: e.target.value })}
-                      placeholder="e.g. Dr. Arvind Verma"
-                      className="w-full p-2 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-[#E2E8F0] flex justify-end">
-                  <button
-                    onClick={() => setCurrentStep(2)}
-                    className="px-5 py-2 rounded bg-[#4F46E5] text-white text-xs font-semibold"
-                  >
-                    Proceed to Review →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 2: CLARIFICATION & VERIFICATION (ASK, DON'T INVENT) */}
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            {/* Missing Information Clarification Box (If any fields were omitted) */}
-            {missingQuestions.length > 0 && (
-              <div className="p-5 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] shadow-2xs space-y-4">
-                <div className="flex items-start gap-3">
-                  <HelpCircle className="h-5 w-5 text-[#D97706] shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-xs font-bold text-[#92400E] uppercase tracking-wider">
-                      Missing Information Identified (Ask, Don't Invent)
-                    </h3>
-                    <p className="text-xs text-[#B45309] mt-0.5">
-                      The AI identified the following missing details required for official document templates. We never fabricate institutional information.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                  {missingQuestions.map((q, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-md border border-[#FCD34D] bg-white space-y-1.5 shadow-2xs"
-                    >
-                      <label className="text-xs font-semibold text-[#18181B] block">
-                        {q.question}
-                      </label>
-                      <span className="text-[10px] text-[#64748B] block italic">
-                        Why needed: {q.reason}
-                      </span>
-                      <input
-                        type={q.suggestedInputType === "number" ? "number" : q.suggestedInputType === "date" ? "date" : "text"}
-                        placeholder="Enter verified value..."
-                        value={clarificationAnswers[q.fieldKey] || ""}
-                        onChange={(e) =>
-                          setClarificationAnswers({
-                            ...clarificationAnswers,
-                            [q.fieldKey]:
-                              q.suggestedInputType === "number" ? Number(e.target.value) : e.target.value,
-                          })
-                        }
-                        className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={handleSaveClarifications}
-                    className="px-4 py-2 rounded-md bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-semibold transition-colors shadow-xs"
-                  >
-                    Confirm & Merge Answers
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Extracted Structured Parameters Card */}
-            <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
-              <div className="border-b border-[#E2E8F0] px-5 py-3.5 flex items-center justify-between bg-[#FCFDFE]">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#059669]" />
-                  <h2 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
-                    Verified Event Profile Parameters
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="text-xs text-[#4F46E5] hover:underline flex items-center gap-1 font-medium"
-                >
-                  <Edit3 className="h-3 w-3" />
-                  <span>Re-edit text</span>
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Event Title
-                    </span>
-                    <input
-                      type="text"
-                      value={structuredData.eventName || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, eventName: e.target.value })}
-                      className="mt-1 w-full font-semibold text-xs text-[#18181B] bg-white p-1 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Date & Timings
-                    </span>
-                    <div className="mt-1 flex gap-1">
-                      <input
-                        type="date"
-                        value={structuredData.startDate || ""}
-                        onChange={(e) => setStructuredData({ ...structuredData, startDate: e.target.value })}
-                        className="w-1/2 text-xs bg-white p-1 rounded border border-[#E2E8F0]"
-                      />
-                      <input
-                        type="text"
-                        value={structuredData.startTime || ""}
-                        onChange={(e) => setStructuredData({ ...structuredData, startTime: e.target.value })}
-                        placeholder="Time"
-                        className="w-1/2 text-xs bg-white p-1 rounded border border-[#E2E8F0]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Venue
-                    </span>
-                    <input
-                      type="text"
-                      value={structuredData.venue || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, venue: e.target.value })}
-                      placeholder="e.g. CS Lab 3"
-                      className="mt-1 w-full text-xs text-[#18181B] bg-white p-1 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Faculty Coordinator
-                    </span>
-                    <input
-                      type="text"
-                      value={structuredData.facultyCoordinator || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, facultyCoordinator: e.target.value })}
-                      className="mt-1 w-full text-xs text-[#18181B] bg-white p-1 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Department HOD (Addressee)
-                    </span>
-                    <input
-                      type="text"
-                      value={structuredData.departmentHOD || ""}
-                      onChange={(e) => setStructuredData({ ...structuredData, departmentHOD: e.target.value })}
-                      className="mt-1 w-full text-xs text-[#18181B] bg-white p-1 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-
-                  <div className="p-3 rounded border border-[#E2E8F0] bg-[#F8FAFC]">
-                    <span className="text-[10px] text-[#64748B] block uppercase tracking-wider font-semibold">
-                      Budget Requested
-                    </span>
-                    <input
-                      type="number"
-                      value={structuredData.budgetRequested || 0}
-                      onChange={(e) => setStructuredData({ ...structuredData, budgetRequested: Number(e.target.value) })}
-                      className="mt-1 w-full text-xs text-[#18181B] bg-white p-1 rounded border border-[#E2E8F0]"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#E2E8F0] flex items-center justify-between">
-                  <button
-                    onClick={() => setCurrentStep(1)}
-                    className="px-4 py-2 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F1F5F9]"
-                  >
-                    ← Back to Input
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentStep(3)}
-                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs"
-                  >
-                    <span>Select Templates & Generate Documents</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: TEMPLATE SELECTION & BATCH GENERATION */}
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
-              <div className="border-b border-[#E2E8F0] px-5 py-3.5 flex items-center justify-between bg-[#FCFDFE]">
-                <div>
-                  <h2 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
-                    Select Document Templates
-                  </h2>
-                  <p className="text-[11px] text-[#64748B]">
-                    Reuse your verified event parameters across multiple documents simultaneously.
-                  </p>
-                </div>
-
-                <span className="text-xs font-semibold text-[#4F46E5]">
-                  {selectedTemplateIds.length} Selected
-                </span>
-              </div>
-
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {templates.map((tmpl) => {
-                  const isSelected = selectedTemplateIds.includes(tmpl.id);
+                  const isSelected = selectedTemplate?.id === tmpl.id;
+                  const reqCount = tmpl.fields?.filter((f) => f.required && !f.isFixed).length || tmpl.requiredFields?.length || 0;
                   return (
                     <div
                       key={tmpl.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedTemplateIds(selectedTemplateIds.filter((id) => id !== tmpl.id));
-                        } else {
-                          setSelectedTemplateIds([...selectedTemplateIds, tmpl.id]);
-                        }
-                      }}
+                      onClick={() => handleSelectTemplate(tmpl)}
                       className={`p-4 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
                         isSelected
-                          ? "border-[#4F46E5] bg-[#EEF2FF]/40 shadow-xs ring-1 ring-[#4F46E5]"
+                          ? "border-[#4F46E5] bg-[#EEF2FF]/40 shadow-xs ring-2 ring-[#4F46E5]"
                           : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1]"
                       }`}
                     >
@@ -702,59 +327,360 @@ function EventCreationStudioContent() {
                           <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
                             {tmpl.documentType.replace(/_/g, " ")}
                           </span>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            className="h-4 w-4 rounded text-[#4F46E5] focus:ring-[#4F46E5]"
-                          />
+                          <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-white border border-[#CBD5E1] text-[#4F46E5]">
+                            {tmpl.format?.toUpperCase() || "DOCX"}
+                          </span>
                         </div>
 
-                        <h3 className="font-semibold text-xs text-[#18181B] mb-1">
-                          {tmpl.name}
-                        </h3>
-                        <p className="text-[11px] text-[#64748B] leading-relaxed">
+                        <h3 className="font-bold text-xs text-[#18181B] mb-1">{tmpl.name}</h3>
+                        <p className="text-[11px] text-[#64748B] leading-relaxed mb-3">
                           {tmpl.description}
                         </p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[10px] text-[#64748B]">
-                        <span>Docx + Vector PDF</span>
-                        <span className="text-[#059669] font-medium">Ready</span>
+                      <div className="pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] text-[#64748B]">
+                        <span>{reqCount} Required Fields</span>
+                        <span className={`font-semibold text-xs ${isSelected ? "text-[#4F46E5]" : "text-[#94A3B8]"}`}>
+                          {isSelected ? "Selected ✓" : "Select"}
+                        </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            )}
 
-              <div className="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between">
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={() => {
+                  if (selectedTemplate) setCurrentStep(2);
+                }}
+                disabled={!selectedTemplate}
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors"
+              >
+                <span>Proceed to Questionnaire</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: DYNAMIC QUESTIONNAIRE & ZERO-ASSUMPTION VALIDATION */}
+        {currentStep === 2 && selectedTemplate && (
+          <div className="space-y-6">
+            {/* Template Banner with Live Progress Bar */}
+            <div className="p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#64748B]">Selected Template:</span>
+                    <span className="font-bold text-sm text-[#18181B]">{selectedTemplate.name}</span>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+                      {selectedTemplate.format?.toUpperCase() || "DOCX"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">{selectedTemplate.description}</p>
+                </div>
+
                 <button
-                  onClick={() => setCurrentStep(2)}
-                  className="px-4 py-2 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-white"
+                  onClick={() => setCurrentStep(1)}
+                  className="text-xs text-[#4F46E5] hover:underline font-semibold flex items-center gap-1"
                 >
-                  ← Back to Review
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Change Template</span>
                 </button>
+              </div>
 
-                <button
-                  onClick={handleGenerateDocuments}
-                  disabled={generating || selectedTemplateIds.length === 0}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Compiling DOCX & Vectorized PDF...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileCheck2 className="h-4 w-4" />
-                      <span>
-                        Generate {selectedTemplateIds.length} Document
-                        {selectedTemplateIds.length > 1 ? "s" : ""} Now
+              {/* Progress Indicator */}
+              <div className="pt-2 border-t border-[#F1F5F9]">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-semibold text-[#18181B]">
+                    Required fields completed: {completedRequiredCount} / {totalRequiredCount}
+                  </span>
+                  <span
+                    className={`font-bold text-[11px] ${
+                      isFormComplete ? "text-[#059669]" : "text-[#D97706]"
+                    }`}
+                  >
+                    {isFormComplete ? "All Mandatory Fields Complete ✓" : "Action Required"}
+                  </span>
+                </div>
+
+                <div className="w-full bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      isFormComplete ? "bg-[#059669]" : "bg-[#4F46E5]"
+                    }`}
+                    style={{
+                      width: `${totalRequiredCount === 0 ? 100 : (completedRequiredCount / totalRequiredCount) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* AI Natural Language Assistance Box */}
+            <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
+              <div className="px-5 py-3 border-b border-[#E2E8F0] bg-[#FCFDFE] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#4F46E5]" />
+                  <h3 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
+                    AI Auto-Fill (Optional Natural Language Prompt)
+                  </h3>
+                </div>
+                <span className="text-[11px] text-[#059669] font-medium flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>Zero Fabrication Policy</span>
+                </span>
+              </div>
+
+              <div className="p-5 space-y-3.5">
+                <textarea
+                  rows={3}
+                  value={naturalLanguageInput}
+                  onChange={(e) => setNaturalLanguageInput(e.target.value)}
+                  placeholder="Describe your event details in natural English (e.g., We are organizing a coding contest on Nov 20, 2026 at CS Lab 2...)"
+                  className="w-full p-3 rounded-md border border-[#E2E8F0] text-xs font-sans text-[#18181B] focus:ring-1 focus:ring-[#4F46E5]"
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {SAMPLE_PROMPTS.map((sample, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setNaturalLanguageInput(sample.text)}
+                        className="text-[10px] px-2 py-0.5 rounded border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#EEF2FF] text-[#475569]"
+                      >
+                        {sample.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleExtractFromDescription}
+                    disabled={extracting}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold disabled:opacity-50"
+                  >
+                    {extracting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    <span>{extracting ? "Extracting..." : "Auto-Fill Fields"}</span>
+                  </button>
+                </div>
+
+                {extractError && (
+                  <div className="p-2.5 rounded bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#E11D48]">
+                    {extractError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Clarification Box for Ambiguous or Missing Fields */}
+            {aiClarificationQuestions.length > 0 && (
+              <div className="p-4 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <HelpCircle className="h-4 w-4 text-[#D97706] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-[#92400E] uppercase tracking-wider">
+                      Targeted Clarifications Required
+                    </h4>
+                    <p className="text-[11px] text-[#B45309]">
+                      The AI did not invent missing facts. Please verify and provide the following required details below.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {aiClarificationQuestions.map((q, idx) => (
+                    <div key={idx} className="p-2.5 rounded bg-white border border-[#FCD34D] text-xs space-y-1">
+                      <span className="font-semibold text-[#18181B] block">{q.question}</span>
+                      <input
+                        type={q.suggestedInputType === "number" ? "number" : q.suggestedInputType === "date" ? "date" : "text"}
+                        value={formData[q.fieldKey] || ""}
+                        placeholder="Provide confirmed value..."
+                        onChange={(e) => handleFieldChange(q.fieldKey, e.target.value)}
+                        className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* DYNAMIC FORM GENERATED FROM SELECTED TEMPLATE */}
+            <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#E2E8F0] bg-[#FCFDFE] flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
+                    Dynamic Template Questionnaire ({fields.length} Fields)
+                  </h3>
+                  <p className="text-[10px] text-[#64748B]">
+                    Strictly generated from the selected template's persisted schema.
+                  </p>
+                </div>
+
+                <span className="text-[10px] text-[#64748B]">
+                  * Denotes mandatory field
+                </span>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {fields.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[#64748B]">
+                    No fields configured for this template.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {fields.map((field) => {
+                      const isRequired = field.required && !field.isFixed;
+                      const value = formData[field.name] ?? "";
+                      const hasValue = value !== undefined && value !== null && String(value).trim() !== "";
+                      const isMissing = isRequired && !hasValue;
+
+                      return (
+                        <div
+                          key={field.id}
+                          className={`p-3 rounded-md border text-xs space-y-1.5 ${
+                            isMissing
+                              ? "border-[#FECDD3] bg-[#FEF2F2]/30"
+                              : "border-[#E2E8F0] bg-white"
+                          } ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <label className="font-semibold text-[#18181B] flex items-center gap-1">
+                              <span>{field.label || field.name}</span>
+                              {isRequired && <span className="text-[#E11D48]">*</span>}
+                            </label>
+
+                            <div className="flex items-center gap-1.5">
+                              {field.isFixed && (
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
+                                  Fixed
+                                </span>
+                              )}
+                              <span className="text-[9px] uppercase font-mono text-[#94A3B8]">
+                                {field.type}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Appropriate input control by data type */}
+                          {field.isFixed ? (
+                            <input
+                              type="text"
+                              disabled
+                              value={field.fixedValue || ""}
+                              className="w-full p-2 rounded border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]"
+                            />
+                          ) : field.type === "textarea" ? (
+                            <textarea
+                              rows={3}
+                              value={value}
+                              placeholder={`Enter ${field.label.toLowerCase()}...`}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          ) : field.type === "date" ? (
+                            <input
+                              type="date"
+                              value={value}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          ) : field.type === "time" ? (
+                            <input
+                              type="text"
+                              placeholder="e.g. 09:30 AM"
+                              value={value}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          ) : field.type === "number" || field.type === "currency" ? (
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={value}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value === "" ? "" : Number(e.target.value))}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          ) : field.type === "email" ? (
+                            <input
+                              type="email"
+                              placeholder="name@example.edu"
+                              value={value}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder={`Enter ${field.label.toLowerCase()}...`}
+                              value={value}
+                              onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                              className="w-full p-2 rounded border border-[#E2E8F0] text-xs focus:ring-1 focus:ring-[#4F46E5]"
+                            />
+                          )}
+
+                          {isMissing && (
+                            <span className="text-[10px] text-[#E11D48] block">
+                              Required for generation
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Validation and Generation Error Banner */}
+                {generationError && (
+                  <div className="p-3.5 rounded-md bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#E11D48] flex items-start gap-2 shadow-2xs">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{generationError}</span>
+                  </div>
+                )}
+
+                {/* Final Action Bar with Deterministic Block */}
+                <div className="pt-4 border-t border-[#E2E8F0] flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-xs text-[#64748B]">
+                    {!isFormComplete ? (
+                      <span className="text-[#D97706] font-semibold">
+                        Generation blocked until all {totalRequiredCount} required fields are satisfied ({totalRequiredCount - completedRequiredCount} remaining).
                       </span>
-                    </>
-                  )}
-                </button>
+                    ) : (
+                      <span className="text-[#059669] font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+                        <span>All {totalRequiredCount} required fields validated and ready.</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!isFormComplete || generating}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold text-xs transition-all shadow-xs ${
+                      isFormComplete && !generating
+                        ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white cursor-pointer"
+                        : "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed"
+                    }`}
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Fills Original Template...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileCheck2 className="h-4 w-4" />
+                        <span>Generate Branded Document</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
