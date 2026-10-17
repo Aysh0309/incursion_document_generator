@@ -86,37 +86,36 @@ export async function POST(req: NextRequest) {
           dataSnapshot: { ...combinedData },
         });
 
-        // Sync to MongoDB if connected
-        try {
-          const conn = await connectToDatabase();
-          if (conn) {
-            await DocumentModel.create({
-              id: newDoc.id,
-              title: newDoc.title,
-              eventId: newDoc.eventId,
-              templateId: newDoc.templateId,
-              documentType: newDoc.documentType,
-              clubId: newDoc.clubId,
-              status: newDoc.status,
-              currentVersion: 1,
-              docxUrl: newDoc.docxUrl,
-              pdfUrl: newDoc.pdfUrl,
-              pdfEngineUsed: newDoc.pdfEngineUsed,
-              dataSnapshot: newDoc.dataSnapshot,
-            });
+        // Sync to MongoDB in background without blocking HTTP response
+        connectToDatabase()
+          .then(async (conn) => {
+            if (conn) {
+              await DocumentModel.create({
+                id: newDoc.id,
+                title: newDoc.title,
+                eventId: newDoc.eventId,
+                templateId: newDoc.templateId,
+                documentType: newDoc.documentType,
+                clubId: newDoc.clubId,
+                status: newDoc.status,
+                currentVersion: 1,
+                docxUrl: newDoc.docxUrl,
+                pdfUrl: newDoc.pdfUrl,
+                pdfEngineUsed: newDoc.pdfEngineUsed,
+                dataSnapshot: newDoc.dataSnapshot,
+              }).catch(() => {});
 
-            await DocumentVersionModel.create({
-              documentId: newDoc.id,
-              versionNumber: 1,
-              dataSnapshot: newDoc.dataSnapshot,
-              docxUrl: newDoc.docxUrl,
-              pdfUrl: newDoc.pdfUrl,
-              changeSummary: "Batch document generation",
-            });
-          }
-        } catch {
-          // MongoDB sync optional
-        }
+              await DocumentVersionModel.create({
+                documentId: newDoc.id,
+                versionNumber: 1,
+                dataSnapshot: newDoc.dataSnapshot,
+                docxUrl: newDoc.docxUrl,
+                pdfUrl: newDoc.pdfUrl,
+                changeSummary: "Batch document generation",
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
 
         generatedDocuments.push(newDoc);
       } catch (genErr: any) {

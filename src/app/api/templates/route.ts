@@ -111,18 +111,17 @@ export async function POST(req: NextRequest) {
     // Save to memory store
     dbStore.addTemplate(newTemplateData);
 
-    // Save to MongoDB if connected
-    try {
-      const conn = await connectToDatabase();
-      if (conn) {
-        await TemplateModel.create({
-          ...newTemplateData,
-          _id: undefined,
-        });
-      }
-    } catch (dbErr) {
-      console.warn("MongoDB template sync note (persisted locally):", dbErr);
-    }
+    // Save to MongoDB in background without blocking HTTP response
+    connectToDatabase()
+      .then((conn) => {
+        if (conn) {
+          TemplateModel.create({
+            ...newTemplateData,
+            _id: undefined,
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({
       success: true,

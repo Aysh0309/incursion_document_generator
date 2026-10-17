@@ -24,26 +24,32 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
     return null;
   }
 
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 2000,
-      connectTimeoutMS: 2000,
-      socketTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 1500,
+      connectTimeoutMS: 1500,
+      socketTimeoutMS: 1500,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => m);
+    // Race mongoose connect against a hard 1.5s timeout to prevent DNS querySrv hang
+    const connectPromise = mongoose.connect(MONGODB_URI, opts).then((m) => m);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("MongoDB connection timed out after 1.5s")), 1500)
+    );
+
+    cached.promise = Promise.race([connectPromise, timeoutPromise]);
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    console.warn("MongoDB connection failed, falling back to local memory store:", e);
+    cached.conn = null;
     return null;
   }
 

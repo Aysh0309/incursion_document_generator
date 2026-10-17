@@ -59,15 +59,14 @@ export async function PATCH(
 
     const updated = dbStore.updateTemplate(id, updates);
 
-    // Sync to MongoDB if connected
-    try {
-      const conn = await connectToDatabase();
-      if (conn) {
-        await TemplateModel.updateOne({ id }, { $set: updates });
-      }
-    } catch (e) {
-      // ignore db sync warning
-    }
+    // Sync to MongoDB in background without blocking HTTP response
+    connectToDatabase()
+      .then((conn) => {
+        if (conn) {
+          TemplateModel.updateOne({ id }, { $set: updates }).catch(() => {});
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err: any) {
@@ -95,15 +94,14 @@ export async function DELETE(
 
     const deleted = dbStore.deleteTemplate(id);
 
-    // Sync to MongoDB if connected
-    try {
-      const conn = await connectToDatabase();
-      if (conn) {
-        await TemplateModel.deleteOne({ id });
-      }
-    } catch (e) {
-      // ignore db sync warning
-    }
+    // Sync to MongoDB in background without blocking HTTP response
+    connectToDatabase()
+      .then((conn) => {
+        if (conn) {
+          TemplateModel.deleteOne({ id }).catch(() => {});
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -138,6 +138,13 @@ export default function TemplateManagementPage() {
   const handleDeleteTemplate = async (templateId: string) => {
     try {
       setDeleting(true);
+      // Optimistically remove template from view immediately
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      if (reviewingTemplate?.id === templateId) {
+        setReviewingTemplate(null);
+      }
+      setTemplateToDelete(null);
+
       const res = await fetch(`/api/templates/${templateId}`, {
         method: "DELETE",
       });
@@ -145,13 +152,10 @@ export default function TemplateManagementPage() {
       if (!data.success) {
         throw new Error(data.error?.message || "Failed to delete template");
       }
-      setTemplateToDelete(null);
-      if (reviewingTemplate?.id === templateId) {
-        setReviewingTemplate(null);
-      }
       await fetchTemplates();
     } catch (err: any) {
       alert(err.message || "Failed to delete template");
+      await fetchTemplates();
     } finally {
       setDeleting(false);
     }

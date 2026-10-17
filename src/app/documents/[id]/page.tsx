@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, use, Suspense } from "react";
@@ -155,13 +156,12 @@ function DocumentReviewContent({ id }: { id: string }) {
                   Version {doc.currentVersion}
                 </span>
                 <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                    doc.status === "APPROVED"
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded ${doc.status === "APPROVED"
                       ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
                       : doc.status === "SUBMITTED"
-                      ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
-                      : "bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]"
-                  }`}
+                        ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
+                        : "bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]"
+                    }`}
                 >
                   {doc.status.replace(/_/g, " ")}
                 </span>
