@@ -100,6 +100,52 @@ describe("Placeholder Detection Test Suite", () => {
     assert.ok(fieldNames.includes("departmentHOD"), "Must detect labeled blank table cell");
   });
 
+  test("Normal DOCX with NO placeholders detects all key-value table rows and blanks", async () => {
+    const normalXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Title of the Event</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Internal Hackathon of SIH</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Schedule of Event (Date, Day)</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>September 12th 2026</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Event Venue</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>CSE Department</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>ExpectedNumberof Participants</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>1000+</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Total amount Sanctioned in Current Academic Year</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t></w:t></w:r></w:p></w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p><w:r><w:t>Date: _________________</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+
+    const buffer = createDocxWithXml(normalXml);
+    const result = await analyzeDocxTemplate(buffer);
+
+    const fieldLabels = result.fields.map((f) => f.label);
+    assert.ok(fieldLabels.includes("Title of the Event"), "Must detect Title of the Event table row");
+    assert.ok(fieldLabels.includes("Schedule of Event (Date, Day)"), "Must detect Schedule of Event table row");
+    assert.ok(fieldLabels.includes("Event Venue"), "Must detect Event Venue table row");
+    assert.ok(fieldLabels.includes("ExpectedNumberof Participants"), "Must detect ExpectedNumberof Participants table row");
+    assert.ok(fieldLabels.includes("Total amount Sanctioned in Current Academic Year"), "Must detect empty cell table row");
+  });
+
   test("DOCX with fields in headers and footers", async () => {
     const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">

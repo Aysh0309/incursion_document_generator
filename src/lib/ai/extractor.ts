@@ -25,7 +25,7 @@ CRITICAL OPERATIONAL RULES:
  */
 function mockExtractEventData(
   rawText: string,
-  allowedFieldKeys?: string[]
+  templateFields?: TemplateField[]
 ): {
   data: StructuredEventData;
   detectedTypes: DocumentType[];
@@ -205,6 +205,33 @@ function mockExtractEventData(
     requiresLabComputers: text.includes("lab") || text.includes("computer") || text.includes("pc"),
   };
 
+  if (templateFields && templateFields.length > 0) {
+    const rec = structuredData as any;
+    for (const f of templateFields) {
+      if (rec[f.name] === undefined) {
+        if (f.name === "subject" || f.label.toLowerCase().includes("subject")) {
+          const subMatch = rawText.match(/(?:subject|regarding)(?:\s+is|\s*:)?\s*([^\n\r.]+)/i);
+          rec[f.name] = subMatch ? subMatch[1].trim() : eventName ? `Requesting Permission for ${eventName}` : null;
+        } else if (f.name.toLowerCase().includes("judge") || f.label.toLowerCase().includes("judge")) {
+          const jMatch = rawText.match(/(?:judge|judges|judged by)(?:\s+is|\s*:)?\s*([A-Za-z\s]+?)(?:\.|\,|$)/i);
+          rec[f.name] = jMatch ? jMatch[1].trim() : null;
+        } else if (f.name === "titleOfTheEvent") {
+          rec[f.name] = eventName;
+        } else if (f.name === "scheduleOfEvent" || f.name === "scheduleOfEventDateDay") {
+          rec[f.name] = startDate;
+        } else if (f.name === "eventVenue") {
+          rec[f.name] = venue;
+        } else if (f.name === "categoryOfTheEvent") {
+          rec[f.name] = eventType;
+        } else if (f.name === "briefDescription") {
+          rec[f.name] = rawText.slice(0, 300);
+        } else {
+          rec[f.name] = null;
+        }
+      }
+    }
+  }
+
   return { data: structuredData, detectedTypes };
 }
 
@@ -225,7 +252,7 @@ export async function extractEventInformation(
   if (useMock) {
     const mock = mockExtractEventData(
       rawText,
-      templateFields ? templateFields.map((f) => f.name) : undefined
+      templateFields
     );
     extractedData = mock.data;
     if (!detectedTypes || detectedTypes.length === 0) {
@@ -271,8 +298,18 @@ ${rawText}
       if (validated.success) {
         extractedData = validated.data as StructuredEventData;
       } else {
-        const mock = mockExtractEventData(rawText);
+        const mock = mockExtractEventData(rawText, templateFields);
         extractedData = mock.data;
+      }
+
+      // Retain ALL custom template field values extracted by AI
+      if (templateFields && templateFields.length > 0) {
+        for (const f of templateFields) {
+          const val = parsedJson[f.name] ?? parsedJson[f.label];
+          if (val !== undefined && val !== null) {
+            (extractedData as any)[f.name] = val;
+          }
+        }
       }
 
       if (!detectedTypes || detectedTypes.length === 0) {
@@ -282,7 +319,7 @@ ${rawText}
       }
     } catch (err) {
       console.warn("AI extraction fallback to local extractor:", err);
-      const mock = mockExtractEventData(rawText);
+      const mock = mockExtractEventData(rawText, templateFields);
       extractedData = mock.data;
       if (!detectedTypes || detectedTypes.length === 0) {
         detectedTypes = mock.detectedTypes;

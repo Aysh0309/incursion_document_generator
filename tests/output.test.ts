@@ -159,4 +159,139 @@ describe("Output & Original Template Formatting Preservation Test Suite", () => 
 
     if (fs.existsSync(tempDocxPath)) fs.unlinkSync(tempDocxPath);
   });
+
+  test("Normal DOCX with NO placeholders or tags has table cells replaced in-place", async () => {
+    // Normal institutional template without any curly braces
+    const normalDocXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Title of the Event</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Old Sample Event Title</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Event Venue</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Old Lab 1</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>Total amount Sanctioned</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t></w:t></w:r></w:p></w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p><w:r><w:t>Date: _________________</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+
+    const normalZip = new PizZip();
+    normalZip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+    normalZip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+    normalZip.file("word/document.xml", normalDocXml);
+
+    const normalDocxBuf = normalZip.generate({ type: "nodebuffer" });
+    const tempNormalPath = path.join(process.cwd(), "public", "templates", "test_normal.docx");
+    fs.writeFileSync(tempNormalPath, normalDocxBuf);
+
+    const normalMetadata: TemplateMetadata = {
+      id: "tmpl_normal_test",
+      name: "Normal Document Template",
+      documentType: "EVENT_PROPOSAL",
+      format: "docx",
+      description: "Normal DOCX with tables and blanks but NO curly braces",
+      fileUrl: "/templates/test_normal.docx",
+      version: 1,
+      isActive: true,
+      status: "PUBLISHED",
+      placeholdersDetected: ["eventName", "venue", "startDate"],
+      requiredFields: ["eventName"],
+      optionalFields: [],
+      fields: [
+        {
+          id: "fld_1",
+          name: "eventName",
+          label: "Title of the Event",
+          type: "text",
+          required: true,
+          confidence: 0.95,
+          adminConfirmed: true,
+        },
+        {
+          id: "fld_2",
+          name: "venue",
+          label: "Event Venue",
+          type: "text",
+          required: true,
+          confidence: 0.95,
+          adminConfirmed: true,
+        },
+        {
+          id: "fld_3",
+          name: "totalAmountSanctioned",
+          label: "Total amount Sanctioned",
+          type: "currency",
+          required: false,
+          confidence: 0.95,
+          adminConfirmed: true,
+        },
+        {
+          id: "fld_4",
+          name: "startDate",
+          label: "Date",
+          type: "date",
+          required: true,
+          confidence: 0.9,
+          adminConfirmed: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    const filled = await fillDocxTemplate(
+      "/templates/test_normal.docx",
+      normalMetadata,
+      {
+        eventName: "Autonomous Drone Summit 2026",
+        venue: "Main Auditorium Hall A",
+        totalAmountSanctioned: "75,000",
+        startDate: "2026-11-20",
+      }
+    );
+
+    const resZip = new PizZip(filled);
+    const resXml = resZip.file("word/document.xml")?.asText() || "";
+
+    assert.ok(
+      resXml.includes("Autonomous Drone Summit 2026"),
+      "Must replace 'Title of the Event' value cell in normal DOCX table"
+    );
+    assert.ok(
+      resXml.includes("Main Auditorium Hall A"),
+      "Must replace 'Event Venue' value cell in normal DOCX table"
+    );
+    assert.ok(
+      resXml.includes("75,000"),
+      "Must populate previously empty 'Total amount Sanctioned' cell"
+    );
+    assert.ok(
+      !resXml.includes("Old Sample Event Title"),
+      "Must NOT retain old sample value in replaced cell"
+    );
+    assert.ok(
+      resXml.includes("Date: 2026-11-20"),
+      "Must replace paragraph labeled underline 'Date: ______'"
+    );
+
+    if (fs.existsSync(tempNormalPath)) fs.unlinkSync(tempNormalPath);
+  });
 });

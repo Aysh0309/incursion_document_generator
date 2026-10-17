@@ -8,6 +8,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import PDFKitDocument from "pdfkit";
 import { ClubBranding, DocumentType, TemplateField, TemplateMetadata } from "@/types";
 import { ensureDefaultTemplatesExist } from "./templates";
+import { normalizeFieldKey } from "./analyzer";
 
 const execAsync = promisify(exec);
 
@@ -232,9 +233,11 @@ export async function fillPdfTemplate(
 }
 
 /**
- * Fills an original DOCX template using Docxtemplater:
- * - Replaces placeholders across paragraphs, runs, tables, headers, and footers
- * - Preserves all embedded logos, images, margins, and OpenXML styling
+/**
+ * Fills an original DOCX template:
+ * - Directly updates table cells and labeled blanks in-place via OpenXML manipulation
+ * - Preserves exact formatting, fonts, sizes, table borders, images, and logos
+ * - Runs docxtemplater for any explicit {tag} / {{tag}} placeholders
  */
 export async function fillDocxTemplate(
   templateRelativePath: string,
@@ -290,31 +293,175 @@ export async function fillDocxTemplate(
     year: "numeric",
   });
 
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-    delimiters: { start: "{", end: "}" },
-    nullGetter: () => "",
-  });
+  // 1. IN-PLACE XML REPLACEMENT FOR NORMAL DOCUMENTS (No Tags/Placeholders)
+  // Replaces table cells and labeled blanks while preserving 100% of OpenXML styles and fonts
+  const DOMParser = require("@xmldom/xmldom").DOMParser;
+  const XMLSerializer = require("@xmldom/xmldom").XMLSerializer;
 
-  try {
-    doc.render(context);
-  } catch (renderErr: any) {
-    // If standard single curly fails, try double curly delimiter
-    const doc2 = new Docxtemplater(new PizZip(templateContent), {
-      paragraphLoop: true,
-      linebreaks: true,
-      delimiters: { start: "{{", end: "}}" },
-      nullGetter: () => "",
-    });
-    doc2.render(context);
-    return doc2.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+  const xmlParts = Object.keys(zip.files).filter((name) =>
+    /^word\/(document|header\d+|footer\d+)\.xml$/.test(name)
+  );
+
+  for (const partName of xmlParts) {
+    const xmlContent = zip.file(partName)?.asText();
+    if (!xmlContent) continue;
+
+    let doc: any;
+    try {
+      doc = new DOMParser().parseFromString(xmlContent, "application/xml");
+    } catch {
+      continue;
+    }
+
+    let modified = false;
+
+    // A. Replace table cells in key-value rows
+    const trs = doc.getElementsByTagName("w:tr");
+    for (let i = 0; i < trs.length; i++) {
+      const tr = trs[i];
+      const tcs = tr.getElementsByTagName("w:tc");
+      if (tcs.length < 2) continue;
+
+      const cellTexts: string[] = [];
+      for (let c = 0; c < tcs.length; c++) {
+        const ts = tcs[c].getElementsByTagName("w:t");
+        let txt = "";
+        for (let k = 0; k < ts.length; k++) {
+          txt += ts[k].textContent || "";
+        }
+        cellTexts.push(txt.trim());
+      }
+
+      const rawLabel = cellTexts[0];
+      if (!rawLabel || rawLabel.length < 2) continue;
+
+      let valIdx = -1;
+      if (cellTexts.length >= 3 && (cellTexts[1] === ":" || cellTexts[1] === "" || cellTexts[1] === "-")) {
+        valIdx = 2;
+      } else if (cellTexts.length >= 2) {
+        valIdx = 1;
+      }
+
+      if (valIdx === -1) continue;
+
+      const cleanLabelStr = rawLabel.replace(/:$/, "").trim();
+      const normalizedKey = normalizeFieldKey(cleanLabelStr);
+
+      // Find matching user-provided value from fieldValues or context
+      let replacementVal =
+        context[normalizedKey] ??
+        context[cleanLabelStr] ??
+        fieldValues[normalizedKey] ??
+        fieldValues[cleanLabelStr];
+
+      // Also check against template fields mapping
+      if (replacementVal === undefined && template.fields) {
+        for (const f of template.fields) {
+          if (
+            f.name === normalizedKey ||
+            f.label.toLowerCase() === cleanLabelStr.toLowerCase() ||
+            f.repeatedFieldKeys?.some(
+              (rk: string) => rk.toLowerCase() === cleanLabelStr.toLowerCase()
+            )
+          ) {
+            replacementVal = f.isFixed
+              ? f.fixedValue
+              : (fieldValues[f.name] ?? fieldValues[f.id] ?? context[f.name]);
+            if (replacementVal !== undefined) break;
+          }
+        }
+      }
+
+      if (replacementVal !== undefined && replacementVal !== null) {
+        const newValStr = String(replacementVal);
+        const valTc = tcs[valIdx];
+        const ts = valTc.getElementsByTagName("w:t");
+
+        if (ts.length > 0) {
+          ts[0].textContent = newValStr;
+          for (let k = 1; k < ts.length; k++) {
+            ts[k].textContent = "";
+          }
+        } else {
+          const p = doc.createElement("w:p");
+          const r = doc.createElement("w:r");
+          const t = doc.createElement("w:t");
+          t.textContent = newValStr;
+          r.appendChild(t);
+          p.appendChild(r);
+          valTc.appendChild(p);
+        }
+        modified = true;
+      }
+    }
+
+    // B. Replace labeled blanks / lines in paragraphs
+    const ps = doc.getElementsByTagName("w:p");
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      const ts = p.getElementsByTagName("w:t");
+      let pText = "";
+      for (let k = 0; k < ts.length; k++) {
+        pText += ts[k].textContent || "";
+      }
+
+      if (!pText) continue;
+
+      if (template.fields) {
+        for (const f of template.fields) {
+          const val = f.isFixed ? f.fixedValue : (fieldValues[f.name] ?? context[f.name]);
+          if (val === undefined || val === null) continue;
+
+          // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: previousValue"
+          const escapedLabel = f.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const labelPattern = new RegExp(
+            `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\]|\\s*$)`,
+            "i"
+          );
+          if (labelPattern.test(pText)) {
+            const replaced = pText.replace(labelPattern, `$1: ${String(val)}`);
+            if (ts.length > 0) {
+              ts[0].textContent = replaced;
+              for (let k = 1; k < ts.length; k++) ts[k].textContent = "";
+              modified = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (modified) {
+      const serialized = new XMLSerializer().serializeToString(doc);
+      zip.file(partName, serialized);
+    }
   }
 
-  return doc.getZip().generate({
-    type: "nodebuffer",
-    compression: "DEFLATE",
-  });
+  // 2. ALSO RUN DOCXTEMPLATER IF TEMPLATE HAS EXPLICIT TAGS
+  try {
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: "{", end: "}" },
+      nullGetter: () => "",
+    });
+    doc.render(context);
+    return doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+  } catch {
+    // If single curly fails, try double curly
+    try {
+      const doc2 = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: "{{", end: "}}" },
+        nullGetter: () => "",
+      });
+      doc2.render(context);
+      return doc2.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+    } catch {
+      // Return the in-place XML modified zip
+      return zip.generate({ type: "nodebuffer", compression: "DEFLATE" });
+    }
+  }
 }
 
 /**

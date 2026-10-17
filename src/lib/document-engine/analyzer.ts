@@ -19,25 +19,35 @@ export interface AnalysisResult {
 export function normalizeFieldKey(label: string): string {
   let cleaned = label
     .trim()
-    .replace(/[:_–—\(\)\[\]]/g, " ")
+    .replace(/[:_–—\(\)\[\]\/,\\.]/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();
 
   // Common synonyms mapping
   const lower = cleaned.toLowerCase();
-  if (lower === "event name" || lower === "event title" || lower === "name of event" || lower === "title") return "eventName";
-  if (lower === "date" || lower === "event date" || lower === "date of event" || lower === "start date") return "startDate";
+  if (lower === "event name" || lower === "event title" || lower === "name of event" || lower === "title" || lower === "title of the event") return "eventName";
+  if (lower === "date" || lower === "event date" || lower === "date of event" || lower === "start date" || lower === "schedule of event date day" || lower === "schedule of event") return "startDate";
   if (lower === "end date") return "endDate";
   if (lower === "time" || lower === "start time" || lower === "timings") return "startTime";
   if (lower === "end time") return "endTime";
-  if (lower === "venue" || lower === "location" || lower === "place" || lower === "room" || lower === "lab") return "venue";
+  if (lower === "venue" || lower === "location" || lower === "place" || lower === "room" || lower === "lab" || lower === "event venue") return "venue";
   if (lower === "department" || lower === "dept") return "department";
   if (lower === "hod" || lower === "head of department" || lower === "department hod") return "departmentHOD";
   if (lower === "faculty coordinator" || lower === "coordinator" || lower === "faculty advisor") return "facultyCoordinator";
   if (lower === "organizer" || lower === "organizer name" || lower === "student lead" || lower === "lead") return "organizerName";
   if (lower === "budget" || lower === "budget requested" || lower === "estimated budget" || lower === "amount") return "budgetRequested";
-  if (lower === "participants" || lower === "expected participants" || lower === "attendees" || lower === "student attendance") return "expectedParticipants";
+  if (lower === "participants" || lower === "expected participants" || lower === "attendees" || lower === "student attendance" || lower === "expectednumberof participants" || lower === "expected number of participants") return "expectedParticipants";
+  if (lower === "description" || lower === "event description" || lower === "synopsis" || lower === "brief description") return "eventDescription";
+  if (lower === "target audience" || lower === "audience") return "targetAudience";
+  if (lower === "speaker" || lower === "guest" || lower === "resource person" || lower === "speaker name") return "speakerName";
+  if (lower === "speaker designation" || lower === "designation") return "speakerDesignation";
+  if (lower === "speaker organization" || lower === "organization") return "speakerOrganization";
+  if (lower === "contact email" || lower === "email") return "contactEmail";
+  if (lower === "contact phone" || lower === "phone" || lower === "mobile") return "contactPhone";
+  if (lower === "club" || lower === "club name" || lower === "student body" || lower === "chapter club society section name") return "clubName";
+  if (lower === "category of the event" || lower === "category") return "eventType";
+  if (lower === "subject") return "subject";
   if (lower === "description" || lower === "event description" || lower === "objectives" || lower === "synopsis") return "eventDescription";
   if (lower === "target audience" || lower === "audience") return "targetAudience";
   if (lower === "speaker" || lower === "guest" || lower === "resource person" || lower === "speaker name") return "speakerName";
@@ -78,8 +88,16 @@ export function inferFieldType(key: string, label: string): FieldDataType {
  * Checks if a field should default to required.
  */
 export function isLikelyRequired(key: string, label: string): boolean {
+  if (
+    key === "currentDate" ||
+    key === "formattedDateRange" ||
+    key === "formattedBudget" ||
+    key === "universityName"
+  ) {
+    return false;
+  }
   const combined = (key + " " + label).toLowerCase();
-  const essentialPatterns = ["name", "title", "date", "venue", "coordinator", "hod", "organizer", "participants", "budget"];
+  const essentialPatterns = ["name", "title", "date", "venue", "coordinator", "hod", "organizer", "participants", "budget", "subject"];
   return essentialPatterns.some((pat) => combined.includes(pat));
 }
 
@@ -128,29 +146,110 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
     /^word\/(document|header\d+|footer\d+)\.xml$/.test(name)
   );
 
+  const DOMParser = require("@xmldom/xmldom").DOMParser;
+
   for (const partName of xmlParts) {
     const xmlContent = zip.file(partName)?.asText() || "";
-    const isHeaderOrFooter = partName.includes("header") || partName.includes("footer");
+    if (!xmlContent) continue;
 
-    // Extract text paragraph by paragraph to properly join runs (<w:t>)
-    const paragraphRegex = /<w:p(?:\s+[^>]*)?>([\s\S]*?)<\/w:p>/g;
-    let pMatch;
+    let doc: any;
+    try {
+      doc = new DOMParser().parseFromString(xmlContent, "application/xml");
+    } catch {
+      continue;
+    }
 
-    while ((pMatch = paragraphRegex.exec(xmlContent)) !== null) {
-      const pXml = pMatch[1];
+    // A. Parse tables: detect any key-value row (label cell + colon/empty + value or blank cell)
+    const trs = doc.getElementsByTagName("w:tr");
+    for (let i = 0; i < trs.length; i++) {
+      const tr = trs[i];
+      const tcs = tr.getElementsByTagName("w:tc");
+      if (tcs.length < 2) continue;
 
-      // Extract all text content from <w:t> tags in this paragraph
-      const tRegex = /<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/g;
-      let tMatch;
-      let pText = "";
-      while ((tMatch = tRegex.exec(pXml)) !== null) {
-        if (tMatch[1]) pText += tMatch[1];
+      const cellTexts: string[] = [];
+      for (let c = 0; c < tcs.length; c++) {
+        const ts = tcs[c].getElementsByTagName("w:t");
+        let txt = "";
+        for (let k = 0; k < ts.length; k++) {
+          txt += ts[k].textContent || "";
+        }
+        cellTexts.push(txt.trim());
       }
 
-      if (!pText.trim()) continue;
+      // Check for section headers or pure column headers to skip
+      const rawLabel = cellTexts[0];
+      if (!rawLabel || rawLabel.length < 2 || rawLabel.length > 80) continue;
+      if (
+        ["about the event", "financial proposal", "office use", "event expenses", "total", "items", "sr. no", "s.no"].includes(
+          rawLabel.toLowerCase()
+        )
+      ) {
+        continue;
+      }
+      // Skip pure signature header lines unless clerk/staff
+      if (
+        rawLabel.toLowerCase().includes("signature") &&
+        !rawLabel.toLowerCase().includes("clerk") &&
+        !rawLabel.toLowerCase().includes("name")
+      ) {
+        continue;
+      }
+
+      let val = "";
+      let valIdx = -1;
+      if (cellTexts.length >= 3 && (cellTexts[1] === ":" || cellTexts[1] === "" || cellTexts[1] === "-")) {
+        val = cellTexts[2];
+        valIdx = 2;
+      } else if (cellTexts.length >= 2) {
+        val = cellTexts[1];
+        valIdx = 1;
+      }
+
+      if (valIdx !== -1) {
+        const cleanLabelStr = rawLabel.replace(/:$/, "").trim();
+        const normalizedKey = normalizeFieldKey(cleanLabelStr);
+
+        // Check if value contains an explicit tag like {{tag}}
+        const tagMatch = val.match(/\{\{([a-zA-Z0-9_\.]+)\}\}|\{([a-zA-Z0-9_\.]+)\}/);
+        const effectiveKey = tagMatch ? normalizeFieldKey(tagMatch[1] || tagMatch[2]) : normalizedKey;
+
+        if (fieldsMap.has(effectiveKey)) {
+          const existing = fieldsMap.get(effectiveKey)!;
+          if (!existing.repeatedFieldKeys?.includes(cleanLabelStr)) {
+            existing.repeatedFieldKeys = existing.repeatedFieldKeys || [];
+            existing.repeatedFieldKeys.push(cleanLabelStr);
+          }
+        } else {
+          fieldsMap.set(effectiveKey, {
+            id: `fld_${effectiveKey}`,
+            name: effectiveKey,
+            label: cleanLabelStr,
+            type: inferFieldType(effectiveKey, cleanLabelStr),
+            required: isLikelyRequired(effectiveKey, cleanLabelStr),
+            confidence: 0.92,
+            adminConfirmed: true,
+            sourceEvidence: `Table row "${cleanLabelStr}" (current text: "${val || "blank"}")`,
+            repeatedFieldKeys: [cleanLabelStr, effectiveKey],
+            description: val ? `Template default / sample: "${val}"` : "Variable field (blank in template)",
+          });
+        }
+      }
+    }
+
+    // B. Parse paragraphs: detect explicit placeholders, labeled underlines, and labeled blanks
+    const ps = doc.getElementsByTagName("w:p");
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      const ts = p.getElementsByTagName("w:t");
+      let pText = "";
+      for (let k = 0; k < ts.length; k++) {
+        pText += ts[k].textContent || "";
+      }
+      pText = pText.trim();
+      if (!pText) continue;
       fullText += pText + "\n";
 
-      // A. Explicit placeholders: {{field_name}} or {field_name}
+      // 1. Explicit placeholders: {{field_name}} or {field_name}
       const tagRegex = /(?:\{\{([a-zA-Z0-9_\.]+)\}\}|\{([a-zA-Z0-9_\.]+)\})/g;
       let match;
       while ((match = tagRegex.exec(pText)) !== null) {
@@ -159,7 +258,6 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
         const normalizedKey = normalizeFieldKey(rawKey);
 
         if (fieldsMap.has(normalizedKey)) {
-          // Repeated field occurrence
           const existing = fieldsMap.get(normalizedKey)!;
           if (!existing.repeatedFieldKeys?.includes(rawKey)) {
             existing.repeatedFieldKeys = existing.repeatedFieldKeys || [];
@@ -170,27 +268,38 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
             .replace(/([A-Z])/g, " $1")
             .replace(/[_\.]/g, " ")
             .trim()
-            .replace(/^\w/, (c) => c.toUpperCase());
+            .replace(/^\w/, (c: string) => c.toUpperCase());
+
+          const isSys = ["currentDate", "formattedDateRange", "formattedBudget"].includes(normalizedKey);
+          const isFix = ["universityName"].includes(normalizedKey);
 
           fieldsMap.set(normalizedKey, {
             id: `fld_${normalizedKey}`,
             name: normalizedKey,
             label,
             type: inferFieldType(normalizedKey, label),
-            required: isLikelyRequired(normalizedKey, label),
+            required: isSys || isFix ? false : isLikelyRequired(normalizedKey, label),
+            isSystem: isSys,
+            isFixed: isFix,
+            fixedValue: isFix ? "National Institute of Technology & Advanced Science" : undefined,
             confidence: 0.98,
             adminConfirmed: true,
             sourceEvidence: `Explicit placeholder {${rawKey}} in ${partName}`,
-            repeatedFieldKeys: [rawKey],
+            repeatedFieldKeys: [rawKey, label],
           });
         }
       }
 
-      // B. Labeled blanks / underlines (e.g. "Event Name: _________________")
-      const labelBlankRegex = /([A-Za-z0-9\s/&()-]{2,35}):\s*(?:_{2,}|\.{3,}|—+|–+|\[\s*\])/g;
+      // 2. Labeled blanks / underlines (e.g. "Event Name: _________________" or "Venue: [   ]")
+      const labelBlankRegex = /([A-Za-z0-9\s/&()-]{2,40}):\s*(?:_{2,}|\.{3,}|—+|–+|\[\s*\]|\s{3,}|$)/g;
       let lbMatch;
       while ((lbMatch = labelBlankRegex.exec(pText)) !== null) {
         const rawLabel = lbMatch[1].trim();
+        if (
+          ["about the event", "financial proposal", "office use", "signature"].includes(rawLabel.toLowerCase())
+        ) {
+          continue;
+        }
         const normalizedKey = normalizeFieldKey(rawLabel);
 
         if (!fieldsMap.has(normalizedKey)) {
@@ -200,57 +309,38 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
             label: rawLabel,
             type: inferFieldType(normalizedKey, rawLabel),
             required: isLikelyRequired(normalizedKey, rawLabel),
-            confidence: 0.85,
+            confidence: 0.88,
             adminConfirmed: false,
             sourceEvidence: `Labeled blank "${lbMatch[0].trim()}" in ${partName}`,
             repeatedFieldKeys: [rawLabel],
           });
         }
       }
-    }
 
-    // C. Inspect table rows: label cell followed by empty or blank cell
-    const rowRegex = /<w:tr(?:\s+[^>]*)?>([\s\S]*?)<\/w:tr>/g;
-    let rMatch;
-    while ((rMatch = rowRegex.exec(xmlContent)) !== null) {
-      const rXml = rMatch[1];
-      const cellRegex = /<w:tc(?:\s+[^>]*)?>([\s\S]*?)<\/w:tc>/g;
-      const cells: string[] = [];
-      let cMatch;
-      while ((cMatch = cellRegex.exec(rXml)) !== null) {
-        const tInCell = /<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/g;
-        let cText = "";
-        let tcMatch;
-        while ((tcMatch = tInCell.exec(cMatch[1])) !== null) {
-          if (tcMatch[1]) cText += tcMatch[1];
-        }
-        cells.push(cText.trim());
-      }
+      // 3. Known administrative paragraph fields (e.g. "Date: 08/09/2026", "No: ACM/2026-27/SIH/001", "Subject: ...")
+      const adminPatterns = [
+        { regex: /(?:^|\s)Date:\s*([^\s\n\r]+|\s*_{2,}|\s*)/i, label: "Date", key: "startDate" },
+        { regex: /(?:^|\s)No:\s*([^\s\n\r]+|\s*_{2,}|\s*)/i, label: "Document Reference Number", key: "documentRefNumber" },
+        { regex: /(?:^|\s)Subject:\s*([^\n\r]+)/i, label: "Subject", key: "subject" },
+        { regex: /(?:^|\s)Submitted to:\s*([^\n\r]+)/i, label: "Submitted To", key: "submittedTo" },
+      ];
 
-      if (cells.length >= 2) {
-        const labelCandidate = cells[0].replace(/:$/, "").trim();
-        const valueCandidate = cells[1].trim();
-        // If first cell looks like a label and second is empty, underscores, or placeholder
-        if (
-          labelCandidate.length > 2 &&
-          labelCandidate.length < 35 &&
-          /^[A-Za-z0-9\s/&()-]+$/.test(labelCandidate) &&
-          (valueCandidate === "" || /^_{2,}$/.test(valueCandidate) || /^\{.*\}$/.test(valueCandidate))
-        ) {
-          const normalizedKey = normalizeFieldKey(labelCandidate);
-          if (!fieldsMap.has(normalizedKey)) {
-            fieldsMap.set(normalizedKey, {
-              id: `fld_${normalizedKey}`,
-              name: normalizedKey,
-              label: labelCandidate,
-              type: inferFieldType(normalizedKey, labelCandidate),
-              required: isLikelyRequired(normalizedKey, labelCandidate),
-              confidence: 0.82,
-              adminConfirmed: false,
-              sourceEvidence: `Table label cell "${labelCandidate}" with empty value cell`,
-              repeatedFieldKeys: [labelCandidate],
-            });
-          }
+      for (const ptn of adminPatterns) {
+        const pMatch = pText.match(ptn.regex);
+        if (pMatch && !fieldsMap.has(ptn.key)) {
+          const valStr = pMatch[1]?.trim() || "";
+          fieldsMap.set(ptn.key, {
+            id: `fld_${ptn.key}`,
+            name: ptn.key,
+            label: ptn.label,
+            type: inferFieldType(ptn.key, ptn.label),
+            required: isLikelyRequired(ptn.key, ptn.label),
+            confidence: 0.85,
+            adminConfirmed: false,
+            sourceEvidence: `Paragraph field "${ptn.label}" (sample: "${valStr || "blank"}")`,
+            repeatedFieldKeys: [ptn.label],
+            description: valStr ? `Default sample: "${valStr}"` : "Variable field",
+          });
         }
       }
     }
