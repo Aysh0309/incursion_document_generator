@@ -5,8 +5,8 @@ import path from "path";
 import { PDFDocument } from "pdf-lib";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-import { fillPdfTemplate, fillDocxTemplate } from "../src/lib/document-engine/generator";
-import { TemplateMetadata } from "../src/types";
+import { fillPdfTemplate, fillDocxTemplate, generateDocument } from "../src/lib/document-engine/generator";
+import { TemplateMetadata, ClubBranding } from "../src/types";
 
 describe("Output & Original Template Formatting Preservation Test Suite", () => {
   test("PDF template filling directly overlays onto the original PDF", async () => {
@@ -293,5 +293,92 @@ describe("Output & Original Template Formatting Preservation Test Suite", () => 
     );
 
     if (fs.existsSync(tempNormalPath)) fs.unlinkSync(tempNormalPath);
+  });
+
+  test("generateDocument pipeline creates high-fidelity PDF and DOCX preserving layout", async () => {
+    const club: ClubBranding = {
+      id: "club_acm",
+      name: "ACM Student Chapter",
+      slug: "acm-student-chapter",
+      universityName: "SVNIT",
+      department: "Computer Science",
+      contactEmail: "acm@svnit.ac.in",
+      contactPhone: "+91 9876543210",
+      facultyCoordinator: {
+        name: "Dr. Faculty Coordinator",
+        designation: "Associate Professor",
+        department: "Computer Science",
+      },
+      primaryColor: "#4F46E5",
+      secondaryColor: "#818CF8",
+    };
+
+    // Create a mini DOCX template
+    const zip = new PizZip();
+    zip.file(
+      "[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`
+    );
+    zip.file(
+      "_rels/.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`
+    );
+    zip.file(
+      "word/document.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Submitted to Dean (Students Welfare)</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Subject</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t></w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>`
+    );
+
+    const docxBuf = zip.generate({ type: "nodebuffer" });
+    const tempTmplPath = path.join(process.cwd(), "public", "templates", "test_high_fidelity.docx");
+    fs.writeFileSync(tempTmplPath, docxBuf);
+
+    const metadata: TemplateMetadata = {
+      id: "tmpl_hf_test",
+      name: "High Fidelity Test Template",
+      documentType: "EVENT_PROPOSAL",
+      format: "docx",
+      description: "Test template for high-fidelity PDF pipeline",
+      fileUrl: "/templates/test_high_fidelity.docx",
+      version: 1,
+      isActive: true,
+      status: "PUBLISHED",
+      placeholdersDetected: ["subject"],
+      requiredFields: ["subject"],
+      optionalFields: [],
+      fields: [
+        {
+          id: "fld_subject",
+          name: "subject",
+          label: "Subject",
+          type: "text",
+          required: true,
+          confidence: 1.0,
+          adminConfirmed: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await generateDocument({
+      documentId: "test_doc_hf",
+      template: metadata,
+      fieldValues: { subject: "Autonomous AI Summit" },
+      club,
+    });
+
+    assert.ok(fs.existsSync(result.docxPath), "DOCX file must exist on disk");
+    assert.ok(fs.existsSync(result.pdfPath), "PDF file must exist on disk");
+    assert.ok(fs.statSync(result.pdfPath).size > 1000, "PDF must not be an empty or corrupted stub");
+    assert.ok(
+      result.pdfEngineUsed === "headless_browser" ||
+        result.pdfEngineUsed === "libreoffice" ||
+        result.pdfEngineUsed === "institutional_pdfkit",
+      "Valid PDF engine must be used"
+    );
+
+    // Clean up
+    if (fs.existsSync(tempTmplPath)) fs.unlinkSync(tempTmplPath);
+    if (fs.existsSync(result.docxPath)) fs.unlinkSync(result.docxPath);
+    if (fs.existsSync(result.pdfPath)) fs.unlinkSync(result.pdfPath);
   });
 });

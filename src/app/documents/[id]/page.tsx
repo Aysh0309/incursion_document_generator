@@ -167,7 +167,7 @@ function DocumentReviewContent({ id }: { id: string }) {
                 </span>
               </div>
               <p className="text-[11px] text-[#64748B] mt-0.5">
-                Type: {doc.documentType.replace(/_/g, " ")} • Generated via {doc.pdfEngineUsed === "libreoffice" ? "LibreOffice Headless" : "Institutional PDFKit Engine"}
+                Type: {doc.documentType.replace(/_/g, " ")} • Engine: {doc.pdfEngineUsed === "libreoffice" ? "LibreOffice Headless" : doc.pdfEngineUsed === "headless_browser" ? "Chromium High-Fidelity Engine" : doc.pdfEngineUsed === "pdf_lib_direct" ? "PDF Vector Direct" : "Institutional Engine"}
               </p>
             </div>
           </div>
@@ -232,90 +232,69 @@ function DocumentReviewContent({ id }: { id: string }) {
               <span className="text-[10px] text-[#64748B]">Auto-synced</span>
             </div>
 
-            <div className="p-4 space-y-3.5 text-xs">
-              <div>
-                <label className="font-semibold text-[#18181B] block mb-1">Event Title</label>
-                <input
-                  type="text"
-                  value={editableData.eventName || ""}
-                  onChange={(e) => setEditableData({ ...editableData, eventName: e.target.value })}
-                  className="w-full p-2 rounded border border-[#E2E8F0]"
-                />
-              </div>
+            <div className="p-4 space-y-3.5 text-xs max-h-[560px] overflow-y-auto">
+              {Object.keys(editableData).length === 0 ? (
+                <div className="text-gray-400 py-4 text-center">No editable fields found</div>
+              ) : (
+                Object.entries(editableData).map(([key, value]) => {
+                  if (
+                    key === "formattedBudget" ||
+                    key === "formattedDateRange" ||
+                    key === "currentDate" ||
+                    key === "universityName" ||
+                    key === "department" ||
+                    key === "clubName"
+                  ) {
+                    return null;
+                  }
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={editableData.startDate || ""}
-                    onChange={(e) => setEditableData({ ...editableData, startDate: e.target.value })}
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Time Range</label>
-                  <input
-                    type="text"
-                    value={editableData.startTime || ""}
-                    onChange={(e) => setEditableData({ ...editableData, startTime: e.target.value })}
-                    placeholder="e.g. 09:30 AM"
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
-                  />
-                </div>
-              </div>
+                  const formattedLabel = key
+                    .replace(/([A-Z])/g, " $1")
+                    .replace(/_/g, " ")
+                    .replace(/^./, (s) => s.toUpperCase());
 
-              <div>
-                <label className="font-semibold text-[#18181B] block mb-1">Venue / Specific Lab</label>
-                <input
-                  type="text"
-                  value={editableData.venue || ""}
-                  onChange={(e) => setEditableData({ ...editableData, venue: e.target.value })}
-                  placeholder="e.g. CS Lab 3"
-                  className="w-full p-2 rounded border border-[#E2E8F0]"
-                />
-              </div>
+                  const isMultiline =
+                    key.toLowerCase().includes("description") ||
+                    key.toLowerCase().includes("objective") ||
+                    (typeof value === "string" && value.length > 60);
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Faculty Coordinator</label>
-                  <input
-                    type="text"
-                    value={editableData.facultyCoordinator || ""}
-                    onChange={(e) => setEditableData({ ...editableData, facultyCoordinator: e.target.value })}
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Department HOD</label>
-                  <input
-                    type="text"
-                    value={editableData.departmentHOD || ""}
-                    onChange={(e) => setEditableData({ ...editableData, departmentHOD: e.target.value })}
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
-                  />
-                </div>
-              </div>
+                  const isDateField = key.toLowerCase().includes("date");
+                  const isNumberField =
+                    typeof value === "number" ||
+                    key.toLowerCase().includes("budget") ||
+                    key.toLowerCase().includes("participants");
 
-              <div>
-                <label className="font-semibold text-[#18181B] block mb-1">Budget (INR)</label>
-                <input
-                  type="number"
-                  value={editableData.budgetRequested || 0}
-                  onChange={(e) => setEditableData({ ...editableData, budgetRequested: Number(e.target.value) })}
-                  className="w-full p-2 rounded border border-[#E2E8F0]"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-[#18181B] block mb-1">Description & Objectives</label>
-                <textarea
-                  rows={3}
-                  value={editableData.eventDescription || ""}
-                  onChange={(e) => setEditableData({ ...editableData, eventDescription: e.target.value })}
-                  className="w-full p-2 rounded border border-[#E2E8F0]"
-                />
-              </div>
+                  return (
+                    <div key={key}>
+                      <label className="font-semibold text-[#18181B] block mb-1">
+                        {formattedLabel}
+                      </label>
+                      {isMultiline ? (
+                        <textarea
+                          rows={2}
+                          value={typeof value === "object" ? JSON.stringify(value) : String(value ?? "")}
+                          onChange={(e) =>
+                            setEditableData({ ...editableData, [key]: e.target.value })
+                          }
+                          className="w-full p-2 rounded border border-[#E2E8F0] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                        />
+                      ) : (
+                        <input
+                          type={isDateField ? "date" : isNumberField ? "number" : "text"}
+                          value={typeof value === "object" ? JSON.stringify(value) : (value ?? "") as string | number}
+                          onChange={(e) =>
+                            setEditableData({
+                              ...editableData,
+                              [key]: isNumberField && e.target.value !== "" ? Number(e.target.value) : e.target.value,
+                            })
+                          }
+                          className="w-full p-2 rounded border border-[#E2E8F0] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
 
               {/* Action Buttons */}
               <div className="pt-3 border-t border-[#E2E8F0] space-y-2">

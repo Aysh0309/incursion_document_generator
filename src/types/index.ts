@@ -167,7 +167,7 @@ export interface DocumentRecord {
   currentVersion: number;
   docxUrl: string;
   pdfUrl: string;
-  pdfEngineUsed: "pdf_lib_direct" | "libreoffice" | "institutional_pdfkit";
+  pdfEngineUsed: "pdf_lib_direct" | "libreoffice" | "headless_browser" | "institutional_pdfkit";
   dataSnapshot: Record<string, any>;
   reviewComments?: string;
   approvedBy?: string;
