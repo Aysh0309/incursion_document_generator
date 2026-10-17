@@ -46,6 +46,10 @@ export default function TemplateManagementPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  // Template Deletion
+  const [templateToDelete, setTemplateToDelete] = useState<TemplateMetadata | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchTemplates();
   }, []);
@@ -128,6 +132,28 @@ export default function TemplateManagementPage() {
       }
     } catch (err) {
       console.error("Toggle error:", err);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/templates/${templateId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || "Failed to delete template");
+      }
+      setTemplateToDelete(null);
+      if (reviewingTemplate?.id === templateId) {
+        setReviewingTemplate(null);
+      }
+      await fetchTemplates();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete template");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -244,6 +270,14 @@ export default function TemplateManagementPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTemplateToDelete(reviewingTemplate)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-white hover:bg-[#FEF2F2] text-[#E11D48] text-xs font-semibold transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Template</span>
+                </button>
+
                 <button
                   onClick={handleSaveFieldConfiguration}
                   disabled={savingConfig}
@@ -555,17 +589,27 @@ export default function TemplateManagementPage() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleToggleActive(tmpl)}
-                      className="text-xs text-[#64748B] hover:text-[#18181B] flex items-center gap-1"
-                      title={tmpl.isActive ? "Deactivate" : "Activate"}
-                    >
-                      {tmpl.isActive ? (
-                        <ToggleRight className="h-5 w-5 text-[#059669]" />
-                      ) : (
-                        <ToggleLeft className="h-5 w-5 text-[#94A3B8]" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleActive(tmpl)}
+                        className="text-xs text-[#64748B] hover:text-[#18181B] flex items-center gap-1"
+                        title={tmpl.isActive ? "Deactivate" : "Activate"}
+                      >
+                        {tmpl.isActive ? (
+                          <ToggleRight className="h-5 w-5 text-[#059669]" />
+                        ) : (
+                          <ToggleLeft className="h-5 w-5 text-[#94A3B8]" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setTemplateToDelete(tmpl)}
+                        className="p-1 rounded text-[#94A3B8] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-colors"
+                        title="Delete Template"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="font-bold text-sm text-[#18181B] mb-1">{tmpl.name}</h3>
@@ -614,10 +658,20 @@ export default function TemplateManagementPage() {
                           href={tmpl.fileUrl}
                           download
                           className="text-[#64748B] hover:text-[#18181B] flex items-center gap-1"
+                          title="Download original template file"
                         >
                           <Download className="h-3 w-3" />
                         </a>
                       )}
+
+                      <button
+                        onClick={() => setTemplateToDelete(tmpl)}
+                        className="text-[#94A3B8] hover:text-[#EF4444] flex items-center gap-1 font-medium ml-1 transition-colors"
+                        title="Delete template"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -725,6 +779,51 @@ export default function TemplateManagementPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {templateToDelete && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-xl max-w-sm w-full p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-[#FEF2F2] text-[#EF4444] shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#18181B]">Delete Template?</h3>
+                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                    Are you sure you want to permanently delete <strong className="text-[#18181B]">{templateToDelete.name}</strong>? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F1F5F9]">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setTemplateToDelete(null)}
+                  className="px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F8FAFC]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => handleDeleteTemplate(templateToDelete.id)}
+                  className="px-3.5 py-1.5 rounded-md bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <span>Yes, Delete Template</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

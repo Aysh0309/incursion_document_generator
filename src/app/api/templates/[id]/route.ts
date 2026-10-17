@@ -77,3 +77,42 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const existing = dbStore.getTemplateById(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: { message: "Template not found" } },
+        { status: 404 }
+      );
+    }
+
+    const deleted = dbStore.deleteTemplate(id);
+
+    // Sync to MongoDB if connected
+    try {
+      const conn = await connectToDatabase();
+      if (conn) {
+        await TemplateModel.deleteOne({ id });
+      }
+    } catch (e) {
+      // ignore db sync warning
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Template '${existing.name}' deleted successfully.`,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: { message: err.message } },
+      { status: 500 }
+    );
+  }
+}

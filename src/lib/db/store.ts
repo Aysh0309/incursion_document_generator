@@ -322,6 +322,29 @@ class MemoryStore {
     return this.state.templates[idx];
   }
 
+  deleteTemplate(id: string): boolean {
+    const initialLen = this.state.templates.length;
+    const template = this.state.templates.find((t) => t.id === id);
+    this.state.templates = this.state.templates.filter((t) => t.id !== id);
+
+    if (this.state.templates.length !== initialLen) {
+      this.saveState(this.state);
+      // Clean up physical file if it was a custom uploaded template
+      if (template?.fileUrl && template.fileUrl.startsWith("/templates/custom_")) {
+        try {
+          const filePath = path.join(process.cwd(), "public", template.fileUrl.replace(/^\//, ""));
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (e) {
+          console.warn("Failed to clean up template file on disk:", e);
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
   // --- Event operations ---
   getEvents(): EventRecord[] {
     return this.state.events;
