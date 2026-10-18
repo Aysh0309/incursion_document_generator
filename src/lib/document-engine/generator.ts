@@ -374,25 +374,51 @@ export async function fillDocxTemplate(
       }
 
       if (replacementVal !== undefined && replacementVal !== null) {
-        const newValStr = String(replacementVal);
-        const valTc = tcs[valIdx];
-        const ts = valTc.getElementsByTagName("w:t");
-
-        if (ts.length > 0) {
-          ts[0].textContent = newValStr;
-          for (let k = 1; k < ts.length; k++) {
-            ts[k].textContent = "";
+        const newValStr = String(replacementVal).trim();
+        if (newValStr !== "") {
+          const valTc = tcs[valIdx];
+          
+          // Find or reuse existing paragraph to avoid inserting extra blank lines above the value
+          const existingPs = valTc.getElementsByTagName("w:p");
+          let targetP: any;
+          if (existingPs.length > 0) {
+            targetP = existingPs[0];
+            // Remove any trailing extra paragraphs inside this cell that create unwanted blank lines
+            for (let pIdx = existingPs.length - 1; pIdx >= 1; pIdx--) {
+              valTc.removeChild(existingPs[pIdx]);
+            }
+          } else {
+            targetP = doc.createElement("w:p");
+            valTc.appendChild(targetP);
           }
-        } else {
-          const p = doc.createElement("w:p");
+
+          // Clear any old runs from targetP
+          const existingRuns = targetP.getElementsByTagName("w:r");
+          for (let rIdx = existingRuns.length - 1; rIdx >= 0; rIdx--) {
+            targetP.removeChild(existingRuns[rIdx]);
+          }
+
+          // Create formatted run, inheriting font family and size from label cell
           const r = doc.createElement("w:r");
+          const labelTc = tcs[0];
+          const labelRPr = labelTc.getElementsByTagName("w:rPr")[0];
+          if (labelRPr) {
+            const rPr = doc.createElement("w:rPr");
+            const sz = labelRPr.getElementsByTagName("w:sz")[0];
+            if (sz) rPr.appendChild(sz.cloneNode(true));
+            const szCs = labelRPr.getElementsByTagName("w:szCs")[0];
+            if (szCs) rPr.appendChild(szCs.cloneNode(true));
+            const rFonts = labelRPr.getElementsByTagName("w:rFonts")[0];
+            if (rFonts) rPr.appendChild(rFonts.cloneNode(true));
+            r.appendChild(rPr);
+          }
+
           const t = doc.createElement("w:t");
           t.textContent = newValStr;
           r.appendChild(t);
-          p.appendChild(r);
-          valTc.appendChild(p);
+          targetP.appendChild(r);
+          modified = true;
         }
-        modified = true;
       }
     }
 
@@ -413,14 +439,18 @@ export async function fillDocxTemplate(
           const val = f.isFixed ? f.fixedValue : (fieldValues[f.name] ?? context[f.name]);
           if (val === undefined || val === null) continue;
 
-          // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: previousValue"
+          const valStr = String(val).trim();
+          if (valStr === "") continue;
+
+          // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: ...."
+          // Note: Only match actual blank placeholders; NEVER match static headings ending with colons alone!
           const escapedLabel = f.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const labelPattern = new RegExp(
-            `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\]|\\s*$)`,
+            `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\])`,
             "i"
           );
           if (labelPattern.test(pText)) {
-            const replaced = pText.replace(labelPattern, `$1: ${String(val)}`);
+            const replaced = pText.replace(labelPattern, `$1: ${valStr}`);
             if (ts.length > 0) {
               ts[0].textContent = replaced;
               for (let k = 1; k < ts.length; k++) ts[k].textContent = "";
@@ -539,8 +569,145 @@ async function convertDocxToPdfViaBrowser(
   browserBinary: string
 ): Promise<boolean> {
   try {
+    const zip = new PizZip(docxBuffer);
+    const DOMParser = require("@xmldom/xmldom").DOMParser;
+
+    // 1. Extract embedded media (logos, banners, stamps)
+    const mediaFiles = Object.keys(zip.files).filter((f) => f.startsWith("word/media/"));
+    const mediaMap: Record<string, string> = {};
+    for (const m of mediaFiles) {
+      const ext = m.split(".").pop()?.toLowerCase();
+      const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+      mediaMap[m] = `data:${mime};base64,` + zip.file(m)?.asNodeBuffer().toString("base64");
+    }
+
+    // Identify standard institutional branding images if present
+    const crestImg = mediaMap["word/media/image1.jpeg"] || mediaMap[mediaFiles.find((f) => /image\d*\.(jpe?g|png)/i.test(f)) || ""] || "";
+    const bannerImg = mediaMap["word/media/image2.png"] || "";
+    const badgeImg = mediaMap["word/media/image1.png"] || "";
+
+    // 2. Extract table column widths from word/document.xml to preserve exact column alignment
+    const tableColgroups: string[] = [];
+    const docXmlStr = zip.file("word/document.xml")?.asText();
+    if (docXmlStr) {
+      try {
+        const xmlDoc = new DOMParser().parseFromString(docXmlStr, "application/xml");
+        const tbls = xmlDoc.getElementsByTagName("w:tbl");
+        for (let t = 0; t < tbls.length; t++) {
+          const grid = tbls[t].getElementsByTagName("w:tblGrid")[0];
+          if (grid) {
+            const cols = Array.from(grid.getElementsByTagName("w:gridCol")).map(
+              (c: any) => Number(c.getAttribute("w:w")) || 1000
+            );
+            const total = cols.reduce((a: number, b: number) => a + b, 0);
+            const colHtml = cols
+              .map((c: number) => `<col style="width: ${((c / total) * 100).toFixed(2)}%">`)
+              .join("");
+            tableColgroups.push(`<colgroup>${colHtml}</colgroup>`);
+          } else {
+            tableColgroups.push("");
+          }
+        }
+      } catch {
+        // Fallback to auto widths
+      }
+    }
+
     const conversion = await mammoth.convertToHtml({ buffer: docxBuffer });
-    const bodyContent = conversion.value;
+    let bodyContent = conversion.value;
+
+    // 3. Remove raw sequentially dumped header images and orphan watermark paragraphs
+    bodyContent = bodyContent.replace(/<img[^>]*>\s*<img[^>]*>\s*<img[^>]*>/, "");
+    bodyContent = bodyContent.replace(/<p><strong>SVNIT<\/strong><\/p>/, "");
+
+    // 4. Inject exact colgroups into tables
+    let tblIdx = 0;
+    bodyContent = bodyContent.replace(/<table>/g, () => {
+      const cg = tableColgroups[tblIdx] || "";
+      tblIdx++;
+      return `<table>${cg}`;
+    });
+
+    // 5. Align Table 0 Row 0 ("Subject") with rows 1-4 so all colons align vertically
+    bodyContent = bodyContent.replace(
+      /<td><p><strong>Subject<\/strong><\/p><\/td><td><p><strong>:<\/strong><\/p><\/td><td colspan="3"><p>(.*?)<\/p><\/td>/,
+      '<td colspan="3"><p><strong>Subject</strong></p></td><td><p><strong>:</strong></p></td><td><p>$1</p></td>'
+    );
+
+    // 6. Format No / Date letterhead line
+    bodyContent = bodyContent.replace(/<p>No[\s\S]*?Date[\s\S]*?<\/p>/, (match) => {
+      const noMatch = match.match(/ACM\/[^\s<]+|[A-Z0-9\/-]{5,}/);
+      const dateMatch = match.match(/\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2}/);
+      const noVal = noMatch ? noMatch[0] : "";
+      const dateVal = dateMatch ? dateMatch[0] : "";
+      return `
+        <div class="doc-row-2">
+          <span><strong>No:</strong> ${noVal}</span>
+          <span><strong>Date:</strong> ${dateVal}</span>
+        </div>
+      `;
+    });
+
+    // 7. Format signatures & approval blocks into properly aligned flex rows
+    bodyContent = bodyContent.replace(
+      /<p>Signature of Student Head\s*Signature of Student Secretary<\/p>/,
+      `
+        <div class="sig-block-2">
+          <span>Signature of Student Head</span>
+          <span>Signature of Student Secretary</span>
+        </div>
+      `
+    );
+    bodyContent = bodyContent.replace(
+      /<p>Signature of Faculty Co-Chairman<\/p>\s*<p>Signature of Faculty Chairman<\/p>/,
+      `
+        <div class="sig-block-2">
+          <span>Signature of Faculty Co-Chairman</span>
+          <span>Signature of Faculty Chairman</span>
+        </div>
+      `
+    );
+    bodyContent = bodyContent.replace(
+      /<p>Recommended\/Not Recommended\s*Recommended\/Not Recommended\s*Approved\/Not Approved<\/p>/,
+      `
+        <div class="sig-block-3">
+          <span>Recommended / Not Recommended</span>
+          <span>Recommended / Not Recommended</span>
+          <span>Approved / Not Approved</span>
+        </div>
+      `
+    );
+    bodyContent = bodyContent.replace(
+      /<p><strong>Chairman, F&amp; SW\s*Associate Dean\(SW\)\s*Dean \(Students Welfare\)<\/strong><\/p>/,
+      `
+        <div class="sig-block-3 sig-title">
+          <span>Chairman, F&amp; SW</span>
+          <span>Associate Dean (SW)</span>
+          <span>Dean (Students Welfare)</span>
+        </div>
+      `
+    );
+
+    // Also handle any other tabbed paragraphs in the document
+    bodyContent = bodyContent.replace(/<p>(.*?)\t(.*?)\t(.*?)<\/p>/g, (_m, c1, c2, c3) => {
+      return `<div class="doc-row-3"><span>${c1.trim()}</span><span>${c2.trim()}</span><span>${c3.trim()}</span></div>`;
+    });
+    bodyContent = bodyContent.replace(/<p>(.*?)\t(.*?)<\/p>/g, (_m, c1, c2) => {
+      return `<div class="doc-row-2"><span>${c1.trim()}</span><span>${c2.trim()}</span></div>`;
+    });
+
+    // 8. Construct structured Institutional Header if images exist
+    let headerHtml = "";
+    if (crestImg && bannerImg) {
+      headerHtml = `
+        <div class="institutional-letterhead">
+          <div class="logo-left"><img src="${crestImg}" alt="Institute Crest" /></div>
+          <div class="title-center"><img src="${bannerImg}" alt="Institute Title Banner" /></div>
+          ${badgeImg ? `<div class="badge-right"><img src="${badgeImg}" alt="Chapter Logo" /></div>` : ""}
+        </div>
+        <hr class="header-divider" />
+      `;
+    }
 
     const htmlContent = `<!DOCTYPE html>
 <html>
@@ -549,64 +716,137 @@ async function convertDocxToPdfViaBrowser(
 <style>
   @page {
     size: A4 portrait;
-    margin: 15mm 18mm 15mm 18mm;
+    margin: 12mm 15mm 12mm 15mm;
   }
   * {
     box-sizing: border-box;
   }
   body {
     font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
-    font-size: 11pt;
-    line-height: 1.35;
+    font-size: 10.5pt;
+    line-height: 1.3;
     color: #000;
     margin: 0;
     padding: 0;
   }
-  img {
-    max-width: 170px;
-    max-height: 120px;
-    height: auto;
-    display: block;
-    margin: 4px auto 8px auto;
+  .institutional-letterhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 2px;
+  }
+  .logo-left img {
+    width: 58px;
+    height: 58px;
     object-fit: contain;
   }
-  h1 {
-    font-size: 13.5pt;
-    font-weight: bold;
+  .title-center {
+    flex: 1;
     text-align: center;
-    margin: 8px 0 12px 0;
   }
-  h2, h3 {
-    font-size: 11.5pt;
+  .title-center img {
+    max-width: 100%;
+    max-height: 54px;
+    object-fit: contain;
+  }
+  .badge-right img {
+    width: 48px;
+    height: 28px;
+    object-fit: contain;
+  }
+  .header-divider {
+    border: none;
+    border-top: 1.8px solid #000;
+    margin: 3px 0 8px 0;
+  }
+  .doc-row-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0 6px 0;
+    font-size: 10pt;
+  }
+  .sig-block-2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 20px 8px 20px;
+    font-size: 9.5pt;
+    font-weight: 600;
+  }
+  .sig-block-3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 10px 4px 10px;
+    font-size: 9.5pt;
+  }
+  .sig-block-3.sig-title {
+    margin-top: 20px;
     font-weight: bold;
-    margin: 6px 0;
+  }
+  .sig-block-3 > span, .sig-block-2 > span {
+    flex: 1;
+    text-align: center;
+  }
+  .sig-block-2 > span:first-child {
+    text-align: left;
+  }
+  .sig-block-2 > span:last-child {
+    text-align: right;
+  }
+  .sig-block-3 > span:first-child {
+    text-align: left;
+  }
+  .sig-block-3 > span:last-child {
+    text-align: right;
+  }
+  h1, h2, h3 {
+    font-size: 10.5pt;
+    font-weight: bold;
+    text-align: left;
+    margin: 6px 0 4px 0;
+    text-decoration: underline;
   }
   p {
-    margin: 4px 0;
-    white-space: pre-wrap;
-    tab-size: 8;
+    margin: 3px 0;
+    line-height: 1.3;
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 8px 0 12px 0;
+    margin: 4px 0 6px 0;
+    table-layout: fixed;
     page-break-inside: avoid;
   }
   table, th, td {
     border: 1px solid #000;
   }
   th, td {
-    padding: 5px 8px;
-    vertical-align: top;
-    font-size: 10.5pt;
-    line-height: 1.3;
+    padding: 3.5px 6px;
+    vertical-align: middle;
+    font-size: 9.5pt;
+    line-height: 1.25;
+  }
+  td[colspan="3"], td[colspan="5"] {
+    background-color: #CED7E7;
+    font-weight: bold;
+    padding: 4px 6px;
+    font-size: 10pt;
   }
   strong {
     font-weight: bold;
   }
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 </style>
 </head>
 <body>
+  ${headerHtml}
   ${bodyContent}
 </body>
 </html>`;
