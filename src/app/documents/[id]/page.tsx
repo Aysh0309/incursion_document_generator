@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentRecord, DocumentVersionRecord, StructuredEventData, UserRole } from "@/types";
+import { SignatureSubmissionModal } from "@/components/documents/SignatureSubmissionModal";
+import { SignatureProgressCard } from "@/components/documents/SignatureProgressCard";
 
 function DocumentReviewContent({ id }: { id: string }) {
 
@@ -32,6 +34,7 @@ function DocumentReviewContent({ id }: { id: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   // Editable fields state
   const [editableData, setEditableData] = useState<Partial<StructuredEventData>>({});
@@ -211,8 +214,20 @@ function DocumentReviewContent({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* Action Downloads */}
+          {/* Action Downloads & Signature Submission */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSignatureModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold shadow-xs transition-colors"
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span>
+                {doc.signatureRequests && doc.signatureRequests.length > 0
+                  ? "Manage Signatures"
+                  : "Submit for Signature"}
+              </span>
+            </button>
+
             <button
               onClick={() => setShowHistoryModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-white text-xs font-medium text-[#475569] shadow-2xs transition-colors"
@@ -236,10 +251,11 @@ function DocumentReviewContent({ id }: { id: string }) {
               <a
                 href={doc.pdfUrl}
                 download
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold shadow-xs transition-colors"
+                title="Download latest generated or signed PDF"
               >
                 <FileDown className="h-3.5 w-3.5" />
-                <span>PDF</span>
+                <span>Download PDF</span>
               </a>
             )}
 
@@ -255,6 +271,11 @@ function DocumentReviewContent({ id }: { id: string }) {
             )}
           </div>
         </div>
+
+        {/* Signature Workflow Progress Ribbon */}
+        {doc.signatureRequests && doc.signatureRequests.length > 0 && (
+          <SignatureProgressCard document={doc} onRefresh={fetchDocData} />
+        )}
 
         {/* Status Callout Banner */}
         {doc.status === "DRAFT" && (
@@ -560,6 +581,20 @@ function DocumentReviewContent({ id }: { id: string }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Signature Submission Modal */}
+        {showSignatureModal && (
+          <SignatureSubmissionModal
+            document={doc}
+            isOpen={showSignatureModal}
+            onClose={() => setShowSignatureModal(false)}
+            onSuccess={(updated) => {
+              setDoc(updated);
+              setActionSuccess("Signature requests successfully dispatched to designated authorities!");
+              fetchDocData();
+            }}
+          />
         )}
       </div>
     </AppShell>

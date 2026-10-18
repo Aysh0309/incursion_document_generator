@@ -6,12 +6,18 @@ export interface IDocRecordDoc extends Document {
   templateId: string;
   documentType: string;
   clubId: string;
-  status: "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "CHANGES_REQUESTED" | "REJECTED";
+  status: "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "PENDING_SIGNATURE" | "APPROVED" | "COMPLETED" | "CHANGES_REQUESTED" | "REJECTED";
   currentVersion: number;
   docxUrl: string;
   pdfUrl: string;
+  unsignedPdfUrl?: string;
   pdfEngineUsed: string;
   dataSnapshot: Record<string, any>;
+  signingWorkflow?: string;
+  signatureRequests?: any[];
+  workflowEvents?: any[];
+  requesterEmail?: string;
+  requesterName?: string;
   reviewComments?: string;
   approvedBy?: string;
   approvedAt?: Date;
@@ -28,14 +34,20 @@ const DocumentRecordSchema = new Schema<IDocRecordDoc>(
     clubId: { type: String, required: true },
     status: {
       type: String,
-      enum: ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "CHANGES_REQUESTED", "REJECTED"],
+      enum: ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "PENDING_SIGNATURE", "APPROVED", "COMPLETED", "CHANGES_REQUESTED", "REJECTED"],
       default: "DRAFT",
     },
     currentVersion: { type: Number, default: 1 },
     docxUrl: { type: String, required: true },
     pdfUrl: { type: String, required: true },
+    unsignedPdfUrl: { type: String },
     pdfEngineUsed: { type: String, default: "institutional_pdfkit" },
     dataSnapshot: { type: Schema.Types.Mixed, required: true },
+    signingWorkflow: { type: String, default: "SEQUENTIAL" },
+    signatureRequests: { type: Schema.Types.Mixed, default: [] },
+    workflowEvents: { type: Schema.Types.Mixed, default: [] },
+    requesterEmail: { type: String },
+    requesterName: { type: String },
     reviewComments: { type: String },
     approvedBy: { type: String },
     approvedAt: { type: Date },

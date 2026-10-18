@@ -22,8 +22,10 @@ import {
   Save,
   HelpCircle,
   ExternalLink,
+  ShieldCheck,
+  PenTool,
 } from "lucide-react";
-import { DocumentType, TemplateField, TemplateMetadata, FieldDataType } from "@/types";
+import { DocumentType, TemplateField, TemplateMetadata, FieldDataType, TemplateSignatureField, AuthorityRecord } from "@/types";
 
 export default function TemplateManagementPage() {
   const [templates, setTemplates] = useState<TemplateMetadata[]>([]);
@@ -44,6 +46,10 @@ export default function TemplateManagementPage() {
   const [isNewDraft, setIsNewDraft] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [editableFields, setEditableFields] = useState<TemplateField[]>([]);
+  const [editableSigFields, setEditableSigFields] = useState<TemplateSignatureField[]>([]);
+  const [signingWorkflow, setSigningWorkflow] = useState<"SEQUENTIAL" | "PARALLEL">("SEQUENTIAL");
+  const [studioTab, setStudioTab] = useState<"fields" | "signatures">("fields");
+  const [authoritiesList, setAuthoritiesList] = useState<AuthorityRecord[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -54,6 +60,12 @@ export default function TemplateManagementPage() {
 
   useEffect(() => {
     fetchTemplates();
+    fetch("/api/authorities")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.data) setAuthoritiesList(d.data);
+      })
+      .catch(() => {});
   }, []);
 
   const fetchTemplates = async () => {
@@ -118,8 +130,39 @@ export default function TemplateManagementPage() {
     setIsNewDraft(isDraft);
     setReviewingTemplate(tmpl);
     setEditableFields(tmpl.fields || []);
+    setEditableSigFields(tmpl.signatureFields || []);
+    setSigningWorkflow(tmpl.signingWorkflow || "SEQUENTIAL");
     setSelectedFieldId(tmpl.fields?.[0]?.id || null);
+    setStudioTab("fields");
     setSaveSuccess(null);
+  };
+
+  const handleAddSigField = () => {
+    const order = editableSigFields.length + 1;
+    const isLeft = order % 2 === 1;
+    const newSig: TemplateSignatureField = {
+      id: "sig_" + Math.random().toString(36).substring(2, 8),
+      name: `signature_${order}`,
+      printedName: "",
+      designation: `Signature of Authority ${order}`,
+      assignedRole: "FACULTY_COORDINATOR",
+      pageNumber: 1,
+      position: { x: isLeft ? 72 : 380, y: 120, width: 140, height: 45 },
+      required: true,
+      signingOrder: order,
+      actionType: "SIGNATURE_ONLY",
+    };
+    setEditableSigFields([...editableSigFields, newSig]);
+  };
+
+  const handleUpdateSigField = (id: string, updates: Partial<TemplateSignatureField>) => {
+    setEditableSigFields(
+      editableSigFields.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const handleRemoveSigField = (id: string) => {
+    setEditableSigFields(editableSigFields.filter((s) => s.id !== id));
   };
 
   const handleDiscardDraft = async () => {
@@ -243,6 +286,8 @@ export default function TemplateManagementPage() {
           body: JSON.stringify({
             ...reviewingTemplate,
             fields: editableFields,
+            signatureFields: editableSigFields,
+            signingWorkflow,
             status: "PUBLISHED",
           }),
         });
@@ -262,6 +307,8 @@ export default function TemplateManagementPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fields: editableFields,
+            signatureFields: editableSigFields,
+            signingWorkflow,
             status: "PUBLISHED",
             version: reviewingTemplate.version + 1,
           }),
@@ -503,29 +550,74 @@ export default function TemplateManagementPage() {
 
               {/* Right Fields Table & Property Editor (7 Cols) */}
               <div className="lg:col-span-7 rounded-lg border border-[#E2E8F0] bg-white overflow-hidden shadow-2xs">
-                <div className="px-4 py-3 bg-[#FCFDFE] border-b border-[#E2E8F0] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sliders className="h-4 w-4 text-[#4F46E5]" />
-                    <h3 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
-                      Detected & Configured Fields ({editableFields.length})
-                    </h3>
+                {/* Tabs Header */}
+                <div className="px-4 py-2.5 bg-[#FCFDFE] border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 bg-[#F1F5F9] p-0.5 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setStudioTab("fields")}
+                      className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                        studioTab === "fields"
+                          ? "bg-white text-[#4F46E5] shadow-2xs"
+                          : "text-[#64748B] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      <Sliders className="h-3.5 w-3.5" />
+                      <span>Data Fields ({editableFields.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStudioTab("signatures")}
+                      className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                        studioTab === "signatures"
+                          ? "bg-white text-[#4F46E5] shadow-2xs"
+                          : "text-[#64748B] hover:text-[#0F172A]"
+                      }`}
+                    >
+                      <PenTool className="h-3.5 w-3.5" />
+                      <span>Signature Blocks ({editableSigFields.length})</span>
+                    </button>
                   </div>
 
-                  <button
-                    onClick={handleAddField}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF] text-xs font-semibold"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Add Field Manually</span>
-                  </button>
+                  {studioTab === "fields" ? (
+                    <button
+                      type="button"
+                      onClick={handleAddField}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF] text-xs font-semibold"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Field</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={signingWorkflow}
+                        onChange={(e) => setSigningWorkflow(e.target.value as any)}
+                        className="px-2 py-1 text-xs rounded border border-[#CBD5E1] bg-white text-[#475569] font-medium"
+                        title="Workflow routing mode"
+                      >
+                        <option value="SEQUENTIAL">Sequential Order</option>
+                        <option value="PARALLEL">Parallel Delivery</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddSigField}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF] text-xs font-semibold"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add Signature</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="max-h-[460px] overflow-y-auto divide-y divide-[#E2E8F0]">
-                  {editableFields.length === 0 ? (
-                    <div className="p-8 text-center text-xs text-[#64748B]">
-                      No fields configured yet. Click "Add Field Manually" above to add required fields.
-                    </div>
-                  ) : (
+                  {studioTab === "fields" ? (
+                    editableFields.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-[#64748B]">
+                        No fields configured yet. Click "Add Field" above to add required fields.
+                      </div>
+                    ) : (
                     editableFields.map((field) => {
                       const isSelected = selectedFieldId === field.id;
                       return (
@@ -660,6 +752,175 @@ export default function TemplateManagementPage() {
                         </div>
                       );
                     })
+                  )
+                ) : (
+                    /* Signature Blocks Tab View */
+                    editableSigFields.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-[#64748B] space-y-2">
+                        <PenTool className="h-6 w-6 text-[#94A3B8] mx-auto opacity-50" />
+                        <p className="font-semibold text-[#0F172A]">No Signature Blocks Configured</p>
+                        <p>Click "Add Signature" above to place required authority sign-off areas.</p>
+                      </div>
+                    ) : (
+                      editableSigFields.map((sig) => (
+                        <div key={sig.id} className="p-3.5 space-y-3 hover:bg-[#FAFAFA] transition-colors">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="h-5 w-5 rounded-full bg-[#EEF2FF] text-[#4F46E5] font-bold text-[10px] flex items-center justify-center">
+                                #{sig.signingOrder}
+                              </span>
+                              <span className="font-bold text-xs text-[#0F172A]">
+                                {sig.designation}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569] font-mono">
+                                Page {sig.pageNumber}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSigField(sig.id)}
+                              className="text-[#64748B] hover:text-[#E11D48] p-1 rounded"
+                              title="Delete signature block"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+                            <div className="sm:col-span-5">
+                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                                Designation / Role Title *
+                              </label>
+                              <input
+                                type="text"
+                                value={sig.designation}
+                                onChange={(e) => handleUpdateSigField(sig.id, { designation: e.target.value })}
+                                placeholder="e.g. Signature of Student Head"
+                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-4">
+                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                                Default Directory Authority
+                              </label>
+                              <select
+                                value={sig.defaultAuthorityId || ""}
+                                onChange={(e) => {
+                                  const auth = authoritiesList.find((a) => a.id === e.target.value);
+                                  handleUpdateSigField(sig.id, {
+                                    defaultAuthorityId: e.target.value,
+                                    assignedRole: auth?.role || sig.assignedRole,
+                                    printedName: auth?.name || sig.printedName,
+                                  });
+                                }}
+                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs font-medium"
+                              >
+                                <option value="">-- Unassigned (Role-based) --</option>
+                                {authoritiesList.map((a) => (
+                                  <option key={a.id} value={a.id}>
+                                    {a.name} ({a.designation})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="sm:col-span-3">
+                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                                Action Type
+                              </label>
+                              <select
+                                value={sig.actionType || "SIGNATURE_ONLY"}
+                                onChange={(e) => handleUpdateSigField(sig.id, { actionType: e.target.value as any })}
+                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                              >
+                                <option value="SIGNATURE_ONLY">Signature Only</option>
+                                <option value="APPROVAL_AND_SIGNATURE">Approval + Signature</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Coordinates and Dimensions */}
+                          <div className="flex flex-wrap items-center gap-3 p-2 bg-[#F8FAFC] rounded border border-[#E2E8F0] text-[11px] text-[#475569]">
+                            <span className="font-semibold text-[#0F172A]">PDF Coordinates:</span>
+                            <div className="flex items-center gap-1">
+                              <span>Page:</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={sig.pageNumber || 1}
+                                onChange={(e) => handleUpdateSigField(sig.id, { pageNumber: parseInt(e.target.value) || 1 })}
+                                className="w-12 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs font-bold"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>X:</span>
+                              <input
+                                type="number"
+                                value={sig.position?.x ?? 72}
+                                onChange={(e) =>
+                                  handleUpdateSigField(sig.id, {
+                                    position: { ...sig.position, x: parseInt(e.target.value) || 0 },
+                                  })
+                                }
+                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>Y (Bottom-up):</span>
+                              <input
+                                type="number"
+                                value={sig.position?.y ?? 120}
+                                onChange={(e) =>
+                                  handleUpdateSigField(sig.id, {
+                                    position: { ...sig.position, y: parseInt(e.target.value) || 0 },
+                                  })
+                                }
+                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>Width:</span>
+                              <input
+                                type="number"
+                                value={sig.position?.width ?? 140}
+                                onChange={(e) =>
+                                  handleUpdateSigField(sig.id, {
+                                    position: { ...sig.position, width: parseInt(e.target.value) || 140 },
+                                  })
+                                }
+                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>Height:</span>
+                              <input
+                                type="number"
+                                value={sig.position?.height ?? 45}
+                                onChange={(e) =>
+                                  handleUpdateSigField(sig.id, {
+                                    position: { ...sig.position, height: parseInt(e.target.value) || 45 },
+                                  })
+                                }
+                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                              />
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={sig.required}
+                                  onChange={(e) => handleUpdateSigField(sig.id, { required: e.target.checked })}
+                                  className="rounded text-[#4F46E5]"
+                                />
+                                <span className="font-semibold text-[#0F172A]">Mandatory</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )
                   )}
                 </div>
               </div>

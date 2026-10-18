@@ -12,7 +12,9 @@ export type DocumentStatus =
   | "DRAFT"
   | "SUBMITTED"
   | "UNDER_REVIEW"
+  | "PENDING_SIGNATURE"
   | "APPROVED"
+  | "COMPLETED"
   | "CHANGES_REQUESTED"
   | "REJECTED";
 
@@ -133,6 +135,87 @@ export interface DetectedAsset {
   description?: string;
 }
 
+export interface AuthorityRecord {
+  id: string;
+  name: string;
+  email: string;
+  designation: string;
+  role: string; // e.g. "STUDENT_HEAD", "STUDENT_SECRETARY", "FACULTY_COORDINATOR", "FACULTY_CHAIRMAN", "HOD", "DEAN"
+  department?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface TemplateSignatureField {
+  id: string;
+  name?: string;
+  printedName: string;
+  designation: string;
+  assignedRole: string;
+  defaultAuthorityId?: string;
+  pageNumber: number; // 1-based page index
+  position: {
+    x: number; // PDF points
+    y: number; // PDF points from bottom (or converted from layout)
+    width: number;
+    height: number;
+  };
+  required: boolean;
+  signingOrder: number; // 1, 2, 3...
+  actionType?: "SIGNATURE_ONLY" | "APPROVAL_ONLY" | "APPROVAL_AND_SIGNATURE";
+  includeDate?: boolean;
+}
+
+export interface SignatureRequest {
+  id: string;
+  documentId: string;
+  fieldId: string;
+  printedName: string;
+  designation: string;
+  assignedAuthorityId: string;
+  authorityName: string;
+  authorityEmail: string;
+  pageNumber: number;
+  position: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  signingOrder: number;
+  actionType: "SIGNATURE_ONLY" | "APPROVAL_ONLY" | "APPROVAL_AND_SIGNATURE";
+  includeDate?: boolean;
+  status: "PENDING" | "SENT" | "VIEWED" | "SIGNED" | "DECLINED" | "EXPIRED";
+  tokenHash: string; // SHA-256 hash of token
+  tokenExpiresAt: string;
+  sentAt?: string;
+  signedAt?: string;
+  signatureImageUrl?: string;
+  declineReason?: string;
+  emailDeliveryStatus?: "PENDING" | "SENT" | "DELIVERED" | "FAILED";
+  emailDeliveryError?: string;
+}
+
+export interface WorkflowEvent {
+  id: string;
+  documentId: string;
+  action:
+    | "DOCUMENT_CREATED"
+    | "SUBMITTED_FOR_SIGNATURE"
+    | "EMAIL_SENT"
+    | "DOCUMENT_VIEWED"
+    | "DOCUMENT_SIGNED"
+    | "NEXT_AUTHORITY_NOTIFIED"
+    | "REQUEST_DECLINED"
+    | "WORKFLOW_COMPLETED"
+    | "CHANGES_REQUESTED"
+    | "REGENERATED";
+  performedBy: string;
+  authorityDesignation?: string;
+  details?: string;
+  timestamp: string;
+}
+
 export interface TemplateMetadata {
   id: string;
   name: string;
@@ -141,6 +224,8 @@ export interface TemplateMetadata {
   description: string;
   fileUrl: string;
   fields: TemplateField[];
+  signatureFields?: TemplateSignatureField[];
+  signingWorkflow?: "SEQUENTIAL" | "PARALLEL";
   requiredFields: string[];
   optionalFields: string[];
   placeholdersDetected: string[];
@@ -167,8 +252,14 @@ export interface DocumentRecord {
   currentVersion: number;
   docxUrl: string;
   pdfUrl: string;
+  unsignedPdfUrl?: string;
   pdfEngineUsed: "pdf_lib_direct" | "libreoffice" | "headless_browser" | "institutional_pdfkit";
   dataSnapshot: Record<string, any>;
+  signingWorkflow?: "SEQUENTIAL" | "PARALLEL";
+  signatureRequests?: SignatureRequest[];
+  workflowEvents?: WorkflowEvent[];
+  requesterEmail?: string;
+  requesterName?: string;
   reviewComments?: string;
   approvedBy?: string;
   approvedAt?: string;

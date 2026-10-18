@@ -28,6 +28,7 @@ describe("Template Lifecycle & Publish Flow Suite", () => {
           type: "text",
           required: true,
           confidence: 0.95,
+          adminConfirmed: true,
         },
       ],
       requiredFields: ["eventName"],

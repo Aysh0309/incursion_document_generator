@@ -16,6 +16,98 @@
       "department": "Computer Science & Engineering"
     }
   },
+  "authorities": [
+    {
+      "id": "auth_student_head",
+      "name": "Aarav Patel",
+      "email": "aarav.patel@nit.ac.in",
+      "designation": "Student Head & President",
+      "role": "STUDENT_HEAD",
+      "department": "Computer Science & Engineering",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.430Z"
+    },
+    {
+      "id": "auth_student_sec",
+      "name": "Ananya Iyer",
+      "email": "ananya.iyer@nit.ac.in",
+      "designation": "Student General Secretary",
+      "role": "STUDENT_SECRETARY",
+      "department": "Information Technology",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "id": "auth_faculty_coord",
+      "name": "Dr. Sunita Sharma",
+      "email": "sunita.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator & Associate Professor",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science & Engineering",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "id": "auth_faculty_cochair",
+      "name": "Prof. Rajesh Verma",
+      "email": "rajesh.verma@nit.ac.in",
+      "designation": "Faculty Co-Chairman (Student Activities)",
+      "role": "FACULTY_CO_CHAIRMAN",
+      "department": "Electrical Engineering",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "id": "auth_faculty_chair",
+      "name": "Dr. Arvind K. Mehta",
+      "email": "arvind.mehta@nit.ac.in",
+      "designation": "Faculty Chairman (Student Affairs)",
+      "role": "FACULTY_CHAIRMAN",
+      "department": "Mechanical Engineering",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "id": "auth_hod_cse",
+      "name": "Dr. K. S. Raman",
+      "email": "hod.cse@nit.ac.in",
+      "designation": "Head of Department (CSE)",
+      "role": "HOD",
+      "department": "Computer Science & Engineering",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "id": "auth_dean_sw",
+      "name": "Prof. B. N. Mukherjee",
+      "email": "dean.sw@nit.ac.in",
+      "designation": "Dean (Students Welfare)",
+      "role": "DEAN",
+      "department": "Office of Student Welfare",
+      "isActive": true,
+      "createdAt": "2026-10-18T12:53:59.431Z"
+    },
+    {
+      "name": "Dr. Arvind Sharma",
+      "email": "arvind.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science",
+      "isActive": true,
+      "id": "auth_d6xwpwd8",
+      "createdAt": "2026-10-18T13:08:42.834Z"
+    },
+    {
+      "name": "Dr. Arvind Sharma",
+      "email": "arvind.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science",
+      "isActive": true,
+      "id": "auth_n5cklhsm",
+      "createdAt": "2026-10-18T13:11:48.869Z"
+    }
+  ],
   "templates": [
     {
       "id": "tmpl_krpzdvt7",
@@ -356,7 +448,9 @@
       "isActive": true,
       "isSystemDefault": false,
       "createdAt": "2026-10-18T05:46:45.702Z",
-      "updatedAt": "2026-10-18T06:54:07.546Z"
+      "updatedAt": "2026-10-18T06:54:07.546Z",
+      "signatureFields": [],
+      "signingWorkflow": "SEQUENTIAL"
     },
     {
       "id": "tmpl_yv6ylxdd",
@@ -990,7 +1084,9 @@
       "isActive": true,
       "isSystemDefault": false,
       "createdAt": "2026-10-18T05:49:57.456Z",
-      "updatedAt": "2026-10-18T05:50:48.301Z"
+      "updatedAt": "2026-10-18T05:50:48.301Z",
+      "signatureFields": [],
+      "signingWorkflow": "SEQUENTIAL"
     },
     {
       "id": "tmpl_kyo83heu",
@@ -1182,10 +1278,495 @@
       "isActive": true,
       "isSystemDefault": false,
       "createdAt": "2026-10-18T11:40:55.456Z",
-      "updatedAt": "2026-10-18T11:41:16.448Z"
+      "updatedAt": "2026-10-18T11:41:16.448Z",
+      "signatureFields": [],
+      "signingWorkflow": "SEQUENTIAL"
+    },
+    {
+      "id": "tmpl_0zpy809t",
+      "name": "acm",
+      "documentType": "EVENT_PROPOSAL",
+      "format": "docx",
+      "description": "",
+      "fileUrl": "/templates/custom_1792326294400_ACM.docx",
+      "fields": [
+        {
+          "id": "fld_subject",
+          "name": "subject",
+          "label": "Subject",
+          "type": "text",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Subject\" (current text: \": Requesting Permission to Conduct Internal Hackathon of SIH\")",
+          "repeatedFieldKeys": [
+            "Subject",
+            "subject"
+          ],
+          "description": "Template default / sample: \": Requesting Permission to Conduct Internal Hackathon of SIH\""
+        },
+        {
+          "id": "fld_clubName",
+          "name": "clubName",
+          "label": "Chapter/Club/Society/Section Name",
+          "type": "text",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Chapter/Club/Society/Section Name\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Chapter/Club/Society/Section Name",
+            "clubName"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_chapterClubSocietySectionCodeNo",
+          "name": "chapterClubSocietySectionCodeNo",
+          "label": "Chapter/Club/Society/Section Code No",
+          "type": "text",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Chapter/Club/Society/Section Code No\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Chapter/Club/Society/Section Code No",
+            "chapterClubSocietySectionCodeNo"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_startDate",
+          "name": "startDate",
+          "label": "Schedule of Event (Date, Day)",
+          "type": "date",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Schedule of Event (Date, Day)\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Schedule of Event (Date, Day)",
+            "startDate"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_venue",
+          "name": "venue",
+          "label": "Event Venue",
+          "type": "text",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Event Venue\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Event Venue",
+            "venue"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_eventName",
+          "name": "eventName",
+          "label": "Title of the Event",
+          "type": "text",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Title of the Event\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Title of the Event",
+            "eventName"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_eventType",
+          "name": "eventType",
+          "label": "Category of the Event",
+          "type": "text",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Category of the Event\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Category of the Event",
+            "eventType"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_eventDescription",
+          "name": "eventDescription",
+          "label": "Brief Description",
+          "type": "textarea",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Brief Description\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Brief Description",
+            "eventDescription",
+            "Objectives"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_targetAudience",
+          "name": "targetAudience",
+          "label": "Target Audience",
+          "type": "text",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Target Audience\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Target Audience",
+            "targetAudience"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_expectedParticipants",
+          "name": "expectedParticipants",
+          "label": "Expected Number of  Participants",
+          "type": "number",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Expected Number of  Participants\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Expected Number of  Participants",
+            "expectedParticipants"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_nameOfJudges",
+          "name": "nameOfJudges",
+          "label": "Name of Judges",
+          "type": "text",
+          "required": true,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Name of Judges\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Name of Judges",
+            "nameOfJudges"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_totalAmountSanctionedInCurrentAcademicYear",
+          "name": "totalAmountSanctionedInCurrentAcademicYear",
+          "label": "Total amount Sanctioned in Current Academic Year",
+          "type": "currency",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Total amount Sanctioned in Current Academic Year\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Total amount Sanctioned in Current Academic Year",
+            "totalAmountSanctionedInCurrentAcademicYear"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_amountUtilized",
+          "name": "amountUtilized",
+          "label": "Amount Utilized",
+          "type": "currency",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Amount Utilized\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Amount Utilized",
+            "amountUtilized"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_currentProposedAmount",
+          "name": "currentProposedAmount",
+          "label": "Current Proposed amount",
+          "type": "currency",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Current Proposed amount\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Current Proposed amount",
+            "currentProposedAmount"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_balanceAmount",
+          "name": "balanceAmount",
+          "label": "Balance amount",
+          "type": "currency",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Balance amount\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Balance amount",
+            "balanceAmount"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_signatureOfficeClerk",
+          "name": "signatureOfficeClerk",
+          "label": "Signature (Office Clerk)",
+          "type": "text",
+          "required": false,
+          "confidence": 0.92,
+          "adminConfirmed": true,
+          "sourceEvidence": "Table row \"Signature (Office Clerk)\" (current text: \"blank\")",
+          "repeatedFieldKeys": [
+            "Signature (Office Clerk)",
+            "signatureOfficeClerk"
+          ],
+          "description": "Variable field (blank in template)"
+        },
+        {
+          "id": "fld_acm202627Sih001Date",
+          "name": "acm202627Sih001Date",
+          "label": "ACM/2026-27/SIH/001 Date",
+          "type": "date",
+          "required": true,
+          "confidence": 0.88,
+          "adminConfirmed": false,
+          "sourceEvidence": "Labeled blank \"ACM/2026-27/SIH/001 Date :\" in word/document.xml",
+          "repeatedFieldKeys": [
+            "ACM/2026-27/SIH/001 Date"
+          ]
+        },
+        {
+          "id": "fld_submittedToDeanStudentsWelfare",
+          "name": "submittedToDeanStudentsWelfare",
+          "label": "Submitted to Dean (Students Welfare)",
+          "type": "text",
+          "required": false,
+          "confidence": 0.88,
+          "adminConfirmed": false,
+          "sourceEvidence": "Labeled blank \"Submitted to Dean (Students Welfare):\" in word/document.xml",
+          "repeatedFieldKeys": [
+            "Submitted to Dean (Students Welfare)"
+          ]
+        },
+        {
+          "id": "fld_name",
+          "name": "name",
+          "label": "Name",
+          "type": "text",
+          "required": true,
+          "confidence": 0.88,
+          "adminConfirmed": false,
+          "sourceEvidence": "Labeled blank \"Name:\" in word/document.xml",
+          "repeatedFieldKeys": [
+            "Name"
+          ]
+        },
+        {
+          "id": "fld_mobileNo",
+          "name": "mobileNo",
+          "label": "Mobile No",
+          "type": "phone",
+          "required": false,
+          "confidence": 0.88,
+          "adminConfirmed": false,
+          "sourceEvidence": "Labeled blank \"Mobile No:\" in word/document.xml",
+          "repeatedFieldKeys": [
+            "Mobile No"
+          ]
+        },
+        {
+          "id": "fld_documentRefNumber",
+          "name": "documentRefNumber",
+          "label": "Document Reference Number",
+          "type": "number",
+          "required": false,
+          "confidence": 0.85,
+          "adminConfirmed": false,
+          "sourceEvidence": "Paragraph field \"Document Reference Number\" (sample: \"blank\")",
+          "repeatedFieldKeys": [
+            "Document Reference Number"
+          ],
+          "description": "Variable field"
+        },
+        {
+          "id": "fld_signatureOfStudentSecretaryName",
+          "name": "signatureOfStudentSecretaryName",
+          "label": "Signature of Student Secretary Name",
+          "type": "text",
+          "required": true,
+          "confidence": 0.88,
+          "adminConfirmed": false,
+          "sourceEvidence": "Labeled blank \"Signature of Student Secretary Name:\" in word/document.xml",
+          "repeatedFieldKeys": [
+            "Signature of Student Secretary Name"
+          ]
+        }
+      ],
+      "requiredFields": [
+        "subject",
+        "clubName",
+        "startDate",
+        "venue",
+        "eventName",
+        "expectedParticipants",
+        "nameOfJudges",
+        "acm202627Sih001Date",
+        "name",
+        "signatureOfStudentSecretaryName"
+      ],
+      "optionalFields": [
+        "chapterClubSocietySectionCodeNo",
+        "eventType",
+        "eventDescription",
+        "targetAudience",
+        "totalAmountSanctionedInCurrentAcademicYear",
+        "amountUtilized",
+        "currentProposedAmount",
+        "balanceAmount",
+        "signatureOfficeClerk",
+        "submittedToDeanStudentsWelfare",
+        "mobileNo",
+        "documentRefNumber"
+      ],
+      "placeholdersDetected": [
+        "subject",
+        "clubName",
+        "chapterClubSocietySectionCodeNo",
+        "startDate",
+        "venue",
+        "eventName",
+        "eventType",
+        "eventDescription",
+        "targetAudience",
+        "expectedParticipants",
+        "nameOfJudges",
+        "totalAmountSanctionedInCurrentAcademicYear",
+        "amountUtilized",
+        "currentProposedAmount",
+        "balanceAmount",
+        "signatureOfficeClerk",
+        "acm202627Sih001Date",
+        "submittedToDeanStudentsWelfare",
+        "name",
+        "mobileNo",
+        "documentRefNumber",
+        "signatureOfStudentSecretaryName"
+      ],
+      "pageCount": 1,
+      "pageDimensions": [
+        {
+          "width": 595.28,
+          "height": 841.89
+        }
+      ],
+      "detectedAssets": [
+        {
+          "id": "asset_1",
+          "type": "image",
+          "name": "image1.png",
+          "description": "Embedded media asset found at word/media/image1.png",
+          "dataUrl": "data:image/png;base64,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"
+        }
+      ],
+      "analysisWarnings": [],
+      "status": "PUBLISHED",
+      "version": 1,
+      "isActive": true,
+      "isSystemDefault": false,
+      "createdAt": "2026-10-18T12:24:54.434Z",
+      "updatedAt": "2026-10-18T12:25:09.507Z",
+      "signatureFields": [],
+      "signingWorkflow": "SEQUENTIAL"
     }
   ],
   "events": [
+    {
+      "clubId": "club_gdg_main",
+      "eventName": "hrqrhreh",
+      "rawInputText": "Event: hrqrhreh",
+      "structuredData": {
+        "subject": "gdgdgdg",
+        "clubName": "grgrw",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-10-23",
+        "venue": "hqerhqrhrh",
+        "eventName": "hrqrhreh",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "grhgerh",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "expectedParticipants": 34,
+        "acm202627Sih001Date": "2026-10-23",
+        "name": "rh35hy35",
+        "mobileNo": "",
+        "documentRefNumber": "",
+        "signatureOfStudentSecretaryName": "grh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "completenessStatus": "COMPLETED",
+      "missingFields": [],
+      "id": "evt_6sc79m89",
+      "createdAt": "2026-10-18T12:26:18.892Z",
+      "updatedAt": "2026-10-18T12:26:18.912Z"
+    },
+    {
+      "clubId": "club_gdg_main",
+      "eventName": "Official Event",
+      "rawInputText": "Event: Official Event",
+      "structuredData": {
+        "1": "",
+        "subject": "",
+        "clubName": "ACM",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-09-30",
+        "venue": "",
+        "eventName": "",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "srNo": "",
+        "studentHead": "",
+        "acmNitSurat": "",
+        "total": "",
+        "field_7": "grg",
+        "field_8": "grher",
+        "field_9": "hrqh",
+        "field_10": "rhqreh",
+        "field_11": "rhqrh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "completenessStatus": "COMPLETED",
+      "missingFields": [],
+      "id": "evt_nyynwwrq",
+      "createdAt": "2026-10-18T12:16:26.291Z",
+      "updatedAt": "2026-10-18T12:16:26.493Z"
+    },
     {
       "clubId": "club_gdg_main",
       "eventName": "Official Event",
@@ -1325,6 +1906,94 @@
     }
   ],
   "documents": [
+    {
+      "title": "acm - hrqrhreh",
+      "eventId": "evt_6sc79m89",
+      "templateId": "tmpl_0zpy809t",
+      "documentType": "EVENT_PROPOSAL",
+      "clubId": "club_gdg_main",
+      "status": "DRAFT",
+      "currentVersion": 1,
+      "docxUrl": "/generated/doc_2ddwlt44.docx",
+      "pdfUrl": "/generated/doc_2ddwlt44.pdf",
+      "pdfEngineUsed": "headless_browser",
+      "dataSnapshot": {
+        "subject": "gdgdgdg",
+        "clubName": "grgrw",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-10-23",
+        "venue": "hqerhqrhrh",
+        "eventName": "hrqrhreh",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "grhgerh",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "expectedParticipants": 34,
+        "acm202627Sih001Date": "2026-10-23",
+        "name": "rh35hy35",
+        "mobileNo": "",
+        "documentRefNumber": "",
+        "signatureOfStudentSecretaryName": "grh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "id": "doc_ms3q67fr",
+      "createdAt": "2026-10-18T12:26:19.566Z",
+      "updatedAt": "2026-10-18T12:26:19.566Z"
+    },
+    {
+      "title": "12345 - Official Event",
+      "eventId": "evt_nyynwwrq",
+      "templateId": "tmpl_kyo83heu",
+      "documentType": "EVENT_PROPOSAL",
+      "clubId": "club_gdg_main",
+      "status": "DRAFT",
+      "currentVersion": 1,
+      "docxUrl": "/generated/doc_isn3uexh.docx",
+      "pdfUrl": "/generated/doc_isn3uexh.pdf",
+      "pdfEngineUsed": "headless_browser",
+      "dataSnapshot": {
+        "1": "",
+        "subject": "",
+        "clubName": "ACM",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-09-30",
+        "venue": "",
+        "eventName": "",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "srNo": "",
+        "studentHead": "",
+        "acmNitSurat": "",
+        "total": "",
+        "field_7": "grg",
+        "field_8": "grher",
+        "field_9": "hrqh",
+        "field_10": "rhqreh",
+        "field_11": "rhqrh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "id": "doc_88ffgozs",
+      "createdAt": "2026-10-18T12:16:27.110Z",
+      "updatedAt": "2026-10-18T12:16:27.110Z"
+    },
     {
       "title": "12345 - Official Event",
       "eventId": "evt_8chzlm3d",
@@ -1517,6 +2186,126 @@
     }
   ],
   "versions": [
+    {
+      "id": "ver_h3vwgj74",
+      "documentId": "doc_r5u3fbxw",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_e2e_1792329108852_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792329108852_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T13:11:48.901Z"
+    },
+    {
+      "id": "ver_3k8h4239",
+      "documentId": "doc_szkst11d",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "eventName": "Tech Fest 2026"
+      },
+      "docxUrl": "/generated/doc_test_e2e_1792329108852_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792329108852_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T13:11:48.867Z"
+    },
+    {
+      "id": "ver_drues42t",
+      "documentId": "doc_vlfma1j8",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_e2e_1792328922808_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792328922808_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T13:08:42.872Z"
+    },
+    {
+      "id": "ver_l39j68ww",
+      "documentId": "doc_tidswbvd",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "eventName": "Tech Fest 2026"
+      },
+      "docxUrl": "/generated/doc_test_e2e_1792328922808_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792328922808_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T13:08:42.832Z"
+    },
+    {
+      "id": "ver_y9ti47yj",
+      "documentId": "doc_ms3q67fr",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "subject": "gdgdgdg",
+        "clubName": "grgrw",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-10-23",
+        "venue": "hqerhqrhrh",
+        "eventName": "hrqrhreh",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "grhgerh",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "expectedParticipants": 34,
+        "acm202627Sih001Date": "2026-10-23",
+        "name": "rh35hy35",
+        "mobileNo": "",
+        "documentRefNumber": "",
+        "signatureOfStudentSecretaryName": "grh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "docxUrl": "/generated/doc_2ddwlt44.docx",
+      "pdfUrl": "/generated/doc_2ddwlt44.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T12:26:19.566Z"
+    },
+    {
+      "id": "ver_pk4cee56",
+      "documentId": "doc_88ffgozs",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "1": "",
+        "subject": "",
+        "clubName": "ACM",
+        "chapterClubSocietySectionCodeNo": "",
+        "startDate": "2026-09-30",
+        "venue": "",
+        "eventName": "",
+        "eventType": "",
+        "eventDescription": "",
+        "targetAudience": "",
+        "expectedNumberofParticipants": "",
+        "nameOfJudges": "",
+        "totalAmountSanctionedInCurrentAcademicYear": "",
+        "amountUtilized": "",
+        "currentProposedAmount": "",
+        "balanceAmount": "",
+        "signatureOfficeClerk": "",
+        "submittedToDeanStudentsWelfare": "",
+        "srNo": "",
+        "studentHead": "",
+        "acmNitSurat": "",
+        "total": "",
+        "field_7": "grg",
+        "field_8": "grher",
+        "field_9": "hrqh",
+        "field_10": "rhqreh",
+        "field_11": "rhqrh",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "docxUrl": "/generated/doc_isn3uexh.docx",
+      "pdfUrl": "/generated/doc_isn3uexh.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-18T12:16:27.110Z"
+    },
     {
       "id": "ver_9bah10ix",
       "documentId": "doc_hls8r4nm",

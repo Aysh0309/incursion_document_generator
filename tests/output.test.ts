@@ -383,7 +383,7 @@ describe("Output & Original Template Formatting Preservation Test Suite", () => 
   });
 
   test("Extra fields added to a template that were not originally in the document are rendered into generated DOCX and PDF", async () => {
-    const club: ClubMetadata = {
+    const club: ClubBranding = {
       id: "club_acm",
       name: "ACM Student Chapter",
       slug: "acm-student-chapter",
@@ -483,7 +483,7 @@ describe("Output & Original Template Formatting Preservation Test Suite", () => 
   });
 
   test("Extra fields without key-value table are injected as styled paragraphs before signature tables", async () => {
-    const club: ClubMetadata = {
+    const club: ClubBranding = {
       id: "club_acm",
       name: "ACM Student Chapter",
       slug: "acm-student-chapter",

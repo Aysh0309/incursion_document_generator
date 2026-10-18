@@ -1,12 +1,13 @@
 import PizZip from "pizzip";
 import { PDFDocument } from "pdf-lib";
-import { TemplateField, DetectedAsset, FieldDataType } from "@/types";
+import { TemplateField, DetectedAsset, FieldDataType, TemplateSignatureField } from "@/types";
 
 export interface AnalysisResult {
   format: "docx" | "pdf";
   pageCount: number;
   pageDimensions: Array<{ width: number; height: number }>;
   fields: TemplateField[];
+  signatureFields?: TemplateSignatureField[];
   detectedAssets: DetectedAsset[];
   warnings: string[];
   fullText: string;
@@ -99,6 +100,55 @@ export function isLikelyRequired(key: string, label: string): boolean {
   const combined = (key + " " + label).toLowerCase();
   const essentialPatterns = ["name", "title", "date", "venue", "coordinator", "hod", "organizer", "participants", "budget", "subject"];
   return essentialPatterns.some((pat) => combined.includes(pat));
+}
+
+/**
+ * Automatically detects candidate signature sections, printed names, and designations
+ * from document text, headers, and tables. Suggests likely page, role, and coordinates.
+ */
+export function detectSignatureSections(fullText: string): TemplateSignatureField[] {
+  const detected: TemplateSignatureField[] = [];
+
+  const patterns = [
+    { regex: /signature\s+of\s+student\s+head/i, designation: "Signature of Student Head", role: "STUDENT_HEAD", defaultAuthorityId: "auth_student_head" },
+    { regex: /signature\s+of\s+student\s+secretary/i, designation: "Signature of Student Secretary", role: "STUDENT_SECRETARY", defaultAuthorityId: "auth_student_sec" },
+    { regex: /signature\s+of\s+faculty\s+co[\s-]?chairman/i, designation: "Signature of Faculty Co-Chairman", role: "FACULTY_CO_CHAIRMAN", defaultAuthorityId: "auth_faculty_cochair" },
+    { regex: /signature\s+of\s+faculty\s+chairman/i, designation: "Signature of Faculty Chairman", role: "FACULTY_CHAIRMAN", defaultAuthorityId: "auth_faculty_chair" },
+    { regex: /signature\s+of\s+faculty\s+coordinator|faculty\s+coordinator/i, designation: "Signature of Faculty Coordinator", role: "FACULTY_COORDINATOR", defaultAuthorityId: "auth_faculty_coord" },
+    { regex: /signature\s+of\s+head\s+of\s+department|signature\s+of\s+hod|head\s+of\s+department/i, designation: "Signature of Head of Department", role: "HOD", defaultAuthorityId: "auth_hod_cse" },
+    { regex: /associate\s+dean/i, designation: "Signature of Associate Dean", role: "ASSOCIATE_DEAN", defaultAuthorityId: "auth_dean_sw" },
+    { regex: /signature\s+of\s+dean|dean\s*\(\s*students?\s*welfare\s*\)/i, designation: "Signature of Dean (Student Welfare)", role: "DEAN", defaultAuthorityId: "auth_dean_sw" },
+    { regex: /signature\s+of\s+convenor|convenor/i, designation: "Signature of Convenor", role: "CONVENOR" },
+    { regex: /authorized\s+signatory/i, designation: "Authorized Signatory", role: "AUTHORIZED_SIGNATORY" },
+  ];
+
+  let order = 1;
+  const seenRoles = new Set<string>();
+
+  for (const pat of patterns) {
+    if (pat.regex.test(fullText) && !seenRoles.has(pat.role)) {
+      seenRoles.add(pat.role);
+      const isLeft = order % 2 === 1;
+      const x = isLeft ? 72 : 380;
+      const y = 120; // standard 120 points from bottom
+
+      detected.push({
+        id: `sig_${pat.role.toLowerCase()}`,
+        name: `${pat.role.toLowerCase()}Signature`,
+        printedName: "",
+        designation: pat.designation,
+        assignedRole: pat.role,
+        defaultAuthorityId: pat.defaultAuthorityId,
+        pageNumber: 1,
+        position: { x, y, width: 140, height: 45 },
+        required: true,
+        signingOrder: order++,
+        actionType: order === 2 ? "APPROVAL_AND_SIGNATURE" : "SIGNATURE_ONLY",
+      });
+    }
+  }
+
+  return detected;
 }
 
 /**
@@ -356,6 +406,7 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
     pageCount: 1, // Word page count is dynamic
     pageDimensions: [{ width: 595.28, height: 841.89 }], // A4 standard
     fields,
+    signatureFields: detectSignatureSections(fullText),
     detectedAssets,
     warnings,
     fullText,
@@ -589,6 +640,7 @@ export async function analyzePdfTemplate(buffer: Buffer): Promise<AnalysisResult
     pageCount,
     pageDimensions,
     fields,
+    signatureFields: detectSignatureSections(fullText),
     detectedAssets,
     warnings,
     fullText,

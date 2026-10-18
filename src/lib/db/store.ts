@@ -1,13 +1,17 @@
 import fs from "fs";
 import path from "path";
 import {
+  AuthorityRecord,
   ClubBranding,
   DocumentRecord,
   DocumentType,
   DocumentVersionRecord,
   EventRecord,
+  SignatureRequest,
   StructuredEventData,
   TemplateMetadata,
+  TemplateSignatureField,
+  WorkflowEvent,
 } from "@/types";
 import { TEMPLATE_REQUIRED_FIELDS } from "@/schemas/event.schema";
 
@@ -15,11 +19,85 @@ const STORAGE_FILE = path.join(process.cwd(), "public", "storage", "db-state.jso
 
 interface DatabaseState {
   club: ClubBranding;
+  authorities: AuthorityRecord[];
   templates: TemplateMetadata[];
   events: EventRecord[];
   documents: DocumentRecord[];
   versions: DocumentVersionRecord[];
 }
+
+export const DEFAULT_AUTHORITIES: AuthorityRecord[] = [
+  {
+    id: "auth_student_head",
+    name: "Aarav Patel",
+    email: "aarav.patel@nit.ac.in",
+    designation: "Student Head & President",
+    role: "STUDENT_HEAD",
+    department: "Computer Science & Engineering",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_student_sec",
+    name: "Ananya Iyer",
+    email: "ananya.iyer@nit.ac.in",
+    designation: "Student General Secretary",
+    role: "STUDENT_SECRETARY",
+    department: "Information Technology",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_faculty_coord",
+    name: "Dr. Sunita Sharma",
+    email: "sunita.sharma@nit.ac.in",
+    designation: "Faculty Coordinator & Associate Professor",
+    role: "FACULTY_COORDINATOR",
+    department: "Computer Science & Engineering",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_faculty_cochair",
+    name: "Prof. Rajesh Verma",
+    email: "rajesh.verma@nit.ac.in",
+    designation: "Faculty Co-Chairman (Student Activities)",
+    role: "FACULTY_CO_CHAIRMAN",
+    department: "Electrical Engineering",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_faculty_chair",
+    name: "Dr. Arvind K. Mehta",
+    email: "arvind.mehta@nit.ac.in",
+    designation: "Faculty Chairman (Student Affairs)",
+    role: "FACULTY_CHAIRMAN",
+    department: "Mechanical Engineering",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_hod_cse",
+    name: "Dr. K. S. Raman",
+    email: "hod.cse@nit.ac.in",
+    designation: "Head of Department (CSE)",
+    role: "HOD",
+    department: "Computer Science & Engineering",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "auth_dean_sw",
+    name: "Prof. B. N. Mukherjee",
+    email: "dean.sw@nit.ac.in",
+    designation: "Dean (Students Welfare)",
+    role: "DEAN",
+    department: "Office of Student Welfare",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 const DEFAULT_CLUB: ClubBranding = {
   id: "club_gdg_main",
@@ -132,6 +210,35 @@ const DEFAULT_TEMPLATES: TemplateMetadata[] = [
     description: "Standard institutional proposal format for Dean/Student Affairs sanction and budget clearance.",
     fileUrl: "/templates/event_proposal_template.docx",
     fields: buildDefaultFields(PROPOSAL_PLACEHOLDERS, TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL),
+    signatureFields: [
+      {
+        id: "sig_student_head",
+        name: "studentHeadSignature",
+        printedName: "Aarav Patel",
+        designation: "Signature of Student Head",
+        assignedRole: "STUDENT_HEAD",
+        defaultAuthorityId: "auth_student_head",
+        pageNumber: 1,
+        position: { x: 72, y: 120, width: 140, height: 45 },
+        required: true,
+        signingOrder: 1,
+        actionType: "SIGNATURE_ONLY",
+      },
+      {
+        id: "sig_faculty_chair",
+        name: "facultyChairmanSignature",
+        printedName: "Dr. Arvind K. Mehta",
+        designation: "Signature of Faculty Chairman",
+        assignedRole: "FACULTY_CHAIRMAN",
+        defaultAuthorityId: "auth_faculty_chair",
+        pageNumber: 1,
+        position: { x: 380, y: 120, width: 140, height: 45 },
+        required: true,
+        signingOrder: 2,
+        actionType: "APPROVAL_AND_SIGNATURE",
+      },
+    ],
+    signingWorkflow: "SEQUENTIAL",
     requiredFields: TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL,
     optionalFields: PROPOSAL_PLACEHOLDERS.filter((p) => !TEMPLATE_REQUIRED_FIELDS.EVENT_PROPOSAL.includes(p)),
     placeholdersDetected: PROPOSAL_PLACEHOLDERS,
@@ -149,6 +256,35 @@ const DEFAULT_TEMPLATES: TemplateMetadata[] = [
     description: "Formal academic request letter to HOD or Lab In-Charge for booking facilities and hardware.",
     fileUrl: "/templates/permission_letter_template.docx",
     fields: buildDefaultFields(PERMISSION_PLACEHOLDERS, TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER),
+    signatureFields: [
+      {
+        id: "sig_faculty_coord",
+        name: "facultyCoordinatorSignature",
+        printedName: "Dr. Sunita Sharma",
+        designation: "Signature of Faculty Coordinator",
+        assignedRole: "FACULTY_COORDINATOR",
+        defaultAuthorityId: "auth_faculty_coord",
+        pageNumber: 1,
+        position: { x: 72, y: 120, width: 140, height: 45 },
+        required: true,
+        signingOrder: 1,
+        actionType: "APPROVAL_AND_SIGNATURE",
+      },
+      {
+        id: "sig_hod",
+        name: "hodSignature",
+        printedName: "Dr. K. S. Raman",
+        designation: "Signature of Head of Department",
+        assignedRole: "HOD",
+        defaultAuthorityId: "auth_hod_cse",
+        pageNumber: 1,
+        position: { x: 380, y: 120, width: 140, height: 45 },
+        required: true,
+        signingOrder: 2,
+        actionType: "APPROVAL_AND_SIGNATURE",
+      },
+    ],
+    signingWorkflow: "SEQUENTIAL",
     requiredFields: TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER,
     optionalFields: PERMISSION_PLACEHOLDERS.filter((p) => !TEMPLATE_REQUIRED_FIELDS.PERMISSION_LETTER.includes(p)),
     placeholdersDetected: PERMISSION_PLACEHOLDERS,
@@ -166,6 +302,22 @@ const DEFAULT_TEMPLATES: TemplateMetadata[] = [
     description: "Formal letterhead invitation addressed to external industry resource persons and keynote speakers.",
     fileUrl: "/templates/invitation_letter_template.docx",
     fields: buildDefaultFields(INVITATION_PLACEHOLDERS, ["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"]),
+    signatureFields: [
+      {
+        id: "sig_faculty_coord_inv",
+        name: "facultyCoordinatorSignature",
+        printedName: "Dr. Sunita Sharma",
+        designation: "Signature of Faculty Coordinator",
+        assignedRole: "FACULTY_COORDINATOR",
+        defaultAuthorityId: "auth_faculty_coord",
+        pageNumber: 1,
+        position: { x: 380, y: 120, width: 140, height: 45 },
+        required: true,
+        signingOrder: 1,
+        actionType: "SIGNATURE_ONLY",
+      },
+    ],
+    signingWorkflow: "SEQUENTIAL",
     requiredFields: ["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"],
     optionalFields: INVITATION_PLACEHOLDERS.filter((p) => !["eventName", "startDate", "venue", "facultyCoordinator", "clubName", "contactEmail", "speakerName"].includes(p)),
     placeholdersDetected: INVITATION_PLACEHOLDERS,
@@ -243,33 +395,38 @@ class MemoryStore {
         const raw = fs.readFileSync(STORAGE_FILE, "utf-8");
         const parsed = JSON.parse(raw);
         const rawTemplates: TemplateMetadata[] = parsed.templates || DEFAULT_TEMPLATES;
-          const normalizedTemplates = rawTemplates.map((t) => {
-            const format = t.format || (t.fileUrl?.endsWith(".pdf") ? "pdf" : "docx");
-            const fields = (t.fields && t.fields.length > 0)
-              ? t.fields
-              : buildDefaultFields(t.placeholdersDetected || [], t.requiredFields || []);
-            return {
-              ...t,
-              format,
-              status: t.status || "PUBLISHED",
-              fields,
-            };
-          });
-
+        const normalizedTemplates = rawTemplates.map((t) => {
+          const format = t.format || (t.fileUrl?.endsWith(".pdf") ? "pdf" : "docx");
+          const defaultTmpl = DEFAULT_TEMPLATES.find((dt) => dt.id === t.id);
+          const fields = (t.fields && t.fields.length > 0)
+            ? t.fields
+            : buildDefaultFields(t.placeholdersDetected || [], t.requiredFields || []);
           return {
-            club: parsed.club || DEFAULT_CLUB,
-            templates: normalizedTemplates,
-            events: parsed.events || SAMPLE_EVENTS,
-            documents: parsed.documents || [],
-            versions: parsed.versions || [],
+            ...t,
+            format,
+            status: t.status || "PUBLISHED",
+            fields,
+            signatureFields: t.signatureFields || defaultTmpl?.signatureFields || [],
+            signingWorkflow: t.signingWorkflow || defaultTmpl?.signingWorkflow || "SEQUENTIAL",
           };
-        }
-      } catch (e) {
-        console.warn("Failed to read disk state, resetting to defaults", e);
+        });
+
+        return {
+          club: parsed.club || DEFAULT_CLUB,
+          authorities: parsed.authorities?.length ? parsed.authorities : DEFAULT_AUTHORITIES,
+          templates: normalizedTemplates,
+          events: parsed.events || SAMPLE_EVENTS,
+          documents: parsed.documents || [],
+          versions: parsed.versions || [],
+        };
       }
+    } catch (e) {
+      console.warn("Failed to read disk state, resetting to defaults", e);
+    }
 
     const initial: DatabaseState = {
       club: DEFAULT_CLUB,
+      authorities: DEFAULT_AUTHORITIES,
       templates: DEFAULT_TEMPLATES,
       events: SAMPLE_EVENTS,
       documents: [],
@@ -487,6 +644,107 @@ class MemoryStore {
   addVersion(version: DocumentVersionRecord) {
     this.state.versions.unshift(version);
     this.saveState(this.state);
+  }
+
+  // --- Authority operations ---
+  getAuthorities(): AuthorityRecord[] {
+    return this.state.authorities || [];
+  }
+
+  getAuthorityById(id: string): AuthorityRecord | undefined {
+    return (this.state.authorities || []).find((a) => a.id === id);
+  }
+
+  getAuthorityByRole(role: string): AuthorityRecord | undefined {
+    return (this.state.authorities || []).find((a) => a.role === role && a.isActive);
+  }
+
+  createAuthority(auth: Omit<AuthorityRecord, "id" | "createdAt">): AuthorityRecord {
+    const newAuth: AuthorityRecord = {
+      ...auth,
+      id: "auth_" + Math.random().toString(36).substring(2, 10),
+      createdAt: new Date().toISOString(),
+    };
+    if (!this.state.authorities) this.state.authorities = [];
+    this.state.authorities.push(newAuth);
+    this.saveState(this.state);
+    return newAuth;
+  }
+
+  updateAuthority(id: string, updates: Partial<AuthorityRecord>): AuthorityRecord | undefined {
+    if (!this.state.authorities) this.state.authorities = [];
+    const idx = this.state.authorities.findIndex((a) => a.id === id);
+    if (idx === -1) return undefined;
+    this.state.authorities[idx] = { ...this.state.authorities[idx], ...updates };
+    this.saveState(this.state);
+    return this.state.authorities[idx];
+  }
+
+  deleteAuthority(id: string): boolean {
+    if (!this.state.authorities) return false;
+    const initialLen = this.state.authorities.length;
+    this.state.authorities = this.state.authorities.filter((a) => a.id !== id);
+    if (this.state.authorities.length !== initialLen) {
+      this.saveState(this.state);
+      return true;
+    }
+    return false;
+  }
+
+  // --- Signature Request & Workflow Operations ---
+  getSignatureRequestByTokenHash(tokenOrHash: string): { document: DocumentRecord; request: SignatureRequest } | undefined {
+    const crypto = require("crypto");
+    const computedHash = crypto.createHash("sha256").update(tokenOrHash).digest("hex");
+    for (const doc of this.state.documents) {
+      if (doc.signatureRequests) {
+        const found = doc.signatureRequests.find(
+          (r) => r.tokenHash === computedHash || r.tokenHash === tokenOrHash
+        );
+        if (found) {
+          return { document: doc, request: found };
+        }
+      }
+    }
+    return undefined;
+  }
+
+  updateSignatureRequest(
+    documentId: string,
+    requestId: string,
+    updates: Partial<SignatureRequest>
+  ): { document: DocumentRecord; request: SignatureRequest } | undefined {
+    const docIdx = this.state.documents.findIndex((d) => d.id === documentId);
+    if (docIdx === -1) return undefined;
+    const doc = this.state.documents[docIdx];
+    if (!doc.signatureRequests) return undefined;
+    const reqIdx = doc.signatureRequests.findIndex((r) => r.id === requestId);
+    if (reqIdx === -1) return undefined;
+
+    doc.signatureRequests[reqIdx] = { ...doc.signatureRequests[reqIdx], ...updates };
+    doc.updatedAt = new Date().toISOString();
+    this.saveState(this.state);
+    return { document: doc, request: doc.signatureRequests[reqIdx] };
+  }
+
+  addWorkflowEvent(
+    documentId: string,
+    event: Omit<WorkflowEvent, "id" | "timestamp" | "documentId">
+  ): WorkflowEvent | undefined {
+    const docIdx = this.state.documents.findIndex((d) => d.id === documentId);
+    if (docIdx === -1) return undefined;
+    const doc = this.state.documents[docIdx];
+    if (!doc.workflowEvents) doc.workflowEvents = [];
+
+    const newEvent: WorkflowEvent = {
+      ...event,
+      id: "wf_" + Math.random().toString(36).substring(2, 10),
+      documentId,
+      timestamp: new Date().toISOString(),
+    };
+    doc.workflowEvents.unshift(newEvent);
+    doc.updatedAt = new Date().toISOString();
+    this.saveState(this.state);
+    return newEvent;
   }
 }
 
