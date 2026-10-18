@@ -245,3 +245,18 @@ export function evaluateMissingFields(
 
   return { missingFields, questions };
 }
+
+/**
+ * Evaluates whether an event record has all necessary core information.
+ * An event is complete when its title, confirmed date, and venue are provided.
+ */
+export function isEventComplete(data: Record<string, any>): boolean {
+  if (!data) return false;
+  const hasName = Boolean(
+    (data.eventName || data.event_name || data.title) &&
+      String(data.eventName || data.event_name || data.title).trim().length > 0
+  );
+  const hasDate = Boolean(data.startDate && String(data.startDate).trim().length > 0);
+  const hasVenue = Boolean(data.venue && String(data.venue).trim().length > 0);
+  return hasName && hasDate && hasVenue;
+}

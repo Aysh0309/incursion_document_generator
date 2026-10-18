@@ -193,7 +193,7 @@ export interface EventRecord {
   eventName: string;
   rawInputText?: string;
   structuredData: StructuredEventData;
-  completenessStatus: "INCOMPLETE" | "VALIDATED";
+  completenessStatus: "INCOMPLETE" | "VALIDATED" | "COMPLETED";
   missingFields: string[];
   createdAt: string;
   updatedAt: string;

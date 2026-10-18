@@ -8,22 +8,31 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  Plus,
   FileDown,
   ArrowRight,
   Sparkles,
   Layers,
   ChevronRight,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
-import { DocumentRecord, EventRecord } from "@/types";
+import { DocumentRecord, EventRecord, UserRole } from "@/types";
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
 
   useEffect(() => {
+    const saved = localStorage.getItem("incursion_user_role") as UserRole;
+    if (saved) setCurrentRole(saved);
+
+    const onRoleChange = (e: any) => {
+      if (e.detail) setCurrentRole(e.detail);
+    };
+    window.addEventListener("roleChange", onRoleChange);
+
     Promise.all([
       fetch("/api/events").then((r) => r.json()),
       fetch("/api/documents").then((r) => r.json()),
@@ -34,7 +43,44 @@ export default function DashboardPage() {
       })
       .catch((err) => console.error("Dashboard fetch error:", err))
       .finally(() => setLoading(false));
+
+    return () => {
+      window.removeEventListener("roleChange", onRoleChange);
+    };
   }, []);
+
+  const isAdmin = currentRole === "CLUB_ADMIN";
+
+  const handleDeleteEvent = async (id: string, name: string) => {
+    if (!confirm(`Permanently delete event "${name}" and all its documents?`)) return;
+    try {
+      const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setEvents((prev) => prev.filter((e) => e.id !== id));
+        setDocuments((prev) => prev.filter((d) => d.eventId !== id));
+      } else {
+        alert(data.error?.message || "Failed to delete event");
+      }
+    } catch (err: any) {
+      alert("Error deleting event: " + err.message);
+    }
+  };
+
+  const handleDeleteDoc = async (id: string, title: string) => {
+    if (!confirm(`Permanently delete "${title}"?`)) return;
+    try {
+      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments((prev) => prev.filter((d) => d.id !== id));
+      } else {
+        alert(data.error?.message || "Failed to delete document");
+      }
+    } catch (err: any) {
+      alert("Error deleting document: " + err.message);
+    }
+  };
 
   const totalGenerated = documents.length;
   const activeEvents = events.length;
@@ -44,32 +90,6 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Welcome & Primary Call-to-Action Banner */}
-        <div className="p-6 rounded-lg border border-[#E2E8F0] bg-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-semibold text-[#4F46E5] uppercase tracking-wider">
-                Google Developer Student Club (GDSC)
-              </span>
-              <span className="h-1 w-1 rounded-full bg-[#CBD5E1]" />
-              <span className="text-[11px] text-[#64748B]">Spring 2026 Academic Term</span>
-            </div>
-            <h1 className="text-xl font-bold text-[#18181B] tracking-tight">
-              Administrative Document Workspace
-            </h1>
-            <p className="text-xs text-[#64748B] mt-1 max-w-xl">
-              Turn a single event requirement profile into compliant Event Proposals, Lab Permission Letters, and Speaker Invitations without manual formatting.
-            </p>
-          </div>
-
-          <Link
-            href="/events/new"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs transition-colors shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Event Documents</span>
-          </Link>
-        </div>
 
         {/* Metric Cards Ribbon */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -79,7 +99,7 @@ export default function DashboardPage() {
               <FileText className="h-4 w-4 text-[#4F46E5]" />
             </div>
             <div className="text-2xl font-bold text-[#18181B]">{totalGenerated}</div>
-            <div className="text-[11px] text-[#64748B] mt-1">Native DOCX & Vectorized PDF</div>
+            <div className="text-[11px] text-[#64748B] mt-1">All created documents</div>
           </div>
 
           <div className="p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
@@ -88,7 +108,7 @@ export default function DashboardPage() {
               <CalendarDays className="h-4 w-4 text-[#059669]" />
             </div>
             <div className="text-2xl font-bold text-[#18181B]">{activeEvents}</div>
-            <div className="text-[11px] text-[#64748B] mt-1">Single-entry profiles</div>
+            <div className="text-[11px] text-[#64748B] mt-1">Registered club events</div>
           </div>
 
           <div className="p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
@@ -106,7 +126,7 @@ export default function DashboardPage() {
               <CheckCircle2 className="h-4 w-4 text-[#059669]" />
             </div>
             <div className="text-2xl font-bold text-[#18181B]">{approvedDocs}</div>
-            <div className="text-[11px] text-[#059669] font-medium mt-1">100% Verified integrity</div>
+            <div className="text-[11px] text-[#059669] font-medium mt-1">Approved by faculty</div>
           </div>
         </div>
 
@@ -214,6 +234,15 @@ export default function DashboardPage() {
                                 <span>PDF</span>
                               </a>
                             )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDeleteDoc(doc.id, doc.title)}
+                                className="p-1 rounded text-[#94A3B8] hover:text-[#E11D48] hover:bg-[#FEF2F2] transition-colors ml-0.5"
+                                title="Delete Document (Admin)"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -256,12 +285,12 @@ export default function DashboardPage() {
                       </span>
                       <span
                         className={`text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                          evt.completenessStatus === "VALIDATED"
+                          evt.completenessStatus === "COMPLETED" || evt.completenessStatus === "VALIDATED"
                             ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
                             : "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
                         }`}
                       >
-                        {evt.completenessStatus}
+                        {evt.completenessStatus === "INCOMPLETE" ? "INCOMPLETE" : "COMPLETED"}
                       </span>
                     </div>
 
@@ -277,13 +306,24 @@ export default function DashboardPage() {
                           ? `${evt.missingFields.length} missing fields`
                           : "Ready to generate"}
                       </span>
-                      <Link
-                        href={`/events/new?eventId=${evt.id}`}
-                        className="text-[#4F46E5] hover:underline font-medium inline-flex items-center gap-0.5"
-                      >
-                        <span>Open Studio</span>
-                        <ChevronRight className="h-3 w-3" />
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/events/new?eventId=${evt.id}`}
+                          className="text-[#4F46E5] hover:underline font-medium inline-flex items-center gap-0.5"
+                        >
+                          <span>Open Studio</span>
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteEvent(evt.id, evt.eventName)}
+                            className="p-1 rounded text-[#94A3B8] hover:text-[#E11D48] hover:bg-[#FEF2F2] transition-colors"
+                            title="Delete Event (Admin)"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))

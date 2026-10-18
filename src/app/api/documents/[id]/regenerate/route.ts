@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
 import { generateDocument, validateTemplateSubmission } from "@/lib/document-engine/generator";
-import { evaluateMissingFields } from "@/schemas/event.schema";
+import { evaluateMissingFields, isEventComplete } from "@/schemas/event.schema";
 
 export async function POST(
   req: NextRequest,
@@ -83,8 +83,25 @@ export async function POST(
       pdfUrl: generationResult.pdfUrl,
       pdfEngineUsed: generationResult.pdfEngineUsed,
       dataSnapshot: mergedData,
-      status: "DRAFT", // Reset to draft for review
+      status: "DRAFT", // Reset to draft for review until submitted
     });
+
+    // 3. Keep associated Event in sync with updated document fields
+    if (document.eventId) {
+      const existingEvent = dbStore.getEventById(document.eventId);
+      if (existingEvent) {
+        const complete = isEventComplete(mergedData);
+        dbStore.updateEvent(document.eventId, {
+          eventName: mergedData.eventName || existingEvent.eventName,
+          structuredData: {
+            ...existingEvent.structuredData,
+            ...mergedData,
+          },
+          completenessStatus: complete ? "COMPLETED" : existingEvent.completenessStatus,
+          missingFields: complete ? [] : existingEvent.missingFields,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

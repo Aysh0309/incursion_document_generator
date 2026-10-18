@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
-import { evaluateMissingFields } from "@/schemas/event.schema";
+import { evaluateMissingFields, isEventComplete } from "@/schemas/event.schema";
 import { DocumentType } from "@/types";
 
 export async function GET(
@@ -61,15 +61,43 @@ export async function PATCH(
 
     const docTypes: DocumentType[] = targetDocumentTypes || ["EVENT_PROPOSAL", "PERMISSION_LETTER"];
     const { missingFields } = evaluateMissingFields(mergedData, docTypes);
+    const complete = isEventComplete(mergedData);
 
     const updated = dbStore.updateEvent(id, {
       eventName: updates?.eventName || existing.eventName,
       structuredData: mergedData,
-      completenessStatus: missingFields.length === 0 ? "VALIDATED" : "INCOMPLETE",
-      missingFields,
+      completenessStatus: complete ? "COMPLETED" : "INCOMPLETE",
+      missingFields: complete ? [] : missingFields,
     });
 
     return NextResponse.json({ success: true, data: updated });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: { message: err.message } },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const deleted = dbStore.deleteEvent(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: { message: "Event not found or already deleted" } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Event and associated documents deleted successfully",
+    });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: { message: err.message } },

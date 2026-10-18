@@ -169,6 +169,8 @@ export async function fillPdfTemplate(
 
   // 2. Overlay coordinate-based fields on pages
   const pageCount = pdfDoc.getPageCount();
+  let unplacedPdfCount = 0;
+
   for (const field of template.fields || []) {
     const rawVal = field.isFixed
       ? (field.fixedValue || "")
@@ -178,66 +180,118 @@ export async function fillPdfTemplate(
 
     const valStr = String(rawVal);
     const pageNum = Math.max(1, field.pageNumber || 1);
-    const pageIdx = pageNum - 1;
+    const pageIdx = Math.min(pageCount - 1, pageNum - 1);
 
-    if (pageIdx < pageCount && field.boundingBox) {
-      const page = pdfDoc.getPage(pageIdx);
-      const { width: pageWidth, height: pageHeight } = page.getSize();
-      const bb = field.boundingBox;
+    const isManuallyAdded = !field.sourceEvidence || field.confidence === 1.0;
+    const displayText = isManuallyAdded ? `${field.label || field.name}: ${valStr}` : valStr;
 
-      // Font size tailored to box height with safety bounds
-      const fontSize = Math.max(8, Math.min(11, bb.height ? bb.height * 0.8 : 10));
+    const page = pdfDoc.getPage(pageIdx);
+    const { width: pageWidth, height: pageHeight } = page.getSize();
+    const bb = field.boundingBox || {
+      x: 54,
+      y: Math.max(50, 160 - unplacedPdfCount * 22),
+      width: pageWidth - 108,
+      height: 16,
+    };
+    if (!field.boundingBox) unplacedPdfCount++;
 
-      // Overflow and wrapping calculation
-      const maxWidth = bb.width > 20 ? bb.width : Math.max(120, pageWidth - bb.x - 40);
+    const fontSize = Math.max(8, Math.min(11, bb.height ? bb.height * 0.8 : 10));
+    const maxWidth = bb.width > 20 ? bb.width : Math.max(120, pageWidth - bb.x - 40);
 
-      // Simple word wrapping
-      const words = valStr.split(" ");
-      const lines: string[] = [];
-      let currentLine = "";
+    const words = displayText.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
 
-      for (const w of words) {
-        const testLine = currentLine ? `${currentLine} ${w}` : w;
-        const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-        if (testWidth > maxWidth && currentLine) {
-          lines.push(currentLine);
-          currentLine = w;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      if (currentLine) lines.push(currentLine);
-
-      // Determine PDF coordinate system
-      // pdf-lib origin is bottom-left. If bb.y is provided from pdfjs-dist, it is relative to bottom.
-      const startX = Math.max(20, Math.min(pageWidth - 40, bb.x));
-      let startY = bb.y;
-      if (startY > pageHeight) startY = pageHeight - 50;
-
-      // Draw each wrapped line
-      for (let i = 0; i < lines.length; i++) {
-        const lineY = startY - i * (fontSize + 3);
-        if (lineY < 20) break; // prevent drawing off-page
-        page.drawText(lines[i], {
-          x: startX,
-          y: lineY,
-          size: fontSize,
-          font,
-          color: rgb(0.09, 0.09, 0.11),
-        });
+    for (const w of words) {
+      const testLine = currentLine ? `${currentLine} ${w}` : w;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      if (testWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = w;
+      } else {
+        currentLine = testLine;
       }
     }
+    if (currentLine) lines.push(currentLine);
+
+    const startX = Math.max(20, Math.min(pageWidth - 40, bb.x));
+    let startY = bb.y;
+    if (startY > pageHeight) startY = pageHeight - 50;
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineY = startY - i * (fontSize + 3);
+      if (lineY < 20) break;
+      page.drawText(lines[i], {
+        x: startX,
+        y: lineY,
+        size: fontSize,
+        font: isManuallyAdded ? fontBold : font,
+        color: rgb(0.09, 0.09, 0.11),
+      });
+    }
   }
+
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
 
 /**
+ * Helper to update or set text and formatting on a table cell.
+ */
+function setCellFormattedText(doc: any, tc: any, text: string, isBold: boolean = false) {
+  const existingPs = tc.getElementsByTagName("w:p");
+  let p: any;
+  if (existingPs.length > 0) {
+    p = existingPs[0];
+    for (let i = existingPs.length - 1; i >= 1; i--) {
+      tc.removeChild(existingPs[i]);
+    }
+  } else {
+    p = doc.createElement("w:p");
+    tc.appendChild(p);
+  }
+
+  let existingRPr: any = null;
+  const oldRuns = p.getElementsByTagName("w:r");
+  if (oldRuns.length > 0) {
+    const rPr = oldRuns[0].getElementsByTagName("w:rPr")[0];
+    if (rPr) {
+      existingRPr = rPr.cloneNode(true);
+    }
+  }
+  for (let i = oldRuns.length - 1; i >= 0; i--) {
+    p.removeChild(oldRuns[i]);
+  }
+
+  const r = doc.createElement("w:r");
+  if (existingRPr) {
+    if (isBold && existingRPr.getElementsByTagName("w:b").length === 0) {
+      existingRPr.appendChild(doc.createElement("w:b"));
+    } else if (!isBold) {
+      const bTags = existingRPr.getElementsByTagName("w:b");
+      for (let bIdx = bTags.length - 1; bIdx >= 0; bIdx--) {
+        existingRPr.removeChild(bTags[bIdx]);
+      }
+    }
+    r.appendChild(existingRPr);
+  } else if (isBold) {
+    const rPr = doc.createElement("w:rPr");
+    rPr.appendChild(doc.createElement("w:b"));
+    r.appendChild(rPr);
+  }
+
+  const t = doc.createElement("w:t");
+  t.textContent = text;
+  r.appendChild(t);
+  p.appendChild(r);
+}
+
 /**
  * Fills an original DOCX template:
  * - Directly updates table cells and labeled blanks in-place via OpenXML manipulation
  * - Preserves exact formatting, fonts, sizes, table borders, images, and logos
+ * - Dynamically appends extra variable fields into the document schema
  * - Runs docxtemplater for any explicit {tag} / {{tag}} placeholders
  */
 export async function fillDocxTemplate(
@@ -303,6 +357,8 @@ export async function fillDocxTemplate(
     /^word\/(document|header\d+|footer\d+)\.xml$/.test(name)
   );
 
+  const placedFieldKeys = new Set<string>();
+
   for (const partName of xmlParts) {
     const xmlContent = zip.file(partName)?.asText();
     if (!xmlContent) continue;
@@ -315,6 +371,9 @@ export async function fillDocxTemplate(
     }
 
     let modified = false;
+    let primaryKeyValueTable: any = null;
+    let primarySampleRow: any = null;
+    let primaryIsThreeCol = false;
 
     // A. Replace table cells in key-value rows
     const trs = doc.getElementsByTagName("w:tr");
@@ -355,8 +414,9 @@ export async function fillDocxTemplate(
         fieldValues[normalizedKey] ??
         fieldValues[cleanLabelStr];
 
+      let matchedField: TemplateField | null = null;
       // Also check against template fields mapping
-      if (replacementVal === undefined && template.fields) {
+      if (template.fields) {
         for (const f of template.fields) {
           if (
             f.name === normalizedKey ||
@@ -365,6 +425,7 @@ export async function fillDocxTemplate(
               (rk: string) => rk.toLowerCase() === cleanLabelStr.toLowerCase()
             )
           ) {
+            matchedField = f;
             replacementVal = f.isFixed
               ? f.fixedValue
               : (fieldValues[f.name] ?? fieldValues[f.id] ?? context[f.name]);
@@ -418,6 +479,22 @@ export async function fillDocxTemplate(
           r.appendChild(t);
           targetP.appendChild(r);
           modified = true;
+
+          if (matchedField) {
+            placedFieldKeys.add(matchedField.id);
+            placedFieldKeys.add(matchedField.name);
+            placedFieldKeys.add(matchedField.label.toLowerCase());
+          }
+          placedFieldKeys.add(normalizedKey);
+          placedFieldKeys.add(cleanLabelStr.toLowerCase());
+
+          // Track this table as candidate for appending extra fields
+          const parentTable = tr.parentNode;
+          if (parentTable && parentTable.nodeName === "w:tbl") {
+            primaryKeyValueTable = parentTable;
+            primarySampleRow = tr;
+            primaryIsThreeCol = valIdx === 2;
+          }
         }
       }
     }
@@ -443,7 +520,6 @@ export async function fillDocxTemplate(
           if (valStr === "") continue;
 
           // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: ...."
-          // Note: Only match actual blank placeholders; NEVER match static headings ending with colons alone!
           const escapedLabel = f.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const labelPattern = new RegExp(
             `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\])`,
@@ -455,6 +531,133 @@ export async function fillDocxTemplate(
               ts[0].textContent = replaced;
               for (let k = 1; k < ts.length; k++) ts[k].textContent = "";
               modified = true;
+              placedFieldKeys.add(f.id);
+              placedFieldKeys.add(f.name);
+              placedFieldKeys.add(f.label.toLowerCase());
+            }
+          }
+        }
+      }
+    }
+
+    // Check for explicit placeholders in xmlContent
+    for (const f of template.fields || []) {
+      if (
+        xmlContent.includes(`{${f.name}}`) ||
+        xmlContent.includes(`{{${f.name}}}`) ||
+        (f.repeatedFieldKeys && f.repeatedFieldKeys.some((k) => xmlContent.includes(`{${k}}`)))
+      ) {
+        placedFieldKeys.add(f.id);
+        placedFieldKeys.add(f.name);
+        placedFieldKeys.add(f.label.toLowerCase());
+      }
+    }
+
+    // C. INJECT ANY UNPLACED / EXTRA FIELDS INTO DOCUMENT
+    if (partName === "word/document.xml" && template.fields) {
+      const unplaced = template.fields.filter((f) => {
+        if (
+          placedFieldKeys.has(f.id) ||
+          placedFieldKeys.has(f.name) ||
+          placedFieldKeys.has(f.label.toLowerCase()) ||
+          (f.repeatedFieldKeys && f.repeatedFieldKeys.some((k) => placedFieldKeys.has(k) || placedFieldKeys.has(k.toLowerCase())))
+        ) {
+          return false;
+        }
+        const val = f.isFixed ? f.fixedValue : (fieldValues[f.name] ?? fieldValues[f.id] ?? fieldValues[f.label] ?? context[f.name]);
+        return val !== undefined && val !== null && String(val).trim() !== "";
+      });
+
+      if (unplaced.length > 0) {
+        if (primaryKeyValueTable && primarySampleRow) {
+          // Append as table rows to existing key-value table
+          for (const extra of unplaced) {
+            const val = extra.isFixed ? extra.fixedValue : (fieldValues[extra.name] ?? fieldValues[extra.id] ?? fieldValues[extra.label] ?? context[extra.name]);
+            const valStr = String(val).trim();
+            if (!valStr) continue;
+
+            const newTr = primarySampleRow.cloneNode(true);
+            const tcs = newTr.getElementsByTagName("w:tc");
+            if (tcs.length >= 2) {
+              setCellFormattedText(doc, tcs[0], `${extra.label || extra.name}`, true);
+
+              if (primaryIsThreeCol && tcs.length >= 3) {
+                setCellFormattedText(doc, tcs[1], ":", false);
+                setCellFormattedText(doc, tcs[2], valStr, false);
+              } else {
+                setCellFormattedText(doc, tcs[1], valStr, false);
+              }
+
+              primaryKeyValueTable.appendChild(newTr);
+              modified = true;
+              placedFieldKeys.add(extra.id);
+              placedFieldKeys.add(extra.name);
+            }
+          }
+        } else {
+          // Append as styled paragraphs before sectPr / signature tables
+          const body = doc.getElementsByTagName("w:body")[0];
+          if (body) {
+            let directSectPr: any = null;
+            for (let c = 0; c < body.childNodes.length; c++) {
+              if (body.childNodes[c].nodeName === "w:sectPr") {
+                directSectPr = body.childNodes[c];
+                break;
+              }
+            }
+
+            let insertBeforeNode = directSectPr;
+            const allTbls = body.getElementsByTagName("w:tbl");
+            for (let tbIdx = allTbls.length - 1; tbIdx >= 0; tbIdx--) {
+              const tblText = (allTbls[tbIdx].textContent || "").toLowerCase();
+              if (
+                tblText.includes("signature") ||
+                tblText.includes("student head") ||
+                tblText.includes("faculty chairman") ||
+                tblText.includes("hod") ||
+                tblText.includes("dean")
+              ) {
+                let pNode: any = allTbls[tbIdx];
+                while (pNode && pNode.parentNode !== body) {
+                  pNode = pNode.parentNode;
+                }
+                if (pNode) {
+                  insertBeforeNode = pNode;
+                  break;
+                }
+              }
+            }
+
+            for (const extra of unplaced) {
+              const val = extra.isFixed ? extra.fixedValue : (fieldValues[extra.name] ?? fieldValues[extra.id] ?? fieldValues[extra.label] ?? context[extra.name]);
+              const valStr = String(val).trim();
+              if (!valStr) continue;
+
+              const p = doc.createElement("w:p");
+
+              const rLabel = doc.createElement("w:r");
+              const rPrLabel = doc.createElement("w:rPr");
+              rPrLabel.appendChild(doc.createElement("w:b"));
+              rLabel.appendChild(rPrLabel);
+              const tLabel = doc.createElement("w:t");
+              tLabel.textContent = `${extra.label || extra.name}: `;
+              rLabel.appendChild(tLabel);
+              p.appendChild(rLabel);
+
+              const rVal = doc.createElement("w:r");
+              const tVal = doc.createElement("w:t");
+              tVal.textContent = valStr;
+              rVal.appendChild(tVal);
+              p.appendChild(rVal);
+
+              if (insertBeforeNode) {
+                body.insertBefore(p, insertBeforeNode);
+              } else {
+                body.appendChild(p);
+              }
+              modified = true;
+              placedFieldKeys.add(extra.id);
+              placedFieldKeys.add(extra.name);
             }
           }
         }

@@ -9,9 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Document Generator | Incursion Hackathon Track 01",
-  description:
-    "Turn event requirements into ready-to-use, on-brand club documents with verified information and zero hallucinated facts.",
+  title: "Doc - Doctor",
+  description: "Doc - Doctor: Instant verified document generator.",
 };
 
 export default function RootLayout({

@@ -14,10 +14,8 @@ import {
   FileCheck,
   ChevronRight,
   ShieldCheck,
-  Cpu,
   Menu,
   X,
-  ExternalLink,
 } from "lucide-react";
 import { UserRole } from "@/types";
 
@@ -28,15 +26,22 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentRole, setCurrentRole] = useState<UserRole>("MEMBER");
-  const [healthStatus, setHealthStatus] = useState<any>(null);
+  const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data) => setHealthStatus(data))
-      .catch(() => null);
+    const saved = localStorage.getItem("incursion_user_role") as UserRole;
+    if (saved) {
+      setCurrentRole(saved);
+    } else {
+      localStorage.setItem("incursion_user_role", "CLUB_ADMIN");
+    }
   }, []);
+
+  const handleRoleChange = (role: UserRole) => {
+    setCurrentRole(role);
+    localStorage.setItem("incursion_user_role", role);
+    window.dispatchEvent(new CustomEvent("roleChange", { detail: role }));
+  };
 
   const navItems = [
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -71,10 +76,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
             <div>
               <span className="font-semibold text-sm tracking-tight text-[#18181B] block">
-                Smart Document
-              </span>
-              <span className="text-[10px] font-medium text-[#64748B] block tracking-normal">
-                Incursion Track 01 • Campus
+                Doc - Doctor
               </span>
             </div>
           </Link>
@@ -86,67 +88,59 @@ export function AppShell({ children }: AppShellProps) {
           </button>
         </div>
 
-        {/* Quick Action */}
-        <div className="p-4">
-          <Link
-            href="/events/new"
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white font-medium text-xs shadow-xs transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Event Documents</span>
-          </Link>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          <div className="px-3 pb-1 text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-            Workspace
+        {/* Navigation Links */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider px-3 mb-2">
+            Main Menu
           </div>
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+            if (item.adminOnly && currentRole === "MEMBER") return null;
+            if (item.approverOnly && currentRole !== "FACULTY_APPROVER") return null;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-[#EEF2FF] text-[#4F46E5] font-semibold"
                     : "text-[#475569] hover:bg-[#F1F5F9] hover:text-[#18181B]"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`h-4 w-4 ${isActive ? "text-[#4F46E5]" : "text-[#64748B]"}`} />
-                  <span>{item.label}</span>
-                </div>
+                <Icon className={`h-4 w-4 ${isActive ? "text-[#4F46E5]" : "text-[#64748B]"}`} />
+                <span>{item.label}</span>
                 {item.adminOnly && (
-                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B]">
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] font-mono">
                     Admin
                   </span>
                 )}
                 {item.approverOnly && (
-                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#FEF3C7] text-[#D97706]">
-                    Faculty
+                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#059669] font-mono">
+                    Review
                   </span>
                 )}
               </Link>
             );
           })}
-        </nav>
+        </div>
 
-        {/* System & Role Switcher for Hackathon Judges */}
+        {/* User Role Simulator */}
         <div className="p-3 border-t border-[#E2E8F0] bg-[#F8FAFC]">
           <div className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wider mb-1.5 flex items-center justify-between">
             <span>Demo Role Simulator</span>
             <ShieldCheck className="h-3 w-3 text-[#059669]" />
           </div>
-          <div className="grid grid-cols-3 gap-1 mb-3">
+          <div className="grid grid-cols-3 gap-1">
             {(["MEMBER", "CLUB_ADMIN", "FACULTY_APPROVER"] as UserRole[]).map((role) => (
               <button
                 key={role}
-                onClick={() => setCurrentRole(role)}
+                onClick={() => handleRoleChange(role)}
                 className={`text-[10px] py-1 px-1 text-center rounded border transition-colors ${
                   currentRole === role
                     ? "bg-[#4F46E5] text-white border-[#4F46E5] font-semibold"
@@ -156,22 +150,6 @@ export function AppShell({ children }: AppShellProps) {
                 {role === "MEMBER" ? "Member" : role === "CLUB_ADMIN" ? "Admin" : "Faculty"}
               </button>
             ))}
-          </div>
-
-          {/* Engine Status pill */}
-          <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#059669] inline-block animate-pulse" />
-              <span>Doc Engine Ready</span>
-            </span>
-            <Link
-              href="/api/health"
-              target="_blank"
-              className="text-[#4F46E5] hover:underline flex items-center gap-0.5 text-[10px]"
-            >
-              <span>API</span>
-              <ExternalLink className="h-2.5 w-2.5" />
-            </Link>
           </div>
         </div>
       </aside>
@@ -199,14 +177,6 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* AI Engine Status Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[#475569]">
-              <Cpu className="h-3.5 w-3.5 text-[#4F46E5]" />
-              <span>
-                {healthStatus?.environment?.ai?.mode || "AI Extractor: Active"}
-              </span>
-            </div>
-
             <Link
               href="/events/new"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-medium transition-colors shadow-xs"

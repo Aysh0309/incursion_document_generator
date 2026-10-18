@@ -24,3 +24,30 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const deleted = dbStore.deleteDocument(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: { message: "Document not found or already deleted" } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Document deleted successfully",
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: { message: err.message } },
+      { status: 500 }
+    );
+  }
+}

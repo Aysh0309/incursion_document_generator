@@ -41,6 +41,8 @@ export default function TemplateManagementPage() {
 
   // Template Review & Field Correction Studio
   const [reviewingTemplate, setReviewingTemplate] = useState<TemplateMetadata | null>(null);
+  const [isNewDraft, setIsNewDraft] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const [editableFields, setEditableFields] = useState<TemplateField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -84,8 +86,9 @@ export default function TemplateManagementPage() {
       formData.append("name", templateName);
       formData.append("documentType", documentType);
       formData.append("description", description);
+      formData.append("analyzeOnly", "true");
 
-      const res = await fetch("/api/templates", {
+      const res = await fetch("/api/templates?analyzeOnly=true", {
         method: "POST",
         body: formData,
       });
@@ -95,16 +98,15 @@ export default function TemplateManagementPage() {
         throw new Error(data.error?.message || "Upload failed");
       }
 
-      const created: TemplateMetadata = data.data;
-      setUploadSuccess(`Template "${templateName}" uploaded and analyzed successfully!`);
+      const analyzed: TemplateMetadata = data.data;
+      setUploadSuccess(`Template "${templateName}" analyzed! Review candidate fields below and click "Save & Publish Schema" to save.`);
       setShowUploadModal(false);
       setTemplateName("");
       setDescription("");
       setFile(null);
-      await fetchTemplates();
 
-      // Open review studio directly
-      openReviewStudio(created);
+      // Open review studio in draft mode WITHOUT saving to library yet
+      openReviewStudio(analyzed, true);
     } catch (err: any) {
       setUploadError(err.message || "Failed to upload template");
     } finally {
@@ -112,11 +114,31 @@ export default function TemplateManagementPage() {
     }
   };
 
-  const openReviewStudio = (tmpl: TemplateMetadata) => {
+  const openReviewStudio = (tmpl: TemplateMetadata, isDraft: boolean = false) => {
+    setIsNewDraft(isDraft);
     setReviewingTemplate(tmpl);
     setEditableFields(tmpl.fields || []);
     setSelectedFieldId(tmpl.fields?.[0]?.id || null);
     setSaveSuccess(null);
+  };
+
+  const handleDiscardDraft = async () => {
+    if (!reviewingTemplate) return;
+    try {
+      setDiscarding(true);
+      if (reviewingTemplate.fileUrl?.startsWith("/templates/custom_")) {
+        await fetch(`/api/templates?fileUrl=${encodeURIComponent(reviewingTemplate.fileUrl)}`, {
+          method: "DELETE",
+        });
+      }
+    } catch (e) {
+      console.warn("Discard cleanup error:", e);
+    } finally {
+      setDiscarding(false);
+      setReviewingTemplate(null);
+      setIsNewDraft(false);
+      setUploadSuccess("Draft upload discarded. Template was NOT saved to the library.");
+    }
   };
 
   const handleToggleActive = async (template: TemplateMetadata) => {
@@ -180,7 +202,21 @@ export default function TemplateManagementPage() {
 
   const handleUpdateField = (id: string, updates: Partial<TemplateField>) => {
     setEditableFields(
-      editableFields.map((f) => (f.id === id ? { ...f, ...updates } : f))
+      editableFields.map((f) => {
+        if (f.id !== id) return f;
+        const updated = { ...f, ...updates };
+        if (updates.label !== undefined && (!f.name || f.name.startsWith("field_"))) {
+          const autoKey = updates.label
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+          if (autoKey) {
+            updated.name = autoKey;
+          }
+        }
+        return updated;
+      })
     );
   };
 
@@ -197,23 +233,50 @@ export default function TemplateManagementPage() {
     setSaveSuccess(null);
 
     try {
-      const res = await fetch(`/api/templates/${reviewingTemplate.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fields: editableFields,
-          status: "PUBLISHED",
-          version: reviewingTemplate.version + 1,
-        }),
-      });
+      let savedData: TemplateMetadata;
 
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error?.message || "Failed to save configuration");
+      if (isNewDraft) {
+        // Save & Publish newly uploaded template
+        const res = await fetch("/api/templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...reviewingTemplate,
+            fields: editableFields,
+            status: "PUBLISHED",
+          }),
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || "Failed to publish template");
+        }
+
+        savedData = data.data;
+        setIsNewDraft(false);
+        setSaveSuccess(`Template "${savedData.name}" verified, saved, and published to library!`);
+      } else {
+        // Update existing published template
+        const res = await fetch(`/api/templates/${reviewingTemplate.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: editableFields,
+            status: "PUBLISHED",
+            version: reviewingTemplate.version + 1,
+          }),
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || "Failed to save configuration");
+        }
+
+        savedData = data.data;
+        setSaveSuccess(`Template configuration saved! Version updated to v${savedData.version}.`);
       }
 
-      setSaveSuccess(`Template configuration saved! Version updated to v${data.data.version}.`);
-      setReviewingTemplate(data.data);
+      setReviewingTemplate(savedData);
       await fetchTemplates();
     } catch (err: any) {
       alert(err.message || "Failed to save configuration");
@@ -264,23 +327,47 @@ export default function TemplateManagementPage() {
                   <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
                     {reviewingTemplate.format?.toUpperCase() || "DOCX"}
                   </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
-                    v{reviewingTemplate.version}
-                  </span>
+                  {isNewDraft ? (
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]">
+                      Unpublished Draft
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
+                      v{reviewingTemplate.version}
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-[#64748B] mt-0.5">
-                  Review and correct candidate fields, adjust coordinates, and ensure zero hallucination before publishing.
+                  {isNewDraft
+                    ? "Review candidate fields and configure placeholders. Document will ONLY be saved to library upon clicking Save & Publish Schema."
+                    : "Review and correct candidate fields, adjust coordinates, and ensure zero hallucination before publishing."}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setTemplateToDelete(reviewingTemplate)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-white hover:bg-[#FEF2F2] text-[#E11D48] text-xs font-semibold transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Delete Template</span>
-                </button>
+                {isNewDraft ? (
+                  <button
+                    onClick={handleDiscardDraft}
+                    disabled={discarding}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-white hover:bg-[#FEF2F2] text-[#E11D48] text-xs font-semibold transition-colors disabled:opacity-50"
+                    title="Discard upload without saving"
+                  >
+                    {discarding ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    <span>Discard Draft</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setTemplateToDelete(reviewingTemplate)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-white hover:bg-[#FEF2F2] text-[#E11D48] text-xs font-semibold transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete Template</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleSaveFieldConfiguration}
@@ -296,7 +383,15 @@ export default function TemplateManagementPage() {
                 </button>
 
                 <button
-                  onClick={() => setReviewingTemplate(null)}
+                  onClick={() => {
+                    if (isNewDraft) {
+                      if (window.confirm("Closing without publishing will discard this upload. Are you sure?")) {
+                        handleDiscardDraft();
+                      }
+                    } else {
+                      setReviewingTemplate(null);
+                    }
+                  }}
                   className="px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs text-[#64748B] hover:bg-[#F8FAFC]"
                 >
                   Close Studio

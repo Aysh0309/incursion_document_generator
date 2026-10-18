@@ -18,8 +18,10 @@ import {
   ExternalLink,
   ChevronRight,
   Download,
+  Trash2,
 } from "lucide-react";
-import { DocumentRecord, DocumentVersionRecord, StructuredEventData } from "@/types";
+import { useRouter } from "next/navigation";
+import { DocumentRecord, DocumentVersionRecord, StructuredEventData, UserRole } from "@/types";
 
 function DocumentReviewContent({ id }: { id: string }) {
 
@@ -34,10 +36,41 @@ function DocumentReviewContent({ id }: { id: string }) {
   // Editable fields state
   const [editableData, setEditableData] = useState<Partial<StructuredEventData>>({});
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
+  const router = useRouter();
 
   useEffect(() => {
+    const saved = localStorage.getItem("incursion_user_role") as UserRole;
+    if (saved) setCurrentRole(saved);
+
+    const onRoleChange = (e: any) => {
+      if (e.detail) setCurrentRole(e.detail);
+    };
+    window.addEventListener("roleChange", onRoleChange);
+
     fetchDocData();
+
+    return () => {
+      window.removeEventListener("roleChange", onRoleChange);
+    };
   }, [id]);
+
+  const isAdmin = currentRole === "CLUB_ADMIN";
+
+  const handleDeleteDoc = async () => {
+    if (!doc || !confirm(`Are you sure you want to permanently delete "${doc.title}"?`)) return;
+    try {
+      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        router.push("/documents");
+      } else {
+        setErrorMsg(data.error?.message || "Failed to delete document");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    }
+  };
 
   const fetchDocData = async () => {
     try {
@@ -167,7 +200,13 @@ function DocumentReviewContent({ id }: { id: string }) {
                 </span>
               </div>
               <p className="text-[11px] text-[#64748B] mt-0.5">
-                Type: {doc.documentType.replace(/_/g, " ")} • Engine: {doc.pdfEngineUsed === "libreoffice" ? "LibreOffice Headless" : doc.pdfEngineUsed === "headless_browser" ? "Chromium High-Fidelity Engine" : doc.pdfEngineUsed === "pdf_lib_direct" ? "PDF Vector Direct" : "Institutional Engine"}
+                Type: {doc.documentType.replace(/_/g, " ")} • Event:{" "}
+                <Link
+                  href={`/events/new?eventId=${doc.eventId}`}
+                  className="text-[#4F46E5] hover:underline font-medium"
+                >
+                  {doc.dataSnapshot?.eventName || "View Associated Event"}
+                </Link>
               </p>
             </div>
           </div>
@@ -203,8 +242,109 @@ function DocumentReviewContent({ id }: { id: string }) {
                 <span>PDF</span>
               </a>
             )}
+
+            {isAdmin && (
+              <button
+                onClick={handleDeleteDoc}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-xs font-medium text-[#E11D48] shadow-2xs transition-colors"
+                title="Delete Document (Admin)"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Delete</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Status Callout Banner */}
+        {doc.status === "DRAFT" && (
+          <div className="p-4 rounded-lg bg-[#F8FAFC] border border-[#CBD5E1] text-xs text-[#334155] flex items-start gap-3 shadow-2xs">
+            <Clock className="h-5 w-5 text-[#64748B] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-[#18181B] block">
+                Private Draft • Not Submitted to Faculty
+              </span>
+              <p className="text-[#475569]">
+                This document is strictly in draft status and has NOT been sent to the faculty coordinator.
+                You can freely edit the parameters below and regenerate. When you are finished, click{" "}
+                <strong className="text-[#18181B]">"Submit to Faculty for Approval"</strong> to send it for formal review.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {doc.status === "SUBMITTED" && (
+          <div className="p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-xs text-[#92400E] flex items-start gap-3 shadow-2xs">
+            <Clock className="h-5 w-5 text-[#D97706] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-[#92400E] block">
+                Submitted to Faculty Coordinator • In Review Queue
+              </span>
+              <p className="text-[#B45309]">
+                This document is currently in the administrative review queue. The faculty coordinator
+                will review it and provide remarks or formal endorsement.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {doc.status === "CHANGES_REQUESTED" && (
+          <div className="p-4 rounded-lg bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
+            <AlertCircle className="h-5 w-5 text-[#E11D48] shrink-0 mt-0.5" />
+            <div className="space-y-1.5 flex-1">
+              <span className="font-bold text-[#9F1239] block text-sm">
+                Action Required: Faculty Coordinator Requested Changes
+              </span>
+              {doc.reviewComments && (
+                <div className="p-2.5 rounded bg-white/80 border border-[#FECDD3] text-xs text-[#881337]">
+                  <span className="font-semibold block mb-0.5">Faculty Remarks:</span>
+                  <p className="italic">"{doc.reviewComments}"</p>
+                  {doc.approvedBy && (
+                    <span className="text-[10px] text-[#9F1239] block mt-1">
+                      — {doc.approvedBy}
+                    </span>
+                  )}
+                </div>
+              )}
+              <p className="text-[#BE123C]">
+                Please update the parameters on the left, click <strong>"Save Edits & Regenerate"</strong> to update the document, and then click <strong>"Re-submit to Faculty for Approval"</strong>.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {doc.status === "APPROVED" && (
+          <div className="p-4 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0] text-xs text-[#065F46] flex items-start gap-3 shadow-2xs">
+            <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-[#065F46] block text-sm">
+                Officially Approved & Endorsed
+              </span>
+              <p className="text-[#047857]">
+                Signed off by <strong>{doc.approvedBy || "Faculty Coordinator"}</strong>
+                {doc.approvedAt && ` on ${new Date(doc.approvedAt).toLocaleDateString()}`}.
+              </p>
+              {doc.reviewComments && (
+                <p className="text-[11px] italic text-[#065F46] mt-0.5">
+                  Endorsement Note: "{doc.reviewComments}"
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {doc.status === "REJECTED" && (
+          <div className="p-4 rounded-lg bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
+            <AlertCircle className="h-5 w-5 text-[#E11D48] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-[#9F1239] block">Document Rejected</span>
+              <p className="text-[#BE123C]">
+                Rejected by {doc.approvedBy || "Faculty Coordinator"}.
+                {doc.reviewComments && ` Reason: "${doc.reviewComments}"`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Feedback Messages */}
         {actionSuccess && (
@@ -309,14 +449,20 @@ function DocumentReviewContent({ id }: { id: string }) {
                   </span>
                 </button>
 
-                {doc.status === "DRAFT" && (
+                {(doc.status === "DRAFT" || doc.status === "CHANGES_REQUESTED") && (
                   <button
                     onClick={handleSubmitApproval}
                     disabled={submitting}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-md border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#18181B] font-medium transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-md bg-[#059669] hover:bg-[#047857] text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
                   >
-                    <Send className="h-3.5 w-3.5 text-[#4F46E5]" />
-                    <span>Submit to Faculty for Approval</span>
+                    <Send className="h-3.5 w-3.5" />
+                    <span>
+                      {submitting
+                        ? "Submitting to Queue..."
+                        : doc.status === "CHANGES_REQUESTED"
+                        ? "Re-submit to Faculty for Approval"
+                        : "Submit to Faculty for Approval"}
+                    </span>
                   </button>
                 )}
               </div>

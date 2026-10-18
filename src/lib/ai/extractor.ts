@@ -1,47 +1,44 @@
 import OpenAI from "openai";
-import { DocumentType, ExtractionResult, StructuredEventData, TemplateField } from "@/types";
 import {
-  evaluateMissingFields,
-  StructuredEventDataSchema,
-} from "@/schemas/event.schema";
+  DocumentType,
+  ExtractionResult,
+  MissingFieldQuestion,
+  StructuredEventData,
+  TemplateField,
+} from "@/types";
+import { evaluateMissingFields } from "@/schemas/event.schema";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-const SYSTEM_EXTRACTION_PROMPT = `You are a strict, deterministic administrative data extraction engine for institutional document generation.
-Your goal is to parse raw user text into structured parameters with 100% factual fidelity.
-
-CRITICAL OPERATIONAL RULES:
-1. STRICT ZERO-ASSUMPTION POLICY: NEVER INVENT, ASSUME, EXTRAPOLATE, OR HALLUCINATE ANY OFFICIAL FACT.
-2. If a specific field (e.g., eventName, venue, date, time, facultyCoordinator, departmentHOD, budgetRequested, organizerName, speaker, contactEmail) is not explicitly stated or unambiguously deducible from the text, you MUST set its value to null.
-3. For dates: format strictly as YYYY-MM-DD. If ambiguous (e.g. "next month", "soon"), set to null.
-4. For times: format strictly as "HH:MM AM/PM" or "HH:MM". If unspecified, set to null.
-5. Never invent sample phone numbers, names, venues, or amounts.
-6. Output pure JSON matching the requested structure.`;
-
 /**
- * Deterministic fallback extractor that leaves unstated facts strictly as null.
+ * Deterministic zero-fabrication fallback extractor.
+ * Strictly extracts only what the user explicitly stated.
+ * Missing details are strictly null and trigger targeted questions.
  */
 function mockExtractEventData(
   rawText: string,
-  templateFields?: TemplateField[]
+  templateFields?: TemplateField[],
+  templateName?: string
 ): {
-  data: StructuredEventData;
+  data: Record<string, any>;
   detectedTypes: DocumentType[];
+  missingFieldQuestions: MissingFieldQuestion[];
 } {
   const text = rawText.toLowerCase();
 
   // 1. Event Name
   let eventName: string | null = null;
   const namePatterns = [
-    /(?:organizing|host|conducting|plan(?:ning)?)\s+(?:an?|the)?\s*([A-Za-z0-9\s&+\-–—]+?)(?:\s+on|\s+at|\s+for|\s+from|\.|\,)/i,
-    /event(?:\s+name)?(?:\s+is|\s*:)\s*([A-Za-z0-9\s&+\-–—]+?)(?:\.|\,|$)/i,
-    /titled\s+["']?([^"'\n\.\,]+)["']?/i,
+    /(?:organizing|host(?:ing)?|conducting|plan(?:ning)?)\s+(?:an?|the)?\s*([A-Za-z0-9\s&+\-–—]+?)(?:\s+on\s+|\s+at\s+|\s+for\s+|\s+from\s+|\.|\,)/i,
+    /event(?:\s+name)?(?:\s+is|\s*:)\s*["']?([A-Za-z0-9\s&+\-–—]+?)["']?(?:\.|\,|$|\n)/i,
+    /titled\s+["']([^"'\n\r]+)["']/i,
+    /(?:hands-on|workshop|hackathon|seminar|session|webinar)\s+(?:on|about)\s+([A-Za-z0-9\s&+\-–—]+?)(?:\s+on\s+|\s+at\s+|\s+for\s+|\.|\,)/i,
   ];
   for (const pat of namePatterns) {
     const m = rawText.match(pat);
-    if (m && m[1].trim().length > 3) {
+    if (m && m[1].trim().length > 2) {
       eventName = m[1].trim();
       break;
     }
@@ -49,18 +46,19 @@ function mockExtractEventData(
 
   // 2. Event Type
   let eventType: string | null = null;
-  if (text.includes("workshop")) eventType = "WORKSHOP";
-  else if (text.includes("hackathon")) eventType = "HACKATHON";
-  else if (text.includes("seminar") || text.includes("talk") || text.includes("lecture")) eventType = "SEMINAR";
-  else if (text.includes("meeting")) eventType = "MEETING";
-  else if (text.includes("competition") || text.includes("contest")) eventType = "COMPETITION";
+  if (text.includes("workshop")) eventType = "Workshop";
+  else if (text.includes("hackathon")) eventType = "Hackathon";
+  else if (text.includes("seminar") || text.includes("talk") || text.includes("lecture")) eventType = "Seminar";
+  else if (text.includes("meeting")) eventType = "Meeting";
+  else if (text.includes("competition") || text.includes("contest")) eventType = "Competition";
+  else if (text.includes("webinar")) eventType = "Webinar";
 
-  // 3. Dates
+  // 3. Start Date
   let startDate: string | null = null;
   const datePatterns = [
     /(\d{4}-\d{2}-\d{2})/,
-    /(?:on|date)\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?/i,
-    /(?:on|date)\s+(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)(?:,?\s*(\d{4}))?/i,
+    /(?:on|date(?:\s+is|\s*:)?)\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(\d{4}))?/i,
+    /(?:on|date(?:\s+is|\s*:)?)\s+(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)(?:,?\s*(\d{4}))?/i,
   ];
   for (const pat of datePatterns) {
     const m = rawText.match(pat);
@@ -69,13 +67,14 @@ function mockExtractEventData(
         startDate = m[0];
       } else {
         const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-        const monthStr = (m[1].length > 2 && isNaN(Number(m[1])) ? m[1] : m[2]).toLowerCase().slice(0, 3);
-        const dayStr = isNaN(Number(m[1])) ? m[2] : m[1];
-        const yearStr = m[3] || "2026";
+        const monthPart = isNaN(Number(m[1])) ? m[1] : m[2];
+        const dayPart = isNaN(Number(m[1])) ? m[2] : m[1];
+        const monthStr = monthPart.toLowerCase().slice(0, 3);
+        const yearStr = m[3] || new Date().getFullYear().toString();
         const mIdx = monthNames.indexOf(monthStr);
         if (mIdx !== -1) {
           const mm = String(mIdx + 1).padStart(2, "0");
-          const dd = String(dayStr).padStart(2, "0");
+          const dd = String(dayPart).padStart(2, "0");
           startDate = `${yearStr}-${mm}-${dd}`;
         }
       }
@@ -83,25 +82,30 @@ function mockExtractEventData(
     }
   }
 
-  // 4. Times
+  // 4. Start & End Times
   let startTime: string | null = null;
   let endTime: string | null = null;
   const timeRangeMatch = rawText.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-|until)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
   if (timeRangeMatch) {
     startTime = timeRangeMatch[1].trim();
     endTime = timeRangeMatch[2].trim();
+  } else {
+    const singleTimeMatch = rawText.match(/(?:at|from|time(?:\s+is|\s*:)?)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+    if (singleTimeMatch) {
+      startTime = singleTimeMatch[1].trim();
+    }
   }
 
   // 5. Venue
   let venue: string | null = null;
-  const venueMatch = rawText.match(/(?:at|venue(?:\s+is|\s*:))\s+([A-Za-z0-9\s,\-\.]+?)(?:\s+from|\s+on|\s+with|\s+organized|\.|$)/i);
+  const venueMatch = rawText.match(/(?:at\s+the|at|venue(?:\s+is|\s*:))\s+([A-Za-z0-9\s,\-\.]+?)(?:\s+from|\s+on\s+|\s+with\s+|\s+organized|\.|\,|$|\n)/i);
   if (venueMatch && venueMatch[1].trim().length > 2) {
     venue = venueMatch[1].trim().replace(/^the\s+/i, "");
   }
 
   // 6. Faculty Coordinator
   let facultyCoordinator: string | null = null;
-  const coordMatch = rawText.match(/(?:faculty coordinator|coordinator|advisor)(?:\s+is|\s*:)?\s*(?:prof\.?|dr\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+and|\s+from)/i);
+  const coordMatch = rawText.match(/(?:faculty coordinator|coordinator|faculty advisor|advisor|coordinated by|supervised by)(?:\s+is|\s*:)?\s*(?:prof\.?|dr\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+and|\s+from|\n)/i);
   if (coordMatch) {
     const rawName = coordMatch[1].trim();
     facultyCoordinator = rawName.startsWith("Prof") || rawName.startsWith("Dr") ? rawName : `Prof. ${rawName}`;
@@ -109,47 +113,62 @@ function mockExtractEventData(
 
   // 7. Department HOD
   let departmentHOD: string | null = null;
-  const hodMatch = rawText.match(/(?:hod|head of department)(?:\s+is|\s*:)?\s*(?:dr\.?|prof\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+for|\s+and)/i);
+  const hodMatch = rawText.match(/(?:hod|head of department)(?:\s+is|\s*:)?\s*(?:dr\.?|prof\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+for|\s+and|\n)/i);
   if (hodMatch) {
     departmentHOD = hodMatch[1].trim().startsWith("Dr") ? hodMatch[1].trim() : `Dr. ${hodMatch[1].trim()}`;
   }
 
-  // 8. Organizer Name
+  // 8. Organizer Name / Student Lead
   let organizerName: string | null = null;
-  const orgMatch = rawText.match(/(?:student lead|organizer|submitted by|lead)(?:\s+is|\s*:)?\s*([A-Za-z\s]+?)(?:\.|\,|$)/i);
+  const orgMatch = rawText.match(/(?:student lead|organizer|submitted by|lead|coordinated by student)(?:\s+is|\s*:)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\n)/i);
   if (orgMatch) {
     organizerName = orgMatch[1].trim();
   }
 
   // 9. Club Name
   let clubName: string | null = null;
-  const clubMatch = rawText.match(/(?:organized by|by|club)(?:\s+is|\s*:)?\s*([A-Za-z0-9\s\(\)]+?(?:club|society|chapter|gdg|gdsc|acm|ieee))/i);
+  const clubMatch = rawText.match(/(?:organized by|by club|by society|club(?:\s+is|\s*:)?)\s*([A-Za-z0-9\s\(\)]+?(?:club|society|chapter|gdg|gdsc|acm|ieee))/i);
   if (clubMatch) {
     clubName = clubMatch[1].trim();
+  } else if (text.includes("gdsc") || text.includes("gdg")) {
+    clubName = "Google Developer Student Club (GDSC)";
+  } else if (text.includes("acm")) {
+    clubName = "ACM Student Chapter";
   }
 
   // 10. Budget
   let budgetRequested: number | null = null;
-  const budgetMatch = rawText.match(/(?:budget|requested budget|amount)(?:\s+is|\s*:)?\s*(?:inr|rs\.?|₹)?\s*([\d,]+)/i);
+  const budgetMatch = rawText.match(/(?:budget|requested budget|budget requested|amount|estimated cost)(?:\s+is|\s*:)?\s*(?:inr|rs\.?|₹|\$)?\s*([\d,]+)/i);
   if (budgetMatch) {
     budgetRequested = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
   }
 
   // 11. Participants
   let expectedParticipants: number | null = null;
-  const partMatch = rawText.match(/(?:expected participants|attendance|expected students|students|participants)(?:\s*:|\s+is|\s*around|\s*approx)?\s*(\d{1,4})/i);
+  const partMatch = rawText.match(/(?:expected participants|attendance|expected students|students|participants|audience size)(?:\s*:|\s+is|\s*around|\s*approx)?\s*(\d{1,4})/i);
   if (partMatch) {
     expectedParticipants = parseInt(partMatch[1], 10);
   }
 
-  // 12. Speaker
+  // 12. Speaker Details
   let speakerName: string | null = null;
   let speakerOrg: string | null = null;
-  const speakerMatch = rawText.match(/(?:speaker|keynote|guest)(?:\s+is|\s*:)?\s*([A-Za-z\s]+?)(?:\s+from|\s+of|\s*\(|,|\.|$)/i);
-  if (speakerMatch) {
+  let speakerDesignation: string | null = null;
+  let speakerTopic: string | null = null;
+
+  const speakerMatch = rawText.match(/(?:speaker|keynote speaker|guest speaker|inviting|guest)(?:\s+is|\s*:)?\s*([A-Za-z\s\.]+?)(?:\s+from|\s+of|\s*\(|,|\.|$|\n)/i);
+  if (speakerMatch && speakerMatch[1].trim().length > 2) {
     speakerName = speakerMatch[1].trim();
-    const orgMatch = rawText.match(new RegExp(`${speakerName}\\s+(?:from|of|at)\\s+([A-Za-z0-9\\s]+?)(?:\\.|\\,|$)`, "i"));
+    const orgMatch = rawText.match(new RegExp(`${speakerName}[^.\\n]*?(?:from|of|at)\\s+([A-Za-z0-9\\s]+?)(?:\\.|\\,|\\n|$)`, "i"));
     if (orgMatch) speakerOrg = orgMatch[1].trim();
+
+    const desigMatch = rawText.match(/(?:senior|lead|principal|staff)?\s*(?:ai|software|cloud|systems)?\s*(?:engineer|scientist|director|professor|manager|architect)/i);
+    if (desigMatch) speakerDesignation = desigMatch[0].trim();
+  }
+
+  const topicMatch = rawText.match(/(?:on the topic of|keynote on|topic(?:\s+is|\s*:)|session on)\s*["']?([^"'\n\r\.]+?)["']?(?:\.|\,|$|\n)/i);
+  if (topicMatch) {
+    speakerTopic = topicMatch[1].trim();
   }
 
   // 13. Target Audience
@@ -159,120 +178,196 @@ function mockExtractEventData(
     targetAudience = audMatch[1].trim();
   }
 
+  // 14. Email & Phone
+  let contactEmail: string | null = null;
+  const emailMatch = rawText.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+  if (emailMatch) contactEmail = emailMatch[0];
+
+  let contactPhone: string | null = null;
+  const phoneMatch = rawText.match(/(?:\+91\s*)?[6-9]\d{9}|\b\d{10}\b/);
+  if (phoneMatch) contactPhone = phoneMatch[0];
+
+  // Map to document fields
+  const data: Record<string, any> = {};
+
+  // Standard pool of extracted facts
+  const pool: Record<string, any> = {
+    eventName,
+    titleOfTheEvent: eventName,
+    eventType,
+    categoryOfTheEvent: eventType,
+    startDate,
+    endDate: startDate,
+    scheduleOfEvent: startDate,
+    scheduleOfEventDateDay: startDate,
+    startTime,
+    endTime,
+    venue,
+    eventVenue: venue,
+    facultyCoordinator,
+    coordinator: facultyCoordinator,
+    departmentHOD,
+    organizerName,
+    studentLead: organizerName,
+    clubName,
+    budgetRequested,
+    amount: budgetRequested,
+    expectedParticipants,
+    speakerName,
+    speakerOrganization: speakerOrg,
+    speakerDesignation,
+    speakerTopic,
+    targetAudience,
+    contactEmail,
+    contactPhone,
+    eventDescription: rawText.length > 10 ? rawText.slice(0, 500) : null,
+    briefDescription: rawText.length > 10 ? rawText.slice(0, 500) : null,
+    subject: eventName ? `Permission requisition for ${eventName}` : null,
+  };
+
+  // Populate specified template fields or standard fields
+  const fieldsToCheck = templateFields && templateFields.length > 0
+    ? templateFields
+    : Object.keys(pool).map((k) => ({
+        id: k,
+        name: k,
+        label: k,
+        type: "text" as any,
+        required: ["eventName", "startDate", "venue", "facultyCoordinator"].includes(k),
+      }));
+
+  const missingFieldQuestions: MissingFieldQuestion[] = [];
+
+  for (const field of fieldsToCheck) {
+    const val = pool[field.name] ?? pool[field.id] ?? null;
+    data[field.name] = val;
+
+    // Zero-fabrication check: if required and missing, ask the user!
+    if (field.required && (val === null || val === undefined || String(val).trim() === "")) {
+      missingFieldQuestions.push({
+        fieldKey: field.name,
+        question: `Please provide the ${field.label || field.name} for this document.`,
+        reason: `Mandatory detail required for "${templateName || "Document"}". Not found in your description.`,
+        suggestedInputType:
+          field.type === "textarea"
+            ? "textarea"
+            : field.type === "number" || field.type === "currency"
+            ? "number"
+            : field.type === "date"
+            ? "date"
+            : field.type === "time"
+            ? "time"
+            : "text",
+      });
+    }
+  }
+
   const detectedTypes: DocumentType[] = [];
   if (text.includes("permission") || text.includes("lab") || text.includes("hall") || text.includes("hod")) {
     detectedTypes.push("PERMISSION_LETTER");
   }
-  if (text.includes("proposal") || text.includes("dean") || text.includes("budget") || text.includes("sanction")) {
+  if (text.includes("proposal") || text.includes("budget") || text.includes("sanction")) {
     detectedTypes.push("EVENT_PROPOSAL");
   }
   if (text.includes("invite") || text.includes("speaker") || text.includes("guest")) {
     detectedTypes.push("INVITATION_LETTER");
   }
-  if (detectedTypes.length === 0) {
-    detectedTypes.push("EVENT_PROPOSAL");
-  }
+  if (detectedTypes.length === 0) detectedTypes.push("EVENT_PROPOSAL");
 
-  // ZERO-ASSUMPTION POLICY: unmentioned fields MUST be null
-  const structuredData: StructuredEventData = {
-    eventName: eventName || null,
-    eventType: eventType || null,
-    eventDescription: rawText.length > 10 ? rawText.slice(0, 400) : null,
-    targetAudience: targetAudience || null,
-    expectedParticipants: expectedParticipants || null,
-    startDate: startDate || null,
-    endDate: startDate || null,
-    startTime: startTime || null,
-    endTime: endTime || null,
-    venue: venue || null,
-    isOnline: text.includes("online") || text.includes("zoom") || text.includes("meet"),
-    meetingLink: null,
-    organizerName: organizerName || null,
-    clubName: clubName || null,
-    facultyCoordinator: facultyCoordinator || null,
-    departmentHOD: departmentHOD || null,
-    budgetRequested: budgetRequested || null,
-    speaker: speakerName
-      ? {
-          name: speakerName,
-          designation: null,
-          organization: speakerOrg || null,
-        }
-      : null,
-    registrationDeadline: null,
-    contactEmail: null,
-    contactPhone: null,
-    requiresLabComputers: text.includes("lab") || text.includes("computer") || text.includes("pc"),
-  };
-
-  if (templateFields && templateFields.length > 0) {
-    const rec = structuredData as any;
-    for (const f of templateFields) {
-      if (rec[f.name] === undefined) {
-        if (f.name === "subject" || f.label.toLowerCase().includes("subject")) {
-          const subMatch = rawText.match(/(?:subject|regarding)(?:\s+is|\s*:)?\s*([^\n\r.]+)/i);
-          rec[f.name] = subMatch ? subMatch[1].trim() : eventName ? `Requesting Permission for ${eventName}` : null;
-        } else if (f.name.toLowerCase().includes("judge") || f.label.toLowerCase().includes("judge")) {
-          const jMatch = rawText.match(/(?:judge|judges|judged by)(?:\s+is|\s*:)?\s*([A-Za-z\s]+?)(?:\.|\,|$)/i);
-          rec[f.name] = jMatch ? jMatch[1].trim() : null;
-        } else if (f.name === "titleOfTheEvent") {
-          rec[f.name] = eventName;
-        } else if (f.name === "scheduleOfEvent" || f.name === "scheduleOfEventDateDay") {
-          rec[f.name] = startDate;
-        } else if (f.name === "eventVenue") {
-          rec[f.name] = venue;
-        } else if (f.name === "categoryOfTheEvent") {
-          rec[f.name] = eventType;
-        } else if (f.name === "briefDescription") {
-          rec[f.name] = rawText.slice(0, 300);
-        } else {
-          rec[f.name] = null;
-        }
-      }
-    }
-  }
-
-  return { data: structuredData, detectedTypes };
+  return { data, detectedTypes, missingFieldQuestions };
 }
 
 /**
  * Main AI extraction engine.
- * Supports template-schema-aware extraction and anti-hallucination clarification question generation.
+ * Prompts the AI with the exact fields of the selected document template.
+ * Strictly avoids inventing unmentioned facts (zero-fabrication) and
+ * prompts the user with questions for any missing required data.
  */
 export async function extractEventInformation(
   rawText: string,
   targetDocumentTypes?: DocumentType[],
-  templateFields?: TemplateField[]
+  templateFields?: TemplateField[],
+  templateName?: string
 ): Promise<ExtractionResult> {
   const useMock = process.env.USE_MOCK_AI === "true" || !process.env.OPENAI_API_KEY || !openai;
 
-  let extractedData: StructuredEventData;
+  let extractedData: Record<string, any> = {};
   let detectedTypes: DocumentType[] = targetDocumentTypes || [];
+  let missingFieldQuestions: MissingFieldQuestion[] = [];
 
   if (useMock) {
-    const mock = mockExtractEventData(
-      rawText,
-      templateFields
-    );
+    const mock = mockExtractEventData(rawText, templateFields, templateName);
     extractedData = mock.data;
-    if (!detectedTypes || detectedTypes.length === 0) {
-      detectedTypes = mock.detectedTypes;
-    }
+    detectedTypes = detectedTypes.length > 0 ? detectedTypes : mock.detectedTypes;
+    missingFieldQuestions = mock.missingFieldQuestions;
   } else {
     try {
-      const allowedSchemaDescription = templateFields && templateFields.length > 0
-        ? `Target Template Fields allowed: ${templateFields.map((f) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ")}`
-        : "Standard Fields: eventName, eventType, startDate, endDate, startTime, endTime, venue, facultyCoordinator, departmentHOD, organizerName, budgetRequested, expectedParticipants, speaker, targetAudience, contactEmail";
+      const fieldListPrompt = templateFields && templateFields.length > 0
+        ? templateFields
+            .map(
+              (f) =>
+                `- ${f.name} ("${f.label}"): type=${f.type}, ${
+                  f.required ? "REQUIRED" : "OPTIONAL"
+                }`
+            )
+            .join("\n")
+        : `Standard fields:
+- eventName (Event Title): [REQUIRED]
+- eventType (Event Type): [OPTIONAL]
+- startDate (Event Date YYYY-MM-DD): [REQUIRED]
+- startTime (Start Time e.g. 09:30 AM): [OPTIONAL]
+- endTime (End Time e.g. 04:30 PM): [OPTIONAL]
+- venue (Venue / Room / Lab): [REQUIRED]
+- facultyCoordinator (Faculty Coordinator / Advisor): [REQUIRED]
+- departmentHOD (Head of Department): [OPTIONAL]
+- organizerName (Student Lead / Organizer): [OPTIONAL]
+- clubName (Organizing Club Name): [OPTIONAL]
+- budgetRequested (Budget Amount): [OPTIONAL]
+- expectedParticipants (Expected Attendance Count): [OPTIONAL]
+- speakerName (Guest Speaker Name): [OPTIONAL]
+- speakerOrganization (Speaker Organization / Company): [OPTIONAL]
+- speakerDesignation (Speaker Job Title): [OPTIONAL]
+- speakerTopic (Talk / Keynote Topic): [OPTIONAL]
+- targetAudience (Target Audience): [OPTIONAL]
+- contactEmail (Contact Email): [OPTIONAL]
+- contactPhone (Contact Phone): [OPTIONAL]
+- eventDescription (Brief Description / Summary): [OPTIONAL]`;
 
-      const promptUser = `Extract administrative event information strictly from user text. Reference today is ${new Date().toISOString().split("T")[0]}.
-${allowedSchemaDescription}
+      const systemPrompt = `You are a strict, factual institutional document AI assistant for "${templateName || "Institutional Document"}".
+Your job is to parse the user's natural language event description and extract available data ONLY for the document fields specified below.
 
-CRITICAL RULES:
-- If a field is not stated in user input, set its value to null. NEVER GUESS OR FABRICATE.
-- If a date is vague (e.g. "next month"), set startDate to null.
-- Output pure JSON.
+DOCUMENT FIELDS SPECIFICATION:
+${fieldListPrompt}
 
-User Input:
+STRICT ZERO-FABRICATION & ANTI-HALLUCINATION RULES:
+1. Extract ONLY facts that are explicitly mentioned or unambiguously stated in the user text.
+2. NEVER guess, invent, fabricate, or extrapolate ANY data (names, dates, times, venues, speakers, amounts, emails, phones).
+3. If a field is NOT stated in the user text, its value MUST be set to null.
+4. For all REQUIRED fields where the extracted value is null (missing from user text), you MUST generate a clear question in "missingFieldQuestions" asking the user to provide that exact missing detail.
+5. For dates, format strictly as YYYY-MM-DD. If ambiguous (e.g. "next month"), set to null.
+6. For numeric fields, extract purely numbers (e.g. 15000) or null.
+
+RESPONSE FORMAT:
+You MUST respond with pure JSON conforming to this structure:
+{
+  "extractedData": {
+    // Every field name from the specification mapped to its extracted value or null
+  },
+  "missingFields": [
+    // Array of field names that are REQUIRED but were NOT found in the text
+  ],
+  "missingFieldQuestions": [
+    // Array of objects for each missing required field:
+    // {
+    //   "fieldKey": string,
+    //   "question": string,
+    //   "reason": string,
+    //   "suggestedInputType": "text" | "number" | "date" | "time" | "textarea"
+    // }
+  ]
+}`;
+
+      const userPrompt = `User Natural Language Input:
 """
 ${rawText}
 """`;
@@ -280,8 +375,8 @@ ${rawText}
       const response = await openai!.chat.completions.create({
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         messages: [
-          { role: "system", content: SYSTEM_EXTRACTION_PROMPT },
-          { role: "user", content: promptUser },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
         temperature: 0.0,
@@ -292,73 +387,105 @@ ${rawText}
         throw new Error("Empty response from AI model");
       }
 
-      const parsedJson = JSON.parse(content);
-      const validated = StructuredEventDataSchema.safeParse(parsedJson);
+      const parsed = JSON.parse(content);
+      const rawExtracted = parsed.extractedData || parsed;
 
-      if (validated.success) {
-        extractedData = validated.data as StructuredEventData;
+      // Normalize extracted data against fields
+      if (templateFields && templateFields.length > 0) {
+        for (const field of templateFields) {
+          const val = rawExtracted[field.name] ?? rawExtracted[field.label] ?? null;
+          // Never retain empty string or fake values as valid
+          extractedData[field.name] = val !== undefined ? val : null;
+        }
       } else {
-        const mock = mockExtractEventData(rawText, templateFields);
-        extractedData = mock.data;
+        extractedData = rawExtracted;
       }
 
-      // Retain ALL custom template field values extracted by AI
-      if (templateFields && templateFields.length > 0) {
-        for (const f of templateFields) {
-          const val = parsedJson[f.name] ?? parsedJson[f.label];
-          if (val !== undefined && val !== null) {
-            (extractedData as any)[f.name] = val;
+      // Collect questions from AI or compute missing required fields deterministically
+      if (Array.isArray(parsed.missingFieldQuestions) && parsed.missingFieldQuestions.length > 0) {
+        missingFieldQuestions = parsed.missingFieldQuestions.map((q: any) => ({
+          fieldKey: String(q.fieldKey || ""),
+          question: String(q.question || ""),
+          reason: String(q.reason || ""),
+          suggestedInputType: (["text", "date", "time", "number", "select", "textarea"].includes(q.suggestedInputType)
+            ? q.suggestedInputType
+            : "text") as MissingFieldQuestion["suggestedInputType"],
+        }));
+      } else {
+        const requiredToCheck = templateFields
+          ? templateFields.filter((f) => f.required && !f.isFixed)
+          : [];
+
+        for (const f of requiredToCheck) {
+          const val = extractedData[f.name];
+          if (val === null || val === undefined || String(val).trim() === "") {
+            missingFieldQuestions.push({
+              fieldKey: f.name,
+              question: `Please provide the ${f.label || f.name} for this document.`,
+              reason: `Mandatory detail required for "${templateName || "Document"}".`,
+              suggestedInputType:
+                f.type === "textarea"
+                  ? "textarea"
+                  : f.type === "number" || f.type === "currency"
+                  ? "number"
+                  : f.type === "date"
+                  ? "date"
+                  : f.type === "time"
+                  ? "time"
+                  : "text",
+            });
           }
         }
       }
-
-      if (!detectedTypes || detectedTypes.length === 0) {
-        detectedTypes = (parsedJson.detectedDocumentTypes as DocumentType[]) || [
-          "EVENT_PROPOSAL",
-        ];
-      }
     } catch (err) {
-      console.warn("AI extraction fallback to local extractor:", err);
-      const mock = mockExtractEventData(rawText, templateFields);
+      console.warn("OpenAI extraction error, falling back to local extractor:", err);
+      const mock = mockExtractEventData(rawText, templateFields, templateName);
       extractedData = mock.data;
-      if (!detectedTypes || detectedTypes.length === 0) {
-        detectedTypes = mock.detectedTypes;
-      }
+      detectedTypes = detectedTypes.length > 0 ? detectedTypes : mock.detectedTypes;
+      missingFieldQuestions = mock.missingFieldQuestions;
     }
   }
 
-  // Deterministic Anti-Hallucination Gate:
-  // Evaluate missing fields based on templateFields (if provided) or standard document types
-  let missingFields: string[] = [];
-  const questions: any[] = [];
-
-  if (templateFields && templateFields.length > 0) {
-    const rawRecord = extractedData as any;
-    for (const f of templateFields) {
-      if (f.required && !f.isFixed && !f.isSystem) {
-        const val = rawRecord[f.name];
-        if (val === null || val === undefined || (typeof val === "string" && val.trim() === "")) {
-          missingFields.push(f.name);
-          questions.push({
-            fieldKey: f.name,
-            question: `Please provide the ${f.label || f.name} for this document.`,
-            reason: `Mandatory field required by template.`,
-            suggestedInputType: f.type === "textarea" ? "textarea" : f.type === "number" || f.type === "currency" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text",
-          });
+  // Also build StructuredEventData format for downstream compatibility
+  const structuredData: StructuredEventData = {
+    eventName: extractedData.eventName || extractedData.titleOfTheEvent || null,
+    eventType: extractedData.eventType || extractedData.categoryOfTheEvent || null,
+    eventDescription: extractedData.eventDescription || extractedData.briefDescription || null,
+    targetAudience: extractedData.targetAudience || null,
+    expectedParticipants: extractedData.expectedParticipants || null,
+    startDate: extractedData.startDate || extractedData.scheduleOfEvent || null,
+    endDate: extractedData.endDate || extractedData.startDate || null,
+    startTime: extractedData.startTime || null,
+    endTime: extractedData.endTime || null,
+    venue: extractedData.venue || extractedData.eventVenue || null,
+    isOnline: false,
+    meetingLink: null,
+    organizerName: extractedData.organizerName || extractedData.studentLead || null,
+    clubName: extractedData.clubName || null,
+    facultyCoordinator: extractedData.facultyCoordinator || null,
+    departmentHOD: extractedData.departmentHOD || null,
+    budgetRequested: extractedData.budgetRequested || extractedData.amount || null,
+    speaker: extractedData.speakerName
+      ? {
+          name: extractedData.speakerName,
+          designation: extractedData.speakerDesignation || null,
+          organization: extractedData.speakerOrganization || null,
         }
-      }
-    }
-  } else {
-    const evaluated = evaluateMissingFields(extractedData, detectedTypes);
-    missingFields = evaluated.missingFields;
-    questions.push(...evaluated.questions);
-  }
+      : null,
+    registrationDeadline: null,
+    contactEmail: extractedData.contactEmail || null,
+    contactPhone: extractedData.contactPhone || null,
+    requiresLabComputers: false,
+    ...extractedData,
+  };
+
+  const isComplete = missingFieldQuestions.length === 0;
 
   return {
-    extractedData,
+    extractedData: structuredData,
     detectedDocumentTypes: detectedTypes,
-    missingFieldQuestions: questions,
+    missingFieldQuestions,
     rawText,
-    isComplete: missingFields.length === 0,
+    isComplete,
   };
 }

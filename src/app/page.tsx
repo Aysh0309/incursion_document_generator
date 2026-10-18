@@ -1,33 +1,19 @@
 import React from "react";
 import Link from "next/link";
-import {
-  FileCheck,
-  ArrowRight,
-  ShieldAlert,
-  FileCode2,
-  FileDown,
-  Layers,
-  CheckCircle2,
-  Calendar,
-  Sparkles,
-  School,
-} from "lucide-react";
+import { FileText, ArrowRight, LayoutDashboard, PlusCircle, Heart } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#18181B] flex flex-col font-sans">
-      {/* Product Top Navigation */}
-      <header className="h-16 border-b border-[#E2E8F0] bg-white sticky top-0 z-50 px-6 sm:px-12 flex items-center justify-between">
+    <div className="relative min-h-screen bg-[#656860] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+      {/* Top Glass Navigation */}
+      <header className="sticky top-0 z-50 h-16 border-b border-white/10 bg-[#54574f]/75 backdrop-blur-md px-6 sm:px-12 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-md bg-[#4F46E5] flex items-center justify-center text-white shadow-xs">
-            <FileCheck className="h-5 w-5" />
+          <div className="h-9 w-9 rounded-lg bg-indigo-500 flex items-center justify-center text-white shadow-md">
+            <FileText className="h-5 w-5" />
           </div>
-          <div>
-            <span className="font-semibold text-sm tracking-tight text-[#18181B] block">
-              Smart Document Generator
-            </span>
-            <span className="text-[10px] font-medium text-[#64748B] block">
-              Incursion Hackathon • Track 01
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm tracking-tight text-white">
+              Doc - Doctor
             </span>
           </div>
         </div>
@@ -35,293 +21,386 @@ export default function LandingPage() {
         <nav className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="text-xs font-medium text-[#475569] hover:text-[#18181B] px-3 py-1.5 rounded-md hover:bg-[#F1F5F9] transition-colors"
+            className="text-xs font-medium text-white/80 hover:text-white px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors"
           >
             Dashboard
           </Link>
           <Link
-            href="/events/new"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-medium transition-colors shadow-xs"
+            href="/templates"
+            className="hidden sm:inline-block text-xs font-medium text-white/80 hover:text-white px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors"
           >
-            <span>Create Documents</span>
+            Templates
+          </Link>
+          <Link
+            href="/events/new"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-white hover:bg-slate-100 text-[#18181B] text-xs font-semibold transition-all shadow-sm"
+          >
+            <span>Create</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </nav>
       </header>
 
-      {/* Hero Section */}
-      <main className="flex-1">
-        <section className="max-w-5xl mx-auto px-6 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2E8F0] bg-white text-xs font-medium text-[#475569] mb-6 shadow-2xs">
-            <span className="h-2 w-2 rounded-full bg-[#4F46E5]" />
-            <span>Track 01: Requirements In, Branded Club Documents Out</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-[#18181B] max-w-3xl mx-auto leading-tight sm:leading-tight">
-            Turn Event Ideas into Official Club Documents.
-          </h1>
-
-          <p className="mt-5 text-sm sm:text-base text-[#64748B] max-w-2xl mx-auto leading-relaxed">
-            Create branded event proposals, permission letters, and invitations from one verified event profile.
-            No repetitive formatting. No invented official details.
-          </p>
-
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/events/new"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-medium transition-colors shadow-xs"
-            >
-              <span>Create Documents</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-white hover:bg-[#F1F5F9] border border-[#E2E8F0] text-[#18181B] text-sm font-medium transition-colors shadow-2xs"
-            >
-              <span>Explore Dashboard</span>
-            </Link>
-          </div>
-        </section>
-
-        {/* Realistic Document Generation Preview */}
-        <section className="max-w-5xl mx-auto px-6 pb-20">
-          <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
-            <div className="h-10 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#E2E8F0]" />
-                <span className="text-[11px] font-medium text-[#64748B] ml-2">
-                  Studio Preview • Input to Vectorized DOCX & PDF
-                </span>
-              </div>
-              <span className="text-[10px] uppercase font-semibold text-[#059669] px-2 py-0.5 rounded bg-[#ECFDF5] border border-[#A7F3D0]">
-                Verified Factual Integrity
-              </span>
+      {/* Main Container with Background Document Grid & Floating Clean Minimal Hero */}
+      <div className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-between">
+        {/* Background Document Cards Grid */}
+        <div
+          className="absolute inset-0 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-8 pointer-events-none select-none opacity-85 overflow-hidden"
+          aria-hidden="true"
+        >
+          {/* Card 1: Project Proposal (Dark) */}
+          <div className="aspect-[16/10] bg-[#1c1c1c] text-[#ded6c9] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.45)] flex flex-col justify-between border border-white/5">
+            <div className="flex justify-between items-center text-[7px] sm:text-[9px] uppercase tracking-widest text-[#ded6c9]/60 font-mono">
+              <span>PROPOSAL SPEC</span>
+              <span>2026/REV</span>
             </div>
+            <div>
+              <div className="text-xl sm:text-3xl font-black uppercase tracking-tight leading-none text-[#ded6c9]">
+                PROJECT
+              </div>
+              <div className="text-xl sm:text-3xl font-black uppercase tracking-tight leading-none text-[#ded6c9]">
+                PROPOSAL
+              </div>
+            </div>
+            <div className="flex justify-between items-end border-t border-[#ded6c9]/20 pt-1 text-[7px] sm:text-[8px] text-[#ded6c9]/60 font-mono">
+              <span>WWW.DOC-DOCTOR.DEV</span>
+              <span>PAGE 01</span>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#E2E8F0]">
-              {/* Left: Input Text and Extracted Entities */}
-              <div className="p-6 bg-[#FCFDFE]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-                    1. Plain English Input
-                  </span>
-                  <span className="text-[10px] text-[#94A3B8]">Single Entry</span>
+          {/* Card 2: Contents (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              CONTENTS
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-center">
+              <div className="space-y-1 text-[7px] sm:text-[9px] font-mono">
+                <div className="flex justify-between border-b border-[#1c1c1c]/15 pb-0.5">
+                  <span>01 Overview</span>
+                  <span>03</span>
                 </div>
-
-                <div className="p-3.5 rounded-md border border-[#E2E8F0] bg-white text-xs text-[#334155] font-mono leading-relaxed mb-4">
-                  "Organizing an AI & ML Workshop on Nov 14, 2026 at CS Lab 3 from 9:30 AM to 4:30 PM. Speaker is Dev Sharma from Google. Expected students: 85. Budget is INR 15,000. Need lab permission from HOD Dr. Verma. Coordinated by Prof. Sharma."
+                <div className="flex justify-between border-b border-[#1c1c1c]/15 pb-0.5">
+                  <span>02 Scope</span>
+                  <span>05</span>
                 </div>
+                <div className="flex justify-between border-b border-[#1c1c1c]/15 pb-0.5">
+                  <span>03 Timeline</span>
+                  <span>08</span>
+                </div>
+              </div>
+              <div className="h-14 sm:h-16 bg-[#1c1c1c] rounded-xs flex items-center justify-center text-[#ded6c9] text-[8px] font-mono">
+                IMAGE
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">DOCUMENT INDEX</div>
+          </div>
 
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B] block">
-                    Extracted & Verified Parameters:
-                  </span>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 rounded border border-[#E2E8F0] bg-white">
-                      <span className="text-[10px] text-[#64748B] block">Event Title</span>
-                      <span className="font-medium text-[#18181B] truncate block">AI & ML Workshop</span>
-                    </div>
-                    <div className="p-2 rounded border border-[#E2E8F0] bg-white">
-                      <span className="text-[10px] text-[#64748B] block">Venue</span>
-                      <span className="font-medium text-[#18181B] truncate block">CS Lab 3</span>
-                    </div>
-                    <div className="p-2 rounded border border-[#E2E8F0] bg-white">
-                      <span className="text-[10px] text-[#64748B] block">Date & Timing</span>
-                      <span className="font-medium text-[#18181B] truncate block">Nov 14 • 9:30 AM</span>
-                    </div>
-                    <div className="p-2 rounded border border-[#E2E8F0] bg-white">
-                      <span className="text-[10px] text-[#64748B] block">Resource Person</span>
-                      <span className="font-medium text-[#18181B] truncate block">Dev Sharma (Google)</span>
-                    </div>
+          {/* Card 3: About Us (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              ABOUT US
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-center">
+              <div className="h-12 sm:h-14 bg-[#1c1c1c] rounded-xs flex items-center justify-center text-[#ded6c9] text-[7px] font-mono">
+                PORTRAIT
+              </div>
+              <div className="space-y-1">
+                <div className="h-1.5 bg-[#1c1c1c]/70 rounded-full w-full" />
+                <div className="h-1.5 bg-[#1c1c1c]/50 rounded-full w-4/5" />
+                <div className="h-1.5 bg-[#1c1c1c]/30 rounded-full w-3/4" />
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">CAMPUS INITIATIVE</div>
+          </div>
+
+          {/* Card 4: Our Team (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              OUR TEAM
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <div className="w-full aspect-square bg-[#1c1c1c] rounded-xs flex items-center justify-center text-[7px] text-[#ded6c9] font-mono">
+                    M{i}
                   </div>
+                  <div className="h-1 bg-[#1c1c1c]/60 rounded-full w-4/5" />
                 </div>
+              ))}
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">KEY CONTRIBUTORS</div>
+          </div>
+
+          {/* Card 5: About Project (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              ABOUT PROJECT
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-center">
+              <div>
+                <div className="text-sm sm:text-lg font-black leading-none">13M+</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">REQUESTS</div>
               </div>
+              <div>
+                <div className="text-sm sm:text-lg font-black leading-none">1425+</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">GENERATED</div>
+              </div>
+              <div className="h-12 bg-[#1c1c1c] rounded-xs flex items-center justify-center text-[#ded6c9] text-[7px] font-mono">
+                DOC
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">SYSTEM METRICS</div>
+          </div>
 
-              {/* Right: Compiled Document Card */}
-              <div className="p-6 bg-white flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-                      2. Compiled Branded Documents
-                    </span>
-                    <span className="text-[10px] text-[#4F46E5] font-semibold">1 Profile = 3 Files</span>
-                  </div>
+          {/* Card 6: Project Concept (Dark) */}
+          <div className="aspect-[16/10] bg-[#1c1c1c] text-[#ded6c9] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.45)] flex flex-col justify-between border border-white/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              PROJECT CONCEPT
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[7px] sm:text-[8px] font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full border border-[#ded6c9] flex items-center justify-center text-[7px]">01</span>
+                <span>Requirements</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full border border-[#ded6c9] flex items-center justify-center text-[7px]">02</span>
+                <span>Template Match</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full border border-[#ded6c9] flex items-center justify-center text-[7px]">03</span>
+                <span>Validation</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full border border-[#ded6c9] flex items-center justify-center text-[7px]">04</span>
+                <span>Signed PDF</span>
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#ded6c9]/40">CORE ARCHITECTURE</div>
+          </div>
 
-                  {/* Preview Paper Simulation */}
-                  <div className="p-4 rounded-md border border-[#E2E8F0] bg-[#FAFAFA] text-left shadow-2xs space-y-2.5">
-                    <div className="border-b border-[#E2E8F0] pb-2 flex items-center justify-between">
-                      <div>
-                        <span className="text-[11px] font-bold text-[#4F46E5] uppercase block">
-                          DEPARTMENT OF COMPUTER SCIENCE
-                        </span>
-                        <span className="text-[9px] text-[#64748B]">National Institute of Technology</span>
-                      </div>
-                      <span className="text-[9px] font-mono text-[#64748B]">Ref: PERM/2026/04</span>
-                    </div>
+          {/* Card 7: Budget Breakdown (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              BUDGET BREAKDOWN
+            </div>
+            <div className="space-y-1 text-[7px] sm:text-[8px] font-mono">
+              <div className="flex justify-between font-bold border-b border-[#1c1c1c]/20 pb-0.5">
+                <span>ITEM</span>
+                <span>BUDGET</span>
+                <span>STATUS</span>
+              </div>
+              <div className="flex justify-between border-b border-[#1c1c1c]/10 pb-0.5">
+                <span>Venue & Audio</span>
+                <span>$2,500</span>
+                <span>Approved</span>
+              </div>
+              <div className="flex justify-between border-b border-[#1c1c1c]/10 pb-0.5">
+                <span>Honorarium</span>
+                <span>$1,200</span>
+                <span>Pending</span>
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">FINANCIAL LEDGER</div>
+          </div>
 
-                    <div className="text-[11px] font-semibold text-[#18181B]">
-                      Subject: Requisition for room and lab allocation for "AI & ML Workshop"
-                    </div>
+          {/* Card 8: Project Expertise (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              PROJECT EXPERTISE
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-center">
+              <div>
+                <div className="text-sm sm:text-lg font-black leading-none">70+</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">TEMPLATES</div>
+              </div>
+              <div>
+                <div className="text-sm sm:text-lg font-black leading-none">$13K+</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">SAVED</div>
+              </div>
+              <div className="h-12 bg-[#1c1c1c] rounded-xs flex items-center justify-center text-[#ded6c9] text-[7px] font-mono">
+                DOCX
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">DOCUMENT STANDARDS</div>
+          </div>
 
-                    <p className="text-[10px] text-[#475569] leading-relaxed line-clamp-3">
-                      We, the student coordinators of GDSC, request your kind permission to conduct a technical workshop for 85 students on November 14, 2026 at CS Lab 3...
-                    </p>
-
-                    <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[9px] text-[#64748B]">
-                      <span>Student Lead: Aarav Patel</span>
-                      <span>Faculty Advisor: Prof. Sunita Sharma</span>
-                    </div>
-                  </div>
+          {/* Card 9: Project Timeline (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              PROJECT TIMELINE
+            </div>
+            <div className="relative flex items-center justify-between px-2 py-3">
+              <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-0.5 bg-[#1c1c1c]/30" />
+              {["Phase 01", "Phase 02", "Phase 03"].map((p, idx) => (
+                <div key={idx} className="relative z-10 flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full bg-[#1c1c1c] border-2 border-[#ded6c9]" />
+                  <span className="text-[7px] font-mono font-bold mt-1">{p}</span>
                 </div>
+              ))}
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">SCHEDULE & MILESTONES</div>
+          </div>
 
-                <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-[#059669] font-medium text-[11px]">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Real .docx & .pdf Ready</span>
-                  </div>
-                  <Link
-                    href="/events/new"
-                    className="text-[#4F46E5] hover:text-[#4338CA] font-medium text-xs flex items-center gap-1"
-                  >
-                    <span>Generate Now</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
+          {/* Card 10: Continue... (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              CONTINUE...
+            </div>
+            <div className="relative flex items-center justify-between px-2 py-3">
+              <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-0.5 bg-[#1c1c1c]/30" />
+              {["Phase 04", "Phase 05", "The End"].map((p, idx) => (
+                <div key={idx} className="relative z-10 flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full bg-[#1c1c1c] border-2 border-[#ded6c9]" />
+                  <span className="text-[7px] font-mono font-bold mt-1">{p}</span>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-        </section>
-
-        {/* 3 Core Architectural Pillars */}
-        <section className="max-w-5xl mx-auto px-6 pb-20">
-          <div className="text-center mb-10">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B]">
-              Engineered for Institutional Integrity
-            </h2>
-            <p className="text-xs sm:text-sm text-[#64748B] mt-1.5">
-              Why university leadership trusts this workflow over consumer chat tools.
-            </p>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">FINAL DELIVERABLES</div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="p-5 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
-              <div className="h-8 w-8 rounded-md bg-[#FEF2F2] text-[#E11D48] flex items-center justify-center mb-3.5">
-                <ShieldAlert className="h-4 w-4" />
-              </div>
-              <h3 className="font-semibold text-sm text-[#18181B]">Ask, Don't Invent</h3>
-              <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed">
-                The AI never fabricates dates, venues, faculty names, or signatures. Missing information triggers deterministic clarification questions.
-              </p>
+          {/* Card 11: Project Stages (Dark) */}
+          <div className="aspect-[16/10] bg-[#1c1c1c] text-[#ded6c9] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.45)] flex flex-col justify-between border border-white/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              PROJECT STAGES
             </div>
-
-            <div className="p-5 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
-              <div className="h-8 w-8 rounded-md bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center mb-3.5">
-                <FileDown className="h-4 w-4" />
-              </div>
-              <h3 className="font-semibold text-sm text-[#18181B]">Native DOCX & PDF Output</h3>
-              <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed">
-                Generates genuine OpenXML `.docx` files and vectorized `.pdf` preserving headers, footers, typography, and margins ready for formal print.
-              </p>
+            <div className="flex items-center justify-center -space-x-2 py-2">
+              {["01", "02", "03", "04"].map((step) => (
+                <div
+                  key={step}
+                  className="w-8 sm:w-10 h-8 sm:h-10 rounded-full border border-[#ded6c9]/70 bg-[#1c1c1c]/90 flex items-center justify-center text-[8px] sm:text-[9px] font-mono font-bold text-[#ded6c9]"
+                >
+                  {step}
+                </div>
+              ))}
             </div>
-
-            <div className="p-5 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
-              <div className="h-8 w-8 rounded-md bg-[#ECFDF5] text-[#059669] flex items-center justify-center mb-3.5">
-                <Layers className="h-4 w-4" />
-              </div>
-              <h3 className="font-semibold text-sm text-[#18181B]">Batch Reusability</h3>
-              <p className="text-xs text-[#64748B] mt-1.5 leading-relaxed">
-                Describe the event once. Generate Event Proposals, Lab Permission Letters, and Speaker Invitations simultaneously and download as a ZIP.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* 4-Step Workflow Walkthrough */}
-        <section className="border-t border-[#E2E8F0] bg-white py-16 px-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#4F46E5]">
-                How It Works
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#18181B] mt-1">
-                From Rough Idea to Final Signed Document
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 rounded-md border border-[#E2E8F0] bg-[#F8FAFC]">
-                <span className="h-6 w-6 rounded-full bg-[#E2E8F0] text-[#475569] font-bold text-xs flex items-center justify-center mb-3">
-                  1
-                </span>
-                <h4 className="font-semibold text-xs text-[#18181B]">Describe Event</h4>
-                <p className="text-[11px] text-[#64748B] mt-1 leading-relaxed">
-                  Provide notes in plain English or fill out structured fields.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-md border border-[#E2E8F0] bg-[#F8FAFC]">
-                <span className="h-6 w-6 rounded-full bg-[#E2E8F0] text-[#475569] font-bold text-xs flex items-center justify-center mb-3">
-                  2
-                </span>
-                <h4 className="font-semibold text-xs text-[#18181B]">Validate & Clarify</h4>
-                <p className="text-[11px] text-[#64748B] mt-1 leading-relaxed">
-                  Answer targeted questions for missing facts without hallucination.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-md border border-[#E2E8F0] bg-[#F8FAFC]">
-                <span className="h-6 w-6 rounded-full bg-[#E2E8F0] text-[#475569] font-bold text-xs flex items-center justify-center mb-3">
-                  3
-                </span>
-                <h4 className="font-semibold text-xs text-[#18181B]">Batch Generate</h4>
-                <p className="text-[11px] text-[#64748B] mt-1 leading-relaxed">
-                  Select templates; compile native DOCX and PDF files instantly.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-md border border-[#E2E8F0] bg-[#F8FAFC]">
-                <span className="h-6 w-6 rounded-full bg-[#E2E8F0] text-[#475569] font-bold text-xs flex items-center justify-center mb-3">
-                  4
-                </span>
-                <h4 className="font-semibold text-xs text-[#18181B]">Review & Export</h4>
-                <p className="text-[11px] text-[#64748B] mt-1 leading-relaxed">
-                  Tweak fields, regenerate new versions, and export files or ZIP bundle.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Restrained Institutional Footer */}
-      <footer className="border-t border-[#E2E8F0] bg-white py-8 px-6 text-center text-xs text-[#64748B]">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <School className="h-4 w-4 text-[#4F46E5]" />
-            <span className="font-medium text-[#18181B]">
-              Smart Document Generator
-            </span>
-            <span>— University Workflow Automation</span>
+            <div className="text-[7px] font-mono text-[#ded6c9]/40">STAGE PROGRESSION</div>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <Link href="/dashboard" className="hover:text-[#18181B]">
-              Dashboard
-            </Link>
-            <Link href="/events/new" className="hover:text-[#18181B]">
-              Create Event
-            </Link>
-            <Link href="/templates" className="hover:text-[#18181B]">
-              Templates
-            </Link>
-            <Link href="/api/health" className="hover:text-[#18181B]">
-              System Health
-            </Link>
+          {/* Card 12: Target Audience (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              TARGET AUDIENCE
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-center">
+              <div className="space-y-1">
+                <div className="h-1 bg-[#1c1c1c]/70 rounded w-full" />
+                <div className="h-1 bg-[#1c1c1c]/50 rounded w-4/5" />
+                <div className="h-1 bg-[#1c1c1c]/30 rounded w-3/5" />
+              </div>
+              <div className="flex items-end gap-1 h-12 justify-center">
+                <div className="w-2.5 h-6 bg-[#1c1c1c]/60 rounded-xs" />
+                <div className="w-2.5 h-9 bg-[#1c1c1c]/80 rounded-xs" />
+                <div className="w-2.5 h-7 bg-[#1c1c1c]/60 rounded-xs" />
+                <div className="w-2.5 h-11 bg-[#1c1c1c] rounded-xs" />
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">DEMOGRAPHIC METRICS</div>
+          </div>
+
+          {/* Card 13: Case Study (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              CASE STUDY
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="p-1.5 rounded bg-[#1c1c1c]/5 border border-[#1c1c1c]/10">
+                <div className="text-sm sm:text-lg font-black leading-none">98%</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">APPROVAL</div>
+              </div>
+              <div className="p-1.5 rounded bg-[#1c1c1c]/5 border border-[#1c1c1c]/10">
+                <div className="text-sm sm:text-lg font-black leading-none">99%</div>
+                <div className="text-[7px] font-mono text-[#1c1c1c]/60">ACCURACY</div>
+              </div>
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">EMPIRICAL RESULTS</div>
+          </div>
+
+          {/* Card 14: Pricing Plans (Cream) */}
+          <div className="aspect-[16/10] bg-[#ded6c9] text-[#1c1c1c] rounded-md p-3 sm:p-4 shadow-[0_12px_30px_rgba(0,0,0,0.4)] flex flex-col justify-between border border-black/5">
+            <div className="text-sm sm:text-base font-black uppercase tracking-tight">
+              PRICING PLANS
+            </div>
+            <div className="grid grid-cols-4 gap-1 text-center">
+              {[
+                { price: "$15", dark: false },
+                { price: "$25", dark: true },
+                { price: "$35", dark: false },
+                { price: "$45", dark: false },
+              ].map((tier, idx) => (
+                <div
+                  key={idx}
+                  className={`p-1 rounded-xs border text-[7px] font-mono ${
+                    tier.dark
+                      ? "bg-[#1c1c1c] text-[#ded6c9] border-[#1c1c1c]"
+                      : "bg-white/40 text-[#1c1c1c] border-[#1c1c1c]/20"
+                  }`}
+                >
+                  <div className="font-bold">{tier.price}</div>
+                  <div className="h-0.5 bg-current/40 w-full mt-1" />
+                </div>
+              ))}
+            </div>
+            <div className="text-[7px] font-mono text-[#1c1c1c]/50">TIER DISTRIBUTION</div>
           </div>
         </div>
-      </footer>
+
+        {/* Ambient Dark Overlay to ensure ultra-crisp contrast and focus */}
+        <div
+          className="absolute inset-0 bg-[#54574f]/60 backdrop-blur-[2px] pointer-events-none"
+          aria-hidden="true"
+        />
+
+        {/* Floating Minimalist Hero Card */}
+        <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-16 sm:py-24">
+          <div className="w-full max-w-xl mx-auto p-8 sm:p-12 rounded-3xl bg-slate-950/85 backdrop-blur-2xl border border-white/15 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] text-center text-white">
+            {/* Clean Main Title */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight">
+              Doc - Doctor
+            </h1>
+
+            {/* Call to Actions */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              <Link
+                href="/events/new"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-[#0F172A] text-sm font-semibold transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <PlusCircle className="h-4 w-4 text-indigo-600" />
+                <span>Create Document</span>
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <LayoutDashboard className="h-4 w-4 text-slate-300" />
+                <span>Dashboard</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+
+        {/* Minimal Footer */}
+        <footer className="relative z-10 border-t border-white/10 bg-[#54574f]/80 backdrop-blur-md py-5 px-6 sm:px-12 text-xs text-white/80">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            {/* Left */}
+            <span className="font-semibold tracking-wider uppercase text-white/90">
+              DOC - DOCTOR
+            </span>
+
+            {/* Middle */}
+            <div className="flex items-center gap-1.5 font-medium text-white/85">
+              <span>with love</span>
+              <Heart className="h-3.5 w-3.5 text-rose-400 fill-rose-400 inline shrink-0" />
+              <span>for ACM</span>
+            </div>
+
+            {/* Right */}
+            <span className="font-semibold tracking-wider uppercase text-white/70">
+              by SMOOTH OPERATORS
+            </span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

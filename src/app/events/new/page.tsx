@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -63,6 +64,8 @@ function EventCreationStudioContent() {
   // Dynamic field values: keyed by field.name
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [eventDocuments, setEventDocuments] = useState<any[]>([]);
+  const [existingEventName, setExistingEventName] = useState<string | null>(null);
 
   // Natural Language AI Input
   const [naturalLanguageInput, setNaturalLanguageInput] = useState("");
@@ -73,6 +76,41 @@ function EventCreationStudioContent() {
   // Generation status
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // Load existing event data if eventId is provided in URL
+  useEffect(() => {
+    if (eventIdParam) {
+      setActiveEventId(eventIdParam);
+      fetch(`/api/events/${eventIdParam}`)
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success && res.data) {
+            const evt = res.data;
+            setExistingEventName(evt.eventName);
+            if (evt.rawInputText) {
+              setNaturalLanguageInput(evt.rawInputText);
+            }
+            if (evt.structuredData) {
+              setFormData((prev) => ({
+                ...prev,
+                eventName: evt.eventName,
+                ...evt.structuredData,
+              }));
+            }
+          }
+        })
+        .catch((err) => console.error("Error loading event:", err));
+
+      fetch(`/api/documents?eventId=${eventIdParam}`)
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success && res.data) {
+            setEventDocuments(res.data);
+          }
+        })
+        .catch((err) => console.error("Error loading documents:", err));
+    }
+  }, [eventIdParam]);
 
   // Load templates on mount
   useEffect(() => {
@@ -140,6 +178,8 @@ function EventCreationStudioContent() {
         body: JSON.stringify({
           rawText: naturalLanguageInput,
           templateId: selectedTemplate?.id,
+          templateName: selectedTemplate?.name,
+          templateFields: selectedTemplate?.fields,
           targetDocumentTypes: selectedTemplate ? [selectedTemplate.documentType] : undefined,
         }),
       });
@@ -206,24 +246,48 @@ function EventCreationStudioContent() {
     try {
       // 1. Create or update event record
       let eventId = activeEventId;
-      const eventName = formData.eventName || formData.event_name || formData.title || "Official Event";
+      const eventName =
+        formData.eventName ||
+        formData.event_name ||
+        formData.title ||
+        existingEventName ||
+        "Official Event";
 
-      const eventRes = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventName,
-          rawInputText: naturalLanguageInput || `Event: ${eventName}`,
-          structuredData: formData,
-        }),
-      });
+      if (eventId) {
+        // Update existing event to ensure strict document-event consistency
+        const eventRes = await fetch(`/api/events/${eventId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            updates: {
+              eventName,
+              ...formData,
+            },
+          }),
+        });
+        const eventJson = await eventRes.json();
+        if (!eventJson.success) {
+          throw new Error(eventJson.error?.message || "Failed to update event record");
+        }
+      } else {
+        // Create new event
+        const eventRes = await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventName,
+            rawInputText: naturalLanguageInput || `Event: ${eventName}`,
+            structuredData: formData,
+          }),
+        });
 
-      const eventJson = await eventRes.json();
-      if (!eventJson.success) {
-        throw new Error(eventJson.error?.message || "Failed to persist event record");
+        const eventJson = await eventRes.json();
+        if (!eventJson.success) {
+          throw new Error(eventJson.error?.message || "Failed to persist event record");
+        }
+        eventId = eventJson.data.id;
+        setActiveEventId(eventId);
       }
-      eventId = eventJson.data.id;
-      setActiveEventId(eventId);
 
       // 2. Generate Document from selected template
       const genRes = await fetch("/api/documents/generate", {
@@ -259,7 +323,7 @@ function EventCreationStudioContent() {
         <div className="p-4 rounded-lg border border-[#E2E8F0] bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
           <div>
             <h1 className="text-base font-bold text-[#18181B] tracking-tight">
-              Smart Document Generator
+              Doc - Doctor
             </h1>
             <p className="text-xs text-[#64748B]">
               Select a verified template, complete all dynamic required fields, and generate from the original layout.
@@ -292,6 +356,70 @@ function EventCreationStudioContent() {
             </span>
           </div>
         </div>
+
+        {/* Active Event Context & Generated Documents Banner */}
+        {activeEventId && (
+          <div className="p-4 rounded-lg border border-[#CBD5E1] bg-[#F8FAFC] shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E2E8F0] pb-2.5">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F46E5]">
+                  Active Event Profile
+                </span>
+                <h2 className="text-sm font-bold text-[#18181B]">
+                  {existingEventName || formData.eventName || "Event Details"}
+                </h2>
+              </div>
+              <span className="text-xs text-[#64748B]">
+                ID: <span className="font-mono text-[11px]">{activeEventId}</span>
+              </span>
+            </div>
+
+            {eventDocuments.length > 0 ? (
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-[#18181B] block">
+                  Generated Documents for this Event ({eventDocuments.length}):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {eventDocuments.map((d: any) => (
+                    <div
+                      key={d.id}
+                      className="p-2.5 rounded-md border border-[#E2E8F0] bg-white flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          href={`/documents/${d.id}`}
+                          className="font-semibold text-[#18181B] hover:text-[#4F46E5] truncate block"
+                        >
+                          {d.title}
+                        </Link>
+                        <span className="text-[10px] text-[#64748B]">
+                          v{d.currentVersion} • {d.documentType.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                          d.status === "APPROVED"
+                            ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
+                            : d.status === "SUBMITTED"
+                            ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
+                            : d.status === "CHANGES_REQUESTED"
+                            ? "bg-[#FEF2F2] text-[#E11D48] border border-[#FECDD3]"
+                            : "bg-[#F1F5F9] text-[#475569]"
+                        }`}
+                      >
+                        {d.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-[#64748B]">
+                No documents generated yet for this event. Select a template below to create one.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* STEP 1: TEMPLATE SELECTION */}
         {currentStep === 1 && (
@@ -425,7 +553,7 @@ function EventCreationStudioContent() {
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-[#4F46E5]" />
                   <h3 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
-                    AI Auto-Fill (Optional Natural Language Prompt)
+                    AI Auto-Fill for &ldquo;{selectedTemplate.name}&rdquo;
                   </h3>
                 </div>
                 <span className="text-[11px] text-[#059669] font-medium flex items-center gap-1">
@@ -435,11 +563,14 @@ function EventCreationStudioContent() {
               </div>
 
               <div className="p-5 space-y-3.5">
+                <p className="text-[11px] text-[#64748B]">
+                  Describe your event details in natural English. The AI will extract facts matching the <strong>{fields.length} fields</strong> of this document and will ask for all missing required data without guessing.
+                </p>
                 <textarea
                   rows={3}
                   value={naturalLanguageInput}
                   onChange={(e) => setNaturalLanguageInput(e.target.value)}
-                  placeholder="Describe your event details in natural English (e.g., We are organizing a coding contest on Nov 20, 2026 at CS Lab 2...)"
+                  placeholder={`Describe your event details in natural English for ${selectedTemplate.name} (e.g., We are organizing a workshop on Nov 14, 2026 at CS Lab 3 with speaker Dev Sharma from Google...)`}
                   className="w-full p-3 rounded-md border border-[#E2E8F0] text-xs font-sans text-[#18181B] focus:ring-1 focus:ring-[#4F46E5]"
                 />
 
@@ -479,34 +610,61 @@ function EventCreationStudioContent() {
               </div>
             </div>
 
-            {/* Clarification Box for Ambiguous or Missing Fields */}
+            {/* Clarification Box for Missing Fields */}
             {aiClarificationQuestions.length > 0 && (
               <div className="p-4 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] space-y-3">
                 <div className="flex items-start gap-2.5">
                   <HelpCircle className="h-4 w-4 text-[#D97706] shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-[#92400E] uppercase tracking-wider">
-                      Targeted Clarifications Required
+                    <h4 className="text-xs font-bold text-[#92400E] uppercase tracking-wider flex items-center gap-2">
+                      <span>Missing Information Requested by AI</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D]">
+                        {aiClarificationQuestions.filter((q) => !formData[q.fieldKey] || String(formData[q.fieldKey]).trim() === "").length} Missing
+                      </span>
                     </h4>
                     <p className="text-[11px] text-[#B45309]">
-                      The AI did not invent missing facts. Please verify and provide the following required details below.
+                      The AI extracted available facts and identified that the following required fields were not mentioned. Please provide them below:
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {aiClarificationQuestions.map((q, idx) => (
-                    <div key={idx} className="p-2.5 rounded bg-white border border-[#FCD34D] text-xs space-y-1">
-                      <span className="font-semibold text-[#18181B] block">{q.question}</span>
-                      <input
-                        type={q.suggestedInputType === "number" ? "number" : q.suggestedInputType === "date" ? "date" : "text"}
-                        value={formData[q.fieldKey] || ""}
-                        placeholder="Provide confirmed value..."
-                        onChange={(e) => handleFieldChange(q.fieldKey, e.target.value)}
-                        className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
-                      />
-                    </div>
-                  ))}
+                  {aiClarificationQuestions.map((q, idx) => {
+                    const isAnswered = Boolean(formData[q.fieldKey] && String(formData[q.fieldKey]).trim() !== "");
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-2.5 rounded border text-xs space-y-1 transition-colors ${
+                          isAnswered
+                            ? "bg-[#F0FDF4] border-[#86EFAC]"
+                            : "bg-white border-[#FCD34D]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-[#18181B] block">{q.question}</span>
+                          {isAnswered && (
+                            <span className="text-[10px] font-semibold text-[#16A34A] flex items-center gap-0.5">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>Provided</span>
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type={
+                            q.suggestedInputType === "number"
+                              ? "number"
+                              : q.suggestedInputType === "date"
+                              ? "date"
+                              : "text"
+                          }
+                          value={formData[q.fieldKey] || ""}
+                          placeholder={`Enter ${q.fieldKey}...`}
+                          onChange={(e) => handleFieldChange(q.fieldKey, e.target.value)}
+                          className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs bg-white focus:ring-1 focus:ring-[#4F46E5]"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

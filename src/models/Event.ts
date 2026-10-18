@@ -5,7 +5,7 @@ export interface IEventDoc extends Document {
   eventName: string;
   rawInputText?: string;
   structuredData: Record<string, any>;
-  completenessStatus: "INCOMPLETE" | "VALIDATED";
+  completenessStatus: "INCOMPLETE" | "VALIDATED" | "COMPLETED";
   missingFields: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -19,7 +19,7 @@ const EventSchema = new Schema<IEventDoc>(
     structuredData: { type: Schema.Types.Mixed, default: {} },
     completenessStatus: {
       type: String,
-      enum: ["INCOMPLETE", "VALIDATED"],
+      enum: ["INCOMPLETE", "VALIDATED", "COMPLETED"],
       default: "INCOMPLETE",
     },
     missingFields: [{ type: String }],

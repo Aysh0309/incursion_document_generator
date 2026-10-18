@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
-import { evaluateMissingFields } from "@/schemas/event.schema";
+import { evaluateMissingFields, isEventComplete } from "@/schemas/event.schema";
 import { DocumentType } from "@/types";
 
 export async function GET() {
@@ -24,14 +24,18 @@ export async function POST(req: NextRequest) {
     const docTypes: DocumentType[] = targetDocumentTypes || ["EVENT_PROPOSAL", "PERMISSION_LETTER"];
 
     const { missingFields } = evaluateMissingFields(structuredData || {}, docTypes);
+    const complete = isEventComplete({
+      eventName: eventName || structuredData?.eventName,
+      ...(structuredData || {}),
+    });
 
     const event = dbStore.createEvent({
       clubId: club.id,
       eventName: eventName || structuredData?.eventName || "Untitled Event",
       rawInputText: rawInputText || "",
       structuredData: structuredData || {},
-      completenessStatus: missingFields.length === 0 ? "VALIDATED" : "INCOMPLETE",
-      missingFields,
+      completenessStatus: complete ? "COMPLETED" : "INCOMPLETE",
+      missingFields: complete ? [] : missingFields,
     });
 
     return NextResponse.json({ success: true, data: event });

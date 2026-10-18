@@ -60,9 +60,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Keep event structuredData updated with user-confirmed fields
+    // Keep event structuredData updated with user-confirmed fields and mark as COMPLETED
     dbStore.updateEvent(event.id, {
       structuredData: mergedData as any,
+      completenessStatus: "COMPLETED",
+      missingFields: [],
     });
 
     const docId = "doc_" + Math.random().toString(36).substring(2, 10);

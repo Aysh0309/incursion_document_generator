@@ -381,4 +381,196 @@ describe("Output & Original Template Formatting Preservation Test Suite", () => 
     if (fs.existsSync(result.docxPath)) fs.unlinkSync(result.docxPath);
     if (fs.existsSync(result.pdfPath)) fs.unlinkSync(result.pdfPath);
   });
+
+  test("Extra fields added to a template that were not originally in the document are rendered into generated DOCX and PDF", async () => {
+    const club: ClubMetadata = {
+      id: "club_acm",
+      name: "ACM Student Chapter",
+      slug: "acm-student-chapter",
+      universityName: "SVNIT",
+      department: "Computer Science",
+      contactEmail: "acm@svnit.ac.in",
+      contactPhone: "+91 9876543210",
+      facultyCoordinator: {
+        name: "Dr. Faculty Coordinator",
+        designation: "Associate Professor",
+        department: "Computer Science",
+      },
+      primaryColor: "#4F46E5",
+      secondaryColor: "#818CF8",
+    };
+
+    // Create a mini DOCX template with a key-value table
+    const zip = new PizZip();
+    zip.file(
+      "[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`
+    );
+    zip.file(
+      "_rels/.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`
+    );
+    zip.file(
+      "word/document.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Letter Header</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Event Name</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>:</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t></w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:sectPr/></w:body></w:document>`
+    );
+
+    const docxBuf = zip.generate({ type: "nodebuffer" });
+    const tempTmplPath = path.join(process.cwd(), "public", "templates", "test_extra_fields.docx");
+    fs.writeFileSync(tempTmplPath, docxBuf);
+
+    // Template configured with the original field PLUS an extra field added by user
+    const metadata: TemplateMetadata = {
+      id: "tmpl_extra_test",
+      name: "Extra Fields Test Template",
+      documentType: "EVENT_PROPOSAL",
+      format: "docx",
+      description: "Test template for extra fields rendering",
+      fileUrl: "/templates/test_extra_fields.docx",
+      version: 1,
+      isActive: true,
+      status: "PUBLISHED",
+      placeholdersDetected: ["eventName"],
+      requiredFields: ["eventName", "specialGuest"],
+      optionalFields: [],
+      fields: [
+        {
+          id: "fld_event",
+          name: "eventName",
+          label: "Event Name",
+          type: "text",
+          required: true,
+          confidence: 1.0,
+          adminConfirmed: true,
+        },
+        {
+          id: "fld_guest",
+          name: "specialGuest",
+          label: "Special Guest / Chief Invitee",
+          type: "text",
+          required: true,
+          confidence: 1.0,
+          adminConfirmed: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await generateDocument({
+      documentId: "test_doc_extra",
+      template: metadata,
+      fieldValues: {
+        eventName: "Hackathon 2026",
+        specialGuest: "Dr. Sundar Pichai",
+      },
+      club,
+    });
+
+    assert.ok(fs.existsSync(result.docxPath), "DOCX file must exist on disk");
+    assert.ok(fs.existsSync(result.pdfPath), "PDF file must exist on disk");
+
+    // Verify DOCX contains both the original field value AND the extra field value & label
+    const genZip = new PizZip(fs.readFileSync(result.docxPath));
+    const xml = genZip.file("word/document.xml")?.asText() || "";
+    assert.ok(xml.includes("Hackathon 2026"), "DOCX XML must contain original field value");
+    assert.ok(xml.includes("Special Guest / Chief Invitee"), "DOCX XML must contain extra field label");
+    assert.ok(xml.includes("Dr. Sundar Pichai"), "DOCX XML must contain extra field value");
+
+    // Clean up
+    if (fs.existsSync(tempTmplPath)) fs.unlinkSync(tempTmplPath);
+    if (fs.existsSync(result.docxPath)) fs.unlinkSync(result.docxPath);
+    if (fs.existsSync(result.pdfPath)) fs.unlinkSync(result.pdfPath);
+  });
+
+  test("Extra fields without key-value table are injected as styled paragraphs before signature tables", async () => {
+    const club: ClubMetadata = {
+      id: "club_acm",
+      name: "ACM Student Chapter",
+      slug: "acm-student-chapter",
+      universityName: "SVNIT",
+      department: "Computer Science",
+      contactEmail: "acm@svnit.ac.in",
+      contactPhone: "+91 9876543210",
+      facultyCoordinator: {
+        name: "Dr. Faculty Coordinator",
+        designation: "Associate Professor",
+        department: "Computer Science",
+      },
+      primaryColor: "#4F46E5",
+      secondaryColor: "#818CF8",
+    };
+
+    // Create a mini DOCX template with a paragraph and a signature table
+    const zip = new PizZip();
+    zip.file(
+      "[Content_Types].xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`
+    );
+    zip.file(
+      "_rels/.rels",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`
+    );
+    zip.file(
+      "word/document.xml",
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Permission letter to organize an event.</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Faculty Coordinator Signature</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:sectPr/></w:body></w:document>`
+    );
+
+    const docxBuf = zip.generate({ type: "nodebuffer" });
+    const tempTmplPath = path.join(process.cwd(), "public", "templates", "test_extra_para.docx");
+    fs.writeFileSync(tempTmplPath, docxBuf);
+
+    const metadata: TemplateMetadata = {
+      id: "tmpl_extra_para_test",
+      name: "Extra Para Test Template",
+      documentType: "EVENT_PROPOSAL",
+      format: "docx",
+      description: "Test template for extra fields paragraph injection",
+      fileUrl: "/templates/test_extra_para.docx",
+      version: 1,
+      isActive: true,
+      status: "PUBLISHED",
+      placeholdersDetected: [],
+      requiredFields: ["remarks"],
+      optionalFields: [],
+      fields: [
+        {
+          id: "fld_remarks",
+          name: "remarks",
+          label: "Special Permissions / Remarks",
+          type: "text",
+          required: true,
+          confidence: 1.0,
+          adminConfirmed: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await generateDocument({
+      documentId: "test_doc_extra_para",
+      template: metadata,
+      fieldValues: {
+        remarks: "Approved for overnight lab access.",
+      },
+      club,
+    });
+
+    assert.ok(fs.existsSync(result.docxPath), "DOCX file must exist on disk");
+    assert.ok(fs.existsSync(result.pdfPath), "PDF file must exist on disk");
+
+    const genZip = new PizZip(fs.readFileSync(result.docxPath));
+    const xml = genZip.file("word/document.xml")?.asText() || "";
+    assert.ok(xml.includes("Special Permissions / Remarks: "), "DOCX XML must contain label");
+    assert.ok(xml.includes("Approved for overnight lab access."), "DOCX XML must contain injected value");
+
+    // Ensure the injected paragraph comes BEFORE the signature table
+    const labelIdx = xml.indexOf("Special Permissions / Remarks");
+    const sigIdx = xml.indexOf("Faculty Coordinator Signature");
+    assert.ok(labelIdx < sigIdx, "Injected fields must appear BEFORE signature table");
+
+    // Clean up
+    if (fs.existsSync(tempTmplPath)) fs.unlinkSync(tempTmplPath);
+    if (fs.existsSync(result.docxPath)) fs.unlinkSync(result.docxPath);
+    if (fs.existsSync(result.pdfPath)) fs.unlinkSync(result.pdfPath);
+  });
 });

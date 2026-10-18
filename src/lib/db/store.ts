@@ -185,7 +185,7 @@ const SAMPLE_EVENTS: EventRecord[] = [
     eventName: "Hands-on Generative AI & LLMs Workshop",
     rawInputText:
       "We are organizing a Hands-on Generative AI & LLMs Workshop on November 14, 2026 at CS Lab 3 from 09:30 AM to 04:30 PM. Targeted for 2nd and 3rd year CSE students. Speaker is Dev Sharma, Senior AI Engineer at Google. Expected students: 85. Budget requested is INR 15,000 for refreshments and kits. Addressed to HOD Dr. Arvind Verma, coordinated by Prof. Sunita Sharma. Student lead is Aarav Patel.",
-    completenessStatus: "VALIDATED",
+    completenessStatus: "COMPLETED",
     missingFields: [],
     structuredData: {
       eventName: "Hands-on Generative AI & LLMs Workshop",
@@ -309,7 +309,12 @@ class MemoryStore {
   }
 
   addTemplate(template: TemplateMetadata): TemplateMetadata {
-    this.state.templates.push(template);
+    const existingIdx = this.state.templates.findIndex((t) => t.id === template.id);
+    if (existingIdx !== -1) {
+      this.state.templates[existingIdx] = template;
+    } else {
+      this.state.templates.push(template);
+    }
     this.saveState(this.state);
     return template;
   }
@@ -378,6 +383,22 @@ class MemoryStore {
     return this.state.events[idx];
   }
 
+  deleteEvent(id: string): boolean {
+    const initialLen = this.state.events.length;
+    this.state.events = this.state.events.filter((e) => e.id !== id);
+
+    if (this.state.events.length !== initialLen) {
+      // Also cascade delete all associated documents for this event
+      const docsToDelete = this.state.documents.filter((d) => d.eventId === id);
+      for (const doc of docsToDelete) {
+        this.deleteDocument(doc.id);
+      }
+      this.saveState(this.state);
+      return true;
+    }
+    return false;
+  }
+
   // --- Document operations ---
   getDocuments(eventId?: string): DocumentRecord[] {
     if (eventId) {
@@ -425,6 +446,35 @@ class MemoryStore {
     };
     this.saveState(this.state);
     return this.state.documents[idx];
+  }
+
+  deleteDocument(id: string): boolean {
+    const initialLen = this.state.documents.length;
+    const doc = this.state.documents.find((d) => d.id === id);
+    this.state.documents = this.state.documents.filter((d) => d.id !== id);
+    this.state.versions = this.state.versions.filter((v) => v.documentId !== id);
+
+    if (this.state.documents.length !== initialLen) {
+      this.saveState(this.state);
+      if (doc?.docxUrl) {
+        try {
+          const filePath = path.join(process.cwd(), "public", doc.docxUrl.replace(/^\//, ""));
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } catch (e) {
+          console.warn("Failed to clean up docx file on disk:", e);
+        }
+      }
+      if (doc?.pdfUrl) {
+        try {
+          const filePath = path.join(process.cwd(), "public", doc.pdfUrl.replace(/^\//, ""));
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } catch (e) {
+          console.warn("Failed to clean up pdf file on disk:", e);
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   // --- Version operations ---
