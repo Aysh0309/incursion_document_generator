@@ -31,15 +31,17 @@ function mockExtractEventData(
   // 1. Event Name
   let eventName: string | null = null;
   const namePatterns = [
-    /(?:organizing|host(?:ing)?|conducting|plan(?:ning)?)\s+(?:an?|the)?\s*([A-Za-z0-9\s&+\-–—]+?)(?:\s+on\s+|\s+at\s+|\s+for\s+|\s+from\s+|\.|\,)/i,
+    /(?:titled|named|called)\s+["']?([^"'\n\r,\.]+?)["']?(?:\s+on\s+|\s+at\s+|\s+for\s+|\s+from\s+|\.|\,|$|\n)/i,
     /event(?:\s+name)?(?:\s+is|\s*:)\s*["']?([A-Za-z0-9\s&+\-–—]+?)["']?(?:\.|\,|$|\n)/i,
-    /titled\s+["']([^"'\n\r]+)["']/i,
+    /(?:organizing|host(?:ing)?|conducting|plan(?:ning)?)\s+(?:an?|the)?\s*([A-Za-z0-9\s&+\-–—]+?)(?:\s+on\s+|\s+at\s+|\s+for\s+|\s+from\s+|\.|\,)/i,
     /(?:hands-on|workshop|hackathon|seminar|session|webinar)\s+(?:on|about)\s+([A-Za-z0-9\s&+\-–—]+?)(?:\s+on\s+|\s+at\s+|\s+for\s+|\.|\,)/i,
   ];
   for (const pat of namePatterns) {
     const m = rawText.match(pat);
     if (m && m[1].trim().length > 2) {
-      eventName = m[1].trim();
+      let candidate = m[1].trim();
+      candidate = candidate.replace(/^(?:an?\s+|the\s+)?(?:workshop|event|seminar|hackathon|session|webinar)\s+(?:titled|named|called)\s+/i, "");
+      eventName = candidate.replace(/^["']|["']$/g, "").trim();
       break;
     }
   }
@@ -107,15 +109,14 @@ function mockExtractEventData(
   let facultyCoordinator: string | null = null;
   const coordMatch = rawText.match(/(?:faculty coordinator|coordinator|faculty advisor|advisor|coordinated by|supervised by)(?:\s+is|\s*:)?\s*(?:prof\.?|dr\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+and|\s+from|\n)/i);
   if (coordMatch) {
-    const rawName = coordMatch[1].trim();
-    facultyCoordinator = rawName.startsWith("Prof") || rawName.startsWith("Dr") ? rawName : `Prof. ${rawName}`;
+    facultyCoordinator = coordMatch[1].trim();
   }
 
   // 7. Department HOD
   let departmentHOD: string | null = null;
   const hodMatch = rawText.match(/(?:hod|head of department)(?:\s+is|\s*:)?\s*(?:dr\.?|prof\.?)?\s*([A-Za-z\s]+?)(?:\.|\,|$|\s+for|\s+and|\n)/i);
   if (hodMatch) {
-    departmentHOD = hodMatch[1].trim().startsWith("Dr") ? hodMatch[1].trim() : `Dr. ${hodMatch[1].trim()}`;
+    departmentHOD = hodMatch[1].trim();
   }
 
   // 8. Organizer Name / Student Lead
@@ -130,10 +131,11 @@ function mockExtractEventData(
   const clubMatch = rawText.match(/(?:organized by|by club|by society|club(?:\s+is|\s*:)?)\s*([A-Za-z0-9\s\(\)]+?(?:club|society|chapter|gdg|gdsc|acm|ieee))/i);
   if (clubMatch) {
     clubName = clubMatch[1].trim();
-  } else if (text.includes("gdsc") || text.includes("gdg")) {
-    clubName = "Google Developer Student Club (GDSC)";
-  } else if (text.includes("acm")) {
-    clubName = "ACM Student Chapter";
+  } else {
+    const standaloneClub = rawText.match(/\b(acm|gdsc|gdg|ieee|robotics club|coding club)\b/i);
+    if (standaloneClub) {
+      clubName = standaloneClub[0].trim();
+    }
   }
 
   // 10. Budget
@@ -145,9 +147,14 @@ function mockExtractEventData(
 
   // 11. Participants
   let expectedParticipants: number | null = null;
-  const partMatch = rawText.match(/(?:expected participants|attendance|expected students|students|participants|audience size)(?:\s*:|\s+is|\s*around|\s*approx)?\s*(\d{1,4})/i);
-  if (partMatch) {
-    expectedParticipants = parseInt(partMatch[1], 10);
+  const numFirstMatch = rawText.match(/(\d{1,5})\s+(?:participants|students|attendees|delegates|people|audience)/i);
+  if (numFirstMatch) {
+    expectedParticipants = parseInt(numFirstMatch[1], 10);
+  } else {
+    const partMatch = rawText.match(/(?:expected participants|attendance|expected students|students|participants|audience size|attendees)(?:\s*:|\s+is|\s*around|\s*approx|\s*of)?\s*(\d{1,5})/i);
+    if (partMatch) {
+      expectedParticipants = parseInt(partMatch[1], 10);
+    }
   }
 
   // 12. Speaker Details
@@ -187,6 +194,15 @@ function mockExtractEventData(
   const phoneMatch = rawText.match(/(?:\+91\s*)?[6-9]\d{9}|\b\d{10}\b/);
   if (phoneMatch) contactPhone = phoneMatch[0];
 
+  // 15. Explicit description or subject if provided
+  let eventDescription: string | null = null;
+  const descMatch = rawText.match(/(?:description|about the event|summary|overview)(?:\s*:|\s+is)\s*([^.\n]+(?:\.[^.\n]+)*)/i);
+  if (descMatch) eventDescription = descMatch[1].trim();
+
+  let subject: string | null = null;
+  const subjMatch = rawText.match(/(?:subject|re|regarding)(?:\s*:|\s+is)\s*([^.\n]+)/i);
+  if (subjMatch) subject = subjMatch[1].trim();
+
   // Map to document fields
   const data: Record<string, any> = {};
 
@@ -197,7 +213,7 @@ function mockExtractEventData(
     eventType,
     categoryOfTheEvent: eventType,
     startDate,
-    endDate: startDate,
+    endDate: null,
     scheduleOfEvent: startDate,
     scheduleOfEventDateDay: startDate,
     startTime,
@@ -220,9 +236,9 @@ function mockExtractEventData(
     targetAudience,
     contactEmail,
     contactPhone,
-    eventDescription: rawText.length > 10 ? rawText.slice(0, 500) : null,
-    briefDescription: rawText.length > 10 ? rawText.slice(0, 500) : null,
-    subject: eventName ? `Permission requisition for ${eventName}` : null,
+    eventDescription,
+    briefDescription: eventDescription,
+    subject,
   };
 
   // Populate specified template fields or standard fields
@@ -306,68 +322,87 @@ export async function extractEventInformation(
         ? templateFields
             .map(
               (f) =>
-                `- ${f.name} ("${f.label}"): type=${f.type}, ${
-                  f.required ? "REQUIRED" : "OPTIONAL"
-                }`
+                `- Field Key: "${f.name}"
+  Label/Display Name: "${f.label}"
+  Data Type: ${f.type}
+  Requirement: ${f.required ? "REQUIRED (must be extracted if mentioned; if NOT mentioned, return null)" : "OPTIONAL (extract if mentioned, otherwise null)"}${f.description ? `\n  Field Context/Description: ${f.description}` : ""}`
             )
-            .join("\n")
-        : `Standard fields:
-- eventName (Event Title): [REQUIRED]
-- eventType (Event Type): [OPTIONAL]
-- startDate (Event Date YYYY-MM-DD): [REQUIRED]
-- startTime (Start Time e.g. 09:30 AM): [OPTIONAL]
-- endTime (End Time e.g. 04:30 PM): [OPTIONAL]
-- venue (Venue / Room / Lab): [REQUIRED]
-- facultyCoordinator (Faculty Coordinator / Advisor): [REQUIRED]
-- departmentHOD (Head of Department): [OPTIONAL]
-- organizerName (Student Lead / Organizer): [OPTIONAL]
-- clubName (Organizing Club Name): [OPTIONAL]
-- budgetRequested (Budget Amount): [OPTIONAL]
-- expectedParticipants (Expected Attendance Count): [OPTIONAL]
-- speakerName (Guest Speaker Name): [OPTIONAL]
-- speakerOrganization (Speaker Organization / Company): [OPTIONAL]
-- speakerDesignation (Speaker Job Title): [OPTIONAL]
-- speakerTopic (Talk / Keynote Topic): [OPTIONAL]
-- targetAudience (Target Audience): [OPTIONAL]
-- contactEmail (Contact Email): [OPTIONAL]
-- contactPhone (Contact Phone): [OPTIONAL]
-- eventDescription (Brief Description / Summary): [OPTIONAL]`;
+            .join("\n\n")
+        : `Standard document fields to extract:
+- Field Key: "eventName" | Label: "Event Title" | Type: text | Requirement: REQUIRED
+- Field Key: "eventType" | Label: "Event Type" (e.g. Workshop, Hackathon, Seminar, Competition) | Type: text | Requirement: OPTIONAL
+- Field Key: "startDate" | Label: "Start Date" (format YYYY-MM-DD) | Type: date | Requirement: REQUIRED
+- Field Key: "endDate" | Label: "End Date" (format YYYY-MM-DD) | Type: date | Requirement: OPTIONAL
+- Field Key: "startTime" | Label: "Start Time" (e.g. 10:00 AM) | Type: time | Requirement: OPTIONAL
+- Field Key: "endTime" | Label: "End Time" (e.g. 01:00 PM) | Type: time | Requirement: OPTIONAL
+- Field Key: "venue" | Label: "Venue / Room / Lab" | Type: text | Requirement: REQUIRED
+- Field Key: "facultyCoordinator" | Label: "Faculty Coordinator" | Type: text | Requirement: REQUIRED
+- Field Key: "departmentHOD" | Label: "Head of Department (HOD)" | Type: text | Requirement: OPTIONAL
+- Field Key: "organizerName" | Label: "Student Lead / Organizer Name" | Type: text | Requirement: OPTIONAL
+- Field Key: "clubName" | Label: "Organizing Club / Society / Chapter" | Type: text | Requirement: OPTIONAL
+- Field Key: "budgetRequested" | Label: "Budget Amount" | Type: number | Requirement: OPTIONAL
+- Field Key: "expectedParticipants" | Label: "Expected Participants Count" | Type: number | Requirement: OPTIONAL
+- Field Key: "speakerName" | Label: "Guest Speaker Name" | Type: text | Requirement: OPTIONAL
+- Field Key: "speakerOrganization" | Label: "Speaker Organization / Company" | Type: text | Requirement: OPTIONAL
+- Field Key: "speakerDesignation" | Label: "Speaker Designation / Title" | Type: text | Requirement: OPTIONAL
+- Field Key: "speakerTopic" | Label: "Speaker Topic / Presentation Title" | Type: text | Requirement: OPTIONAL
+- Field Key: "targetAudience" | Label: "Target Audience" | Type: text | Requirement: OPTIONAL
+- Field Key: "contactEmail" | Label: "Contact Email" | Type: email | Requirement: OPTIONAL
+- Field Key: "contactPhone" | Label: "Contact Phone" | Type: phone | Requirement: OPTIONAL
+- Field Key: "eventDescription" | Label: "Event Description / Summary" | Type: textarea | Requirement: OPTIONAL`;
 
-      const systemPrompt = `You are a strict, factual institutional document AI assistant for "${templateName || "Institutional Document"}".
-Your job is to parse the user's natural language event description and extract available data ONLY for the document fields specified below.
+      const systemPrompt = `You are a high-precision, zero-hallucination institutional data extraction AI.
+Your task is to parse the user's natural language event description paragraph and extract available facts for the specified fields of the document template "${templateName || "Institutional Document"}".
 
-DOCUMENT FIELDS SPECIFICATION:
+SPECIFICATION OF FIELDS TO EXTRACT:
 ${fieldListPrompt}
 
-STRICT ZERO-FABRICATION & ANTI-HALLUCINATION RULES:
-1. Extract ONLY facts that are explicitly mentioned or unambiguously stated in the user text.
-2. NEVER guess, invent, fabricate, or extrapolate ANY data (names, dates, times, venues, speakers, amounts, emails, phones).
-3. If a field is NOT stated in the user text, its value MUST be set to null.
-4. For all REQUIRED fields where the extracted value is null (missing from user text), you MUST generate a clear question in "missingFieldQuestions" asking the user to provide that exact missing detail.
-5. For dates, format strictly as YYYY-MM-DD. If ambiguous (e.g. "next month"), set to null.
-6. For numeric fields, extract purely numbers (e.g. 15000) or null.
+STRICT RETRIEVAL & EXTRACTION RULES:
+1. THOROUGH DATA RETRIEVAL:
+   - Carefully examine every sentence, clause, number, and name in the user's paragraph.
+   - Accurately map phrases from the user's paragraph to the corresponding document field based on the field's key, label, synonyms, and natural context:
+     * Event title / name: e.g., "AI Agents Workshop", "HackNIT 2026", "Deep Learning Seminar".
+     * Dates: When day, month, and year are clearly identifiable, convert to standard ISO format "YYYY-MM-DD" (e.g. "Nov 14, 2026" -> "2026-11-14").
+     * Times: Extract start and end times cleanly (e.g., "10:00 AM", "01:00 PM").
+     * Venues: Extract room, lab, auditorium, or location (e.g., "CS Lab 3", "Main Auditorium").
+     * Club / Organization: Extract the organizing body (e.g., "ACM", "GDSC", "Robotics Club").
+     * People / Roles: Extract exact names for roles explicitly stated (e.g. faculty coordinator, speaker, student lead).
+     * Numbers & Financials: Extract clean numeric values without currency symbols or commas (e.g. 1200, 120).
+
+2. ZERO-GUESSING & ZERO-FABRICATION (ABSOLUTE MANDATE):
+   - CRITICAL: IF A FIELD IS MISSING OR NOT EXPLICITLY MENTIONED IN THE USER'S PARAGRAPH, YOU MUST LEAVE IT AS NULL.
+   - DO NOT GUESS, ASSUME, EXTRAPOLATE, OR FABRICATE ANY VALUES.
+   - Do NOT assume current year or default dates if the year is missing. If the date is incomplete (e.g., "on Friday"), return null.
+   - Do NOT assume standard hours (e.g. 9:00 AM - 5:00 PM) if time is not specified in the text; return null.
+   - Do NOT assume or invent names of people, faculty coordinators, HODs, or speakers.
+   - Do NOT prepend honorifics or titles (e.g. "Dr." or "Prof.") unless the user explicitly included the title in their text.
+   - Do NOT invent venues, rooms, participant counts, budgets, or contact information.
+   - Do NOT output placeholder strings such as "N/A", "TBD", "None", "Unknown", or empty strings. Missing fields MUST be literal null.
+
+3. HANDLING MISSING REQUIRED FIELDS:
+   - For every REQUIRED field that is missing from the user's paragraph (and therefore set to null in extractedData), you MUST include a targeted, polite question in "missingFieldQuestions" asking the user to provide that specific required information.
+   - Do NOT generate questions for optional fields that are missing/null.
 
 RESPONSE FORMAT:
-You MUST respond with pure JSON conforming to this structure:
+You MUST return pure JSON matching this exact structure:
 {
   "extractedData": {
-    // Every field name from the specification mapped to its extracted value or null
+    // Every specified field key mapped to its extracted value (string, number, or null)
   },
   "missingFields": [
-    // Array of field names that are REQUIRED but were NOT found in the text
+    // Array of REQUIRED field keys that are null
   ],
   "missingFieldQuestions": [
-    // Array of objects for each missing required field:
-    // {
-    //   "fieldKey": string,
-    //   "question": string,
-    //   "reason": string,
-    //   "suggestedInputType": "text" | "number" | "date" | "time" | "textarea"
-    // }
+    {
+      "fieldKey": "field_key_name",
+      "question": "Clear, specific question asking the user to supply this detail",
+      "reason": "Why this field is required for the document",
+      "suggestedInputType": "text" | "number" | "date" | "time" | "textarea"
+    }
   ]
 }`;
 
-      const userPrompt = `User Natural Language Input:
+      const userPrompt = `User Natural Language Input Paragraph:
 """
 ${rawText}
 """`;
@@ -388,17 +423,38 @@ ${rawText}
       }
 
       const parsed = JSON.parse(content);
-      const rawExtracted = parsed.extractedData || parsed;
+      const rawExtracted = parsed.extractedData || parsed.data || parsed;
 
-      // Normalize extracted data against fields
+      // Normalize extracted data against fields: do not retain empty strings, "null", "N/A", or fake placeholders
       if (templateFields && templateFields.length > 0) {
         for (const field of templateFields) {
-          const val = rawExtracted[field.name] ?? rawExtracted[field.label] ?? null;
-          // Never retain empty string or fake values as valid
-          extractedData[field.name] = val !== undefined ? val : null;
+          let val = rawExtracted[field.name];
+          if (val === undefined || val === null) {
+            val = rawExtracted[field.label] ?? rawExtracted[field.id];
+          }
+
+          if (
+            val === undefined ||
+            val === null ||
+            val === "" ||
+            val === "null" ||
+            val === "N/A" ||
+            val === "TBD" ||
+            val === "None"
+          ) {
+            extractedData[field.name] = null;
+          } else {
+            extractedData[field.name] = val;
+          }
         }
       } else {
-        extractedData = rawExtracted;
+        for (const [k, v] of Object.entries(rawExtracted)) {
+          if (v === "" || v === "null" || v === "N/A" || v === "TBD" || v === "None" || v === undefined) {
+            extractedData[k] = null;
+          } else {
+            extractedData[k] = v;
+          }
+        }
       }
 
       // Collect questions from AI or compute missing required fields deterministically
@@ -411,30 +467,33 @@ ${rawText}
             ? q.suggestedInputType
             : "text") as MissingFieldQuestion["suggestedInputType"],
         }));
-      } else {
-        const requiredToCheck = templateFields
-          ? templateFields.filter((f) => f.required && !f.isFixed)
-          : [];
+      }
 
-        for (const f of requiredToCheck) {
-          const val = extractedData[f.name];
-          if (val === null || val === undefined || String(val).trim() === "") {
-            missingFieldQuestions.push({
-              fieldKey: f.name,
-              question: `Please provide the ${f.label || f.name} for this document.`,
-              reason: `Mandatory detail required for "${templateName || "Document"}".`,
-              suggestedInputType:
-                f.type === "textarea"
-                  ? "textarea"
-                  : f.type === "number" || f.type === "currency"
-                  ? "number"
-                  : f.type === "date"
-                  ? "date"
-                  : f.type === "time"
-                  ? "time"
-                  : "text",
-            });
-          }
+      // Guarantee every required field that is null has a question
+      const requiredToCheck = templateFields
+        ? templateFields.filter((f) => f.required && !f.isFixed)
+        : [];
+      const askedKeys = new Set(missingFieldQuestions.map((q) => String(q.fieldKey)));
+
+      for (const f of requiredToCheck) {
+        const val = extractedData[f.name];
+        if ((val === null || val === undefined || String(val).trim() === "") && !askedKeys.has(f.name)) {
+          missingFieldQuestions.push({
+            fieldKey: f.name,
+            question: `Please provide the ${f.label || f.name} for this document.`,
+            reason: `Mandatory detail required for "${templateName || "Document"}".`,
+            suggestedInputType:
+              f.type === "textarea"
+                ? "textarea"
+                : f.type === "number" || f.type === "currency"
+                ? "number"
+                : f.type === "date"
+                ? "date"
+                : f.type === "time"
+                ? "time"
+                : "text",
+          });
+          askedKeys.add(f.name);
         }
       }
     } catch (err) {

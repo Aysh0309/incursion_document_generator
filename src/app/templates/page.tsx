@@ -10,8 +10,6 @@ import {
   AlertCircle,
   FileText,
   Tag,
-  ToggleLeft,
-  ToggleRight,
   Loader2,
   Download,
   Edit3,
@@ -1040,18 +1038,6 @@ export default function TemplateManagementPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleActive(tmpl)}
-                        className="text-xs text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-1"
-                        title={tmpl.isActive ? "Deactivate" : "Activate"}
-                      >
-                        {tmpl.isActive ? (
-                          <ToggleRight className="h-5 w-5 text-[#059669]" />
-                        ) : (
-                          <ToggleLeft className="h-5 w-5 text-[#94A3B8]" />
-                        )}
-                      </button>
-
                       <button
                         onClick={() => setTemplateToDelete(tmpl)}
                         className="p-1 rounded text-[#94A3B8] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-colors"
