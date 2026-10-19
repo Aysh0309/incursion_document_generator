@@ -50,12 +50,7 @@ export default function LandingPage() {
 
           {user ? (
             <div className="flex items-center gap-2 pl-2">
-              <img
-                src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
-                alt={user.name}
-                className="w-7 h-7 rounded-full border border-[#E5DFD5] object-cover"
-              />
-              <span className="text-xs font-semibold text-[#1C2622] hidden md:inline">
+              <span className="text-xs font-semibold text-[#1C2622]">
                 {user.name}
               </span>
               <button
@@ -400,11 +395,6 @@ export default function LandingPage() {
             {/* Signed-in badge or Welcome info */}
             {user ? (
               <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E7F3ED] border border-[#BCD8CB] text-xs text-[#1A5A48]">
-                <img
-                  src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
-                  alt=""
-                  className="w-4 h-4 rounded-full"
-                />
                 <span>Signed in as <strong>{user.name}</strong></span>
                 <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                   user.role === "CLUB_ADMIN"

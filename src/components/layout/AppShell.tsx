@@ -141,13 +141,8 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-2.5 pl-2">
-                <img
-                  src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full border border-[#E5DFD5] object-cover"
-                />
-                <div className="hidden sm:block text-left">
+              <div className="flex items-center gap-2 pl-2">
+                <div className="text-left">
                   <div className="text-xs font-semibold text-[#1C2622] leading-none">
                     {user.name}
                   </div>

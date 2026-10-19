@@ -346,11 +346,14 @@ export default function AdminPage() {
                   >
                     {/* User Identity Info */}
                     <div className="flex items-center gap-3.5">
-                      <img
-                        src={item.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(item.name)}`}
-                        alt={item.name}
-                        className="w-11 h-11 rounded-full border border-[#E5DFD5] bg-[#E7F3ED] object-cover shrink-0"
-                      />
+                      <div className="w-10 h-10 rounded-full border border-[#E5DFD5] bg-[#E7F3ED] text-[#1F6954] font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                        {item.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
+                      </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-[#1C2622]">{item.name}</span>
