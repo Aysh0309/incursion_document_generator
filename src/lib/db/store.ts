@@ -21,6 +21,15 @@ const STORAGE_FILE = path.join(process.cwd(), "public", "storage", "db-state.jso
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
+    id: "usr_admin_aayush",
+    name: "Aayush Awasthi",
+    email: "aayushawashi311@gmail.com",
+    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aayush",
+    role: "CLUB_ADMIN",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
     id: "usr_admin_01",
     name: "Club Administrator",
     email: "admin@campus.edu",
@@ -742,6 +751,13 @@ class MemoryStore {
 
     const now = new Date().toISOString();
 
+    const adminEmails = [
+      "aayushawashi311@gmail.com",
+      "aayushawasthi311@gmail.com",
+      "admin@campus.edu",
+    ];
+    const isAdminEmail = adminEmails.includes(payload.email.trim().toLowerCase());
+
     if (existingIdx !== -1) {
       const existing = this.state.users[existingIdx];
       const updated: UserAccount = {
@@ -749,7 +765,7 @@ class MemoryStore {
         name: payload.name || existing.name,
         image: payload.image || existing.image,
         googleId: payload.googleId || existing.googleId,
-        role: payload.role || existing.role,
+        role: isAdminEmail ? "CLUB_ADMIN" : (payload.role || existing.role),
         lastLoginAt: now,
         updatedAt: now,
       };
@@ -758,9 +774,9 @@ class MemoryStore {
       return updated;
     }
 
-    // Assign default role: first user or admin email gets CLUB_ADMIN, otherwise payload.role or MEMBER
+    // Assign default role: first user, admin email, or designated admin gets CLUB_ADMIN
     let role: UserRole = payload.role || "MEMBER";
-    if (this.state.users.length === 0 || payload.email.toLowerCase().includes("admin")) {
+    if (this.state.users.length === 0 || isAdminEmail || payload.email.toLowerCase().includes("admin")) {
       role = "CLUB_ADMIN";
     }
 
