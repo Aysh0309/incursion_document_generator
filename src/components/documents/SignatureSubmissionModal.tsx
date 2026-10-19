@@ -221,32 +221,6 @@ export function SignatureSubmissionModal({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Requester Identity */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#FAF8F4] border border-[#E5DFD5] text-xs">
-                <div>
-                  <label className="text-[10px] font-bold text-[#66756D] uppercase block mb-1">
-                    Requester Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={requesterName}
-                    onChange={(e) => setRequesterName(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#E5DFD5] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-[#66756D] uppercase block mb-1">
-                    Requester Email (For Completion Notice)
-                  </label>
-                  <input
-                    type="email"
-                    value={requesterEmail}
-                    onChange={(e) => setRequesterEmail(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#E5DFD5] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
               {/* Workflow Mode Selector */}
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-[#E5DFD5] bg-white text-xs">
                 <div>
