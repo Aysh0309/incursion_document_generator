@@ -6,9 +6,10 @@ import { dbStore } from "@/lib/db/store";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { rawText, targetDocumentTypes, templateId, templateName, templateFields: clientFields } = body;
+    const rawText = String(body.rawText ?? body.text ?? "").trim();
+    const { targetDocumentTypes, templateId } = body;
 
-    if (!rawText || typeof rawText !== "string" || rawText.trim().length === 0) {
+    if (!rawText) {
       return NextResponse.json(
         {
           success: false,
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let templateFields = clientFields;
-    let resolvedTemplateName = templateName;
+    let templateFields = body.templateFields || body.expectedFields || body.clientFields;
+    let resolvedTemplateName = body.templateName;
 
     if (templateId) {
       const template = dbStore.getTemplateById(templateId);
@@ -45,7 +46,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        extracted: result.extractedData,
+        clarifications: result.missingFieldQuestions,
+      },
     });
   } catch (err: any) {
     console.error("AI extraction endpoint error:", err);

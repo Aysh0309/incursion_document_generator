@@ -152,12 +152,15 @@ function EventCreationStudioContent() {
 
     try {
       const templateFields = selectedTemplate.fields || [];
-      const res = await fetch("/api/ai/extract-event-data", {
+      const res = await fetch("/api/ai/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          rawText: naturalLanguageInput,
           text: naturalLanguageInput,
           templateId: selectedTemplate.id,
+          templateName: selectedTemplate.name,
+          templateFields,
           expectedFields: templateFields,
         }),
       });
@@ -167,15 +170,24 @@ function EventCreationStudioContent() {
         throw new Error(data.error?.message || "Extraction failed");
       }
 
+      const extracted = data.data?.extractedData || data.data?.extracted || {};
+      const clarifications = data.data?.missingFieldQuestions || data.data?.clarifications || [];
+
       // Merge extracted fields into current form state
-      setFormData((prev) => ({
-        ...prev,
-        ...data.data.extracted,
-      }));
+      // Which fields are missing from paragraph: do not guess them, leave them as they are!
+      setFormData((prev) => {
+        const next = { ...prev };
+        for (const [key, val] of Object.entries(extracted)) {
+          if (val !== null && val !== undefined && String(val).trim() !== "") {
+            next[key] = val;
+          }
+        }
+        return next;
+      });
 
       // Store explicit clarification questions for any missing fields
-      if (data.data.clarifications && data.data.clarifications.length > 0) {
-        setAiClarificationQuestions(data.data.clarifications);
+      if (clarifications && clarifications.length > 0) {
+        setAiClarificationQuestions(clarifications);
       }
     } catch (err: any) {
       setExtractError(err.message || "Failed to parse natural language event description.");
