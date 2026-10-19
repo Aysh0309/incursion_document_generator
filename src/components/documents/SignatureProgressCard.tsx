@@ -72,31 +72,31 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
   };
 
   return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden space-y-4 p-5">
+    <div className="rounded-xl border border-[#E5DFD5] bg-white shadow-2xs overflow-hidden space-y-4 p-5">
       {/* Header and Progress Bar */}
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#4F46E5]" />
-            <h3 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+            <ShieldCheck className="h-4 w-4 text-[#1F6954]" />
+            <h3 className="text-xs font-bold text-[#1C2622] uppercase tracking-wider">
               Official Electronic Signature Workflow
             </h3>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-[#0F172A]">
+            <span className="font-semibold text-[#1C2622]">
               {completed} of {total} Signatures Completed
             </span>
-            <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+            <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#E7F3ED] text-[#1A5A48] border border-[#BCD8CB]">
               {percentage}%
             </span>
           </div>
         </div>
 
         {/* Progress Track */}
-        <div className="w-full h-2 rounded-full bg-[#F1F5F9] overflow-hidden">
+        <div className="w-full h-2 rounded-full bg-[#EFECE6] overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${
-              completed === total ? "bg-[#059669]" : "bg-[#4F46E5]"
+              completed === total ? "bg-[#1F6954]" : "bg-[#1F6954]"
             }`}
             style={{ width: `${percentage}%` }}
           />
@@ -115,54 +115,54 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
             return (
               <div
                 key={req.id}
-                className={`p-3.5 rounded-lg border text-xs space-y-2 flex flex-col justify-between ${
+                className={`p-3.5 rounded-xl border text-xs space-y-2 flex flex-col justify-between transition-all ${
                   isSigned
-                    ? "bg-[#F0FDF4] border-[#BBF7D0]"
+                    ? "bg-[#E7F3ED] border-[#BCD8CB]"
                     : isDeclined
-                    ? "bg-[#FEF2F2] border-[#FECDD3]"
+                    ? "bg-[#FDF2F0] border-[#F7C8C4]"
                     : isSent
-                    ? "bg-[#FFFBEB] border-[#FDE68A]"
-                    : "bg-[#F8FAFC] border-[#E2E8F0]"
+                    ? "bg-[#FEF3E6] border-[#FBD8B3]"
+                    : "bg-[#FAF8F4] border-[#E5DFD5]"
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 border border-[#CBD5E1] text-[#475569]">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 border border-[#E5DFD5] text-[#55645C]">
                       Step #{req.signingOrder}
                     </span>
 
                     {isSigned ? (
-                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#059669]">
+                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#1A5A48]">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         <span>Signed ✓</span>
                       </span>
                     ) : isDeclined ? (
-                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#E11D48]">
+                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#C24138]">
                         <AlertCircle className="h-3.5 w-3.5" />
                         <span>Declined</span>
                       </span>
                     ) : isSent ? (
-                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#D97706]">
+                      <span className="flex items-center gap-1 font-semibold text-[10px] text-[#D9822B]">
                         <Clock className="h-3.5 w-3.5 animate-pulse" />
                         <span>Awaiting Signature</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] text-[#64748B]">Queued</span>
+                      <span className="text-[10px] text-[#7A8A81]">Queued</span>
                     )}
                   </div>
 
                   <div className="mt-2 space-y-0.5">
-                    <h4 className="font-bold text-[#0F172A]">{req.authorityName}</h4>
-                    <p className="text-[11px] text-[#475569] font-medium leading-tight">
+                    <h4 className="font-bold text-[#1C2622]">{req.authorityName}</h4>
+                    <p className="text-[11px] text-[#55645C] font-medium leading-tight">
                       {req.designation}
                     </p>
-                    <p className="text-[10px] text-[#64748B] font-mono">{req.authorityEmail}</p>
+                    <p className="text-[10px] text-[#7A8A81] font-mono">{req.authorityEmail}</p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[10px]">
+                <div className="pt-2 border-t border-[#E5DFD5]/70 flex items-center justify-between text-[10px]">
                   {isSigned ? (
-                    <span className="text-[#059669] font-medium">
+                    <span className="text-[#1A5A48] font-medium">
                       Signed: {new Date(req.signedAt || "").toLocaleDateString()}
                     </span>
                   ) : (
@@ -170,13 +170,13 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
                       <button
                         type="button"
                         onClick={() => handleCopyLink(req)}
-                        className="flex items-center gap-1 text-[#4F46E5] hover:underline font-semibold"
+                        className="flex items-center gap-1 text-[#1F6954] hover:text-[#175342] font-semibold transition-colors"
                         title="Copy direct secure signing link"
                       >
                         {copiedId === req.id ? (
                           <>
-                            <Check className="h-3 w-3 text-[#059669]" />
-                            <span className="text-[#059669]">Link Copied!</span>
+                            <Check className="h-3 w-3 text-[#1F6954]" />
+                            <span className="text-[#1F6954]">Link Copied!</span>
                           </>
                         ) : (
                           <>
@@ -190,7 +190,7 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
                         href={`/sign/${req.tokenHash}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[#64748B] hover:text-[#0F172A] flex items-center gap-0.5"
+                        className="text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-0.5 transition-colors"
                       >
                         <span>Open</span>
                         <ExternalLink className="h-2.5 w-2.5" />
@@ -205,29 +205,29 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
 
       {/* Workflow Audit Trail Toggle */}
       {document.workflowEvents && document.workflowEvents.length > 0 && (
-        <div className="pt-2 border-t border-[#E2E8F0]">
+        <div className="pt-2 border-t border-[#E5DFD5]">
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center justify-between w-full text-xs font-semibold text-[#64748B] hover:text-[#0F172A]"
+            className="flex items-center justify-between w-full text-xs font-semibold text-[#66756D] hover:text-[#1C2622]"
           >
             <div className="flex items-center gap-1.5">
-              <History className="h-3.5 w-3.5" />
+              <History className="h-3.5 w-3.5 text-[#1F6954]" />
               <span>Workflow Audit Log ({document.workflowEvents.length} events)</span>
             </div>
             {showHistory ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
 
           {showHistory && (
-            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto p-2 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] text-xs">
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto p-2 bg-[#FAF8F4] rounded-lg border border-[#E5DFD5] text-xs">
               {document.workflowEvents.map((event) => (
-                <div key={event.id} className="flex items-start gap-2 text-[11px] py-1 border-b border-[#F1F5F9] last:border-0">
-                  <span className="text-[#94A3B8] font-mono shrink-0">
+                <div key={event.id} className="flex items-start gap-2 text-[11px] py-1 border-b border-[#E5DFD5]/60 last:border-0">
+                  <span className="text-[#8B9B92] font-mono shrink-0">
                     {new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <div>
-                    <span className="font-semibold text-[#0F172A]">{event.performedBy}: </span>
-                    <span className="text-[#475569]">{event.details || event.action}</span>
+                    <span className="font-semibold text-[#1C2622]">{event.performedBy}: </span>
+                    <span className="text-[#55645C]">{event.details || event.action}</span>
                   </div>
                 </div>
               ))}

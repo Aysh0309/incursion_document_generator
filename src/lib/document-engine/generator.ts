@@ -170,23 +170,61 @@ export async function fillPdfTemplate(
   // 2. Overlay coordinate-based fields on pages
   const pageCount = pdfDoc.getPageCount();
   let unplacedPdfCount = 0;
+  const renderedFieldKeys = new Set<string>();
 
   for (const field of template.fields || []) {
+    renderedFieldKeys.add(field.id);
+    renderedFieldKeys.add(field.name);
+    renderedFieldKeys.add(field.label.toLowerCase());
+
+    const isSig = field.type === "signature" || field.isSignature || /signature|sign/i.test(field.label || field.name);
     const rawVal = field.isFixed
       ? (field.fixedValue || "")
       : (fieldValues[field.name] ?? fieldValues[field.id]);
 
+    const pageNum = Math.max(1, field.pageNumber || 1);
+    const pageIdx = Math.min(pageCount - 1, pageNum - 1);
+    const page = pdfDoc.getPage(pageIdx);
+    const { width: pageWidth, height: pageHeight } = page.getSize();
+
+    if (isSig) {
+      // Draw official Signature Placeholder (Online or Offline sign-off area)
+      const sigX = field.boundingBox?.x || (unplacedPdfCount % 2 === 0 ? 54 : 340);
+      const sigY = field.boundingBox?.y || Math.max(70, 160 - Math.floor(unplacedPdfCount / 2) * 60);
+      if (!field.boundingBox) unplacedPdfCount++;
+
+      page.drawText("________________________________________", {
+        x: sigX,
+        y: sigY + 18,
+        size: 9,
+        font,
+        color: rgb(0.2, 0.2, 0.25),
+      });
+
+      page.drawText(field.label || "Authorized Signatory", {
+        x: sigX,
+        y: sigY + 6,
+        size: 9,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.15),
+      });
+
+      page.drawText("(Signature: Online or Offline)", {
+        x: sigX,
+        y: sigY - 4,
+        size: 7.5,
+        font,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+      continue;
+    }
+
     if (rawVal === undefined || rawVal === null || rawVal === "") continue;
 
     const valStr = String(rawVal);
-    const pageNum = Math.max(1, field.pageNumber || 1);
-    const pageIdx = Math.min(pageCount - 1, pageNum - 1);
-
     const isManuallyAdded = !field.sourceEvidence || field.confidence === 1.0;
     const displayText = isManuallyAdded ? `${field.label || field.name}: ${valStr}` : valStr;
 
-    const page = pdfDoc.getPage(pageIdx);
-    const { width: pageWidth, height: pageHeight } = page.getSize();
     const bb = field.boundingBox || {
       x: 54,
       y: Math.max(50, 160 - unplacedPdfCount * 22),
@@ -227,6 +265,102 @@ export async function fillPdfTemplate(
         size: fontSize,
         font: isManuallyAdded ? fontBold : font,
         color: rgb(0.09, 0.09, 0.11),
+      });
+    }
+  }
+
+  // 3. Draw signature placeholders for any configured TemplateSignatureFields
+  for (const sig of template.signatureFields || []) {
+    if (renderedFieldKeys.has(sig.id) || renderedFieldKeys.has(sig.name || "") || renderedFieldKeys.has(sig.designation.toLowerCase())) {
+      continue;
+    }
+    const pageNum = Math.max(1, sig.pageNumber || 1);
+    const pageIdx = Math.min(pageCount - 1, pageNum - 1);
+    const page = pdfDoc.getPage(pageIdx);
+    const pos = sig.position || { x: 72, y: 120, width: 140, height: 45 };
+
+    page.drawText("________________________________________", {
+      x: pos.x,
+      y: pos.y + 18,
+      size: 9,
+      font,
+      color: rgb(0.2, 0.2, 0.25),
+    });
+
+    page.drawText(sig.designation, {
+      x: pos.x,
+      y: pos.y + 6,
+      size: 9,
+      font: fontBold,
+      color: rgb(0.1, 0.1, 0.15),
+    });
+
+    page.drawText("(Signature: Online or Offline)", {
+      x: pos.x,
+      y: pos.y - 4,
+      size: 7.5,
+      font,
+      color: rgb(0.4, 0.45, 0.5),
+    });
+  }
+
+  // 4. Draw any extra custom fields from fieldValues not in template.fields
+  for (const [k, v] of Object.entries(fieldValues || {})) {
+    if (
+      k === "formattedBudget" ||
+      k === "formattedDateRange" ||
+      k === "currentDate" ||
+      renderedFieldKeys.has(k) ||
+      renderedFieldKeys.has(k.toLowerCase())
+    ) {
+      continue;
+    }
+
+    const valStr = v !== undefined && v !== null ? String(v).trim() : "";
+    const isSig = /signature|sign/i.test(k) || (typeof v === "string" && /signature/i.test(v));
+    if (!isSig && !valStr) continue;
+
+    const formattedLabel = k.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase()).trim();
+    const lastPage = pdfDoc.getPage(pageCount - 1);
+    const { width: pWidth } = lastPage.getSize();
+
+    if (isSig) {
+      const sigX = unplacedPdfCount % 2 === 0 ? 54 : 340;
+      const sigY = Math.max(70, 160 - Math.floor(unplacedPdfCount / 2) * 60);
+      unplacedPdfCount++;
+
+      lastPage.drawText("________________________________________", {
+        x: sigX,
+        y: sigY + 18,
+        size: 9,
+        font,
+        color: rgb(0.2, 0.2, 0.25),
+      });
+
+      lastPage.drawText(formattedLabel, {
+        x: sigX,
+        y: sigY + 6,
+        size: 9,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.15),
+      });
+
+      lastPage.drawText("(Signature: Online or Offline)", {
+        x: sigX,
+        y: sigY - 4,
+        size: 7.5,
+        font,
+        color: rgb(0.4, 0.45, 0.5),
+      });
+    } else {
+      const textY = Math.max(40, 150 - unplacedPdfCount * 20);
+      unplacedPdfCount++;
+      lastPage.drawText(`${formattedLabel}: ${valStr}`, {
+        x: 54,
+        y: textY,
+        size: 9.5,
+        font: fontBold,
+        color: rgb(0.1, 0.1, 0.15),
       });
     }
   }

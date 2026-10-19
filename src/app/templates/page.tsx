@@ -336,19 +336,19 @@ export default function TemplateManagementPage() {
     <AppShell>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header Ribbon */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-[#E5DFD5] bg-white shadow-2xs">
           <div>
-            <h1 className="text-base font-bold text-[#18181B] tracking-tight">
+            <h1 className="text-base font-bold text-[#1C2622] tracking-tight">
               Institutional Template & Placeholder Engine
             </h1>
-            <p className="text-xs text-[#64748B]">
+            <p className="text-xs text-[#7A8A81]">
               Upload standard .docx or .pdf files, analyze variable blanks and placeholders, review layout bounding boxes, and publish verified schemas.
             </p>
           </div>
 
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-semibold shadow-xs transition-colors"
           >
             <Upload className="h-4 w-4" />
             <span>Upload Template (PDF / DOCX)</span>
@@ -364,14 +364,14 @@ export default function TemplateManagementPage() {
 
         {/* REVIEW AND MANUAL FIELD CORRECTION STUDIO (MODAL / OVERLAY) */}
         {reviewingTemplate && (
-          <div className="rounded-lg border border-[#C7D2FE] bg-white shadow-lg p-5 space-y-5 ring-1 ring-[#4F46E5]/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#E2E8F0] pb-3 gap-2">
+          <div className="rounded-lg border border-[#BCD8CB] bg-white shadow-lg p-5 space-y-5 ring-1 ring-[#1F6954]/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#E5DFD5] pb-3 gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-[#18181B]">
+                  <span className="font-bold text-sm text-[#1C2622]">
                     Field Configuration Studio: {reviewingTemplate.name}
                   </span>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#E7F3ED] text-[#1F6954] border border-[#BCD8CB]">
                     {reviewingTemplate.format?.toUpperCase() || "DOCX"}
                   </span>
                   {isNewDraft ? (
@@ -379,12 +379,12 @@ export default function TemplateManagementPage() {
                       Unpublished Draft
                     </span>
                   ) : (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#55645C]">
                       v{reviewingTemplate.version}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#64748B] mt-0.5">
+                <p className="text-[11px] text-[#7A8A81] mt-0.5">
                   {isNewDraft
                     ? "Review candidate fields and configure placeholders. Document will ONLY be saved to library upon clicking Save & Publish Schema."
                     : "Review and correct candidate fields, adjust coordinates, and ensure zero hallucination before publishing."}
@@ -419,7 +419,7 @@ export default function TemplateManagementPage() {
                 <button
                   onClick={handleSaveFieldConfiguration}
                   disabled={savingConfig}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
                 >
                   {savingConfig ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -439,7 +439,7 @@ export default function TemplateManagementPage() {
                       setReviewingTemplate(null);
                     }
                   }}
-                  className="px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs text-[#64748B] hover:bg-[#F8FAFC]"
+                  className="px-3 py-1.5 rounded-md border border-[#E5DFD5] text-xs text-[#7A8A81] hover:bg-[#FAF8F4]"
                 >
                   Close Studio
                 </button>
@@ -470,16 +470,16 @@ export default function TemplateManagementPage() {
 
             {/* Visual Assets & Logos Inventory */}
             {reviewingTemplate.detectedAssets && reviewingTemplate.detectedAssets.length > 0 && (
-              <div className="p-3.5 rounded-md bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#18181B]">
-                  <ImageIcon className="h-4 w-4 text-[#4F46E5]" />
+              <div className="p-3.5 rounded-md bg-[#FAF8F4] border border-[#E5DFD5] space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#1C2622]">
+                  <ImageIcon className="h-4 w-4 text-[#1F6954]" />
                   <span>Preserved Document Assets & Logos ({reviewingTemplate.detectedAssets.length}):</span>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {reviewingTemplate.detectedAssets.map((asset, i) => (
                     <div
                       key={i}
-                      className="p-2 rounded border border-[#E2E8F0] bg-white flex items-center gap-2 text-[11px] shadow-2xs"
+                      className="p-2 rounded border border-[#E5DFD5] bg-white flex items-center gap-2 text-[11px] shadow-2xs"
                     >
                       {asset.dataUrl ? (
                         <img src={asset.dataUrl} alt={asset.name || "logo"} className="h-6 w-6 object-contain" />
@@ -487,8 +487,8 @@ export default function TemplateManagementPage() {
                         <ImageIcon className="h-4 w-4 text-[#94A3B8]" />
                       )}
                       <div>
-                        <span className="font-semibold block text-[#18181B]">{asset.name || `Asset #${i + 1}`}</span>
-                        <span className="text-[10px] text-[#64748B]">{asset.type} • Preserved in original template</span>
+                        <span className="font-semibold block text-[#1C2622]">{asset.name || `Asset #${i + 1}`}</span>
+                        <span className="text-[10px] text-[#7A8A81]">{asset.type} • Preserved in original template</span>
                       </div>
                     </div>
                   ))}
@@ -499,21 +499,21 @@ export default function TemplateManagementPage() {
             {/* Studio Split Layout: Left Preview, Right Fields Editor */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               {/* Left Document Preview Canvas (5 Cols) */}
-              <div className="lg:col-span-5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 flex flex-col h-[520px]">
+              <div className="lg:col-span-5 rounded-lg border border-[#E5DFD5] bg-[#FAF8F4] p-4 flex flex-col h-[520px]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#18181B]">Original Document Layout</span>
+                  <span className="text-xs font-bold text-[#1C2622]">Original Document Layout</span>
                   <a
                     href={reviewingTemplate.fileUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-[#4F46E5] hover:underline flex items-center gap-1"
+                    className="text-[11px] text-[#1F6954] hover:underline flex items-center gap-1"
                   >
                     <span>Open Template File</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
 
-                <div className="flex-1 bg-white rounded border border-[#CBD5E1] p-3 overflow-auto relative">
+                <div className="flex-1 bg-white rounded border border-[#D8D2C7] p-3 overflow-auto relative">
                   {reviewingTemplate.format === "pdf" ? (
                     <div className="relative w-full h-full min-h-[440px]">
                       <iframe
@@ -524,22 +524,22 @@ export default function TemplateManagementPage() {
                     </div>
                   ) : (
                     <div className="space-y-3 p-3 text-xs text-[#334155] font-sans">
-                      <div className="p-2 rounded bg-[#EEF2FF] border border-[#C7D2FE] text-[11px] text-[#4338CA]">
+                      <div className="p-2 rounded bg-[#E7F3ED] border border-[#BCD8CB] text-[11px] text-[#175342]">
                         DOCX Template with OpenXML formatting preserved. Variable tags highlighted below.
                       </div>
-                      <div className="space-y-2 border-l-2 border-[#4F46E5] pl-3">
+                      <div className="space-y-2 border-l-2 border-[#1F6954] pl-3">
                         {editableFields.map((f) => (
                           <div
                             key={f.id}
                             onClick={() => setSelectedFieldId(f.id)}
                             className={`p-2 rounded cursor-pointer transition-colors text-xs ${
                               selectedFieldId === f.id
-                                ? "bg-[#EEF2FF] border border-[#818CF8] font-semibold text-[#1E1B4B]"
+                                ? "bg-[#E7F3ED] border border-[#1F6954] font-semibold text-[#1E1B4B]"
                                 : "hover:bg-[#F1F5F9] border border-transparent"
                             }`}
                           >
-                            <span className="font-mono text-[#4F46E5] mr-2">&#123;&#123;{f.name}&#125;&#125;</span>
-                            <span className="text-[#64748B]">({f.label})</span>
+                            <span className="font-mono text-[#1F6954] mr-2">&#123;&#123;{f.name}&#125;&#125;</span>
+                            <span className="text-[#7A8A81]">({f.label})</span>
                           </div>
                         ))}
                       </div>
@@ -549,17 +549,17 @@ export default function TemplateManagementPage() {
               </div>
 
               {/* Right Fields Table & Property Editor (7 Cols) */}
-              <div className="lg:col-span-7 rounded-lg border border-[#E2E8F0] bg-white overflow-hidden shadow-2xs">
+              <div className="lg:col-span-7 rounded-lg border border-[#E5DFD5] bg-white overflow-hidden shadow-2xs">
                 {/* Tabs Header */}
-                <div className="px-4 py-2.5 bg-[#FCFDFE] border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
+                <div className="px-4 py-2.5 bg-[#FAF8F4] border-b border-[#E5DFD5] flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1 bg-[#F1F5F9] p-0.5 rounded-lg">
                     <button
                       type="button"
                       onClick={() => setStudioTab("fields")}
                       className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
                         studioTab === "fields"
-                          ? "bg-white text-[#4F46E5] shadow-2xs"
-                          : "text-[#64748B] hover:text-[#0F172A]"
+                          ? "bg-white text-[#1F6954] shadow-2xs"
+                          : "text-[#7A8A81] hover:text-[#1C2622]"
                       }`}
                     >
                       <Sliders className="h-3.5 w-3.5" />
@@ -570,8 +570,8 @@ export default function TemplateManagementPage() {
                       onClick={() => setStudioTab("signatures")}
                       className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
                         studioTab === "signatures"
-                          ? "bg-white text-[#4F46E5] shadow-2xs"
-                          : "text-[#64748B] hover:text-[#0F172A]"
+                          ? "bg-white text-[#1F6954] shadow-2xs"
+                          : "text-[#7A8A81] hover:text-[#1C2622]"
                       }`}
                     >
                       <PenTool className="h-3.5 w-3.5" />
@@ -583,7 +583,7 @@ export default function TemplateManagementPage() {
                     <button
                       type="button"
                       onClick={handleAddField}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF] text-xs font-semibold"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#E7F3ED] text-[#1F6954] hover:bg-[#E0E7FF] text-xs font-semibold"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>Add Field</span>
@@ -593,7 +593,7 @@ export default function TemplateManagementPage() {
                       <select
                         value={signingWorkflow}
                         onChange={(e) => setSigningWorkflow(e.target.value as any)}
-                        className="px-2 py-1 text-xs rounded border border-[#CBD5E1] bg-white text-[#475569] font-medium"
+                        className="px-2 py-1 text-xs rounded border border-[#D8D2C7] bg-white text-[#55645C] font-medium"
                         title="Workflow routing mode"
                       >
                         <option value="SEQUENTIAL">Sequential Order</option>
@@ -602,7 +602,7 @@ export default function TemplateManagementPage() {
                       <button
                         type="button"
                         onClick={handleAddSigField}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF] text-xs font-semibold"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#E7F3ED] text-[#1F6954] hover:bg-[#E0E7FF] text-xs font-semibold"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Add Signature</span>
@@ -611,10 +611,10 @@ export default function TemplateManagementPage() {
                   )}
                 </div>
 
-                <div className="max-h-[460px] overflow-y-auto divide-y divide-[#E2E8F0]">
+                <div className="max-h-[460px] overflow-y-auto divide-y divide-[#E5DFD5]">
                   {studioTab === "fields" ? (
                     editableFields.length === 0 ? (
-                      <div className="p-8 text-center text-xs text-[#64748B]">
+                      <div className="p-8 text-center text-xs text-[#7A8A81]">
                         No fields configured yet. Click "Add Field" above to add required fields.
                       </div>
                     ) : (
@@ -624,12 +624,12 @@ export default function TemplateManagementPage() {
                         <div
                           key={field.id}
                           className={`p-3.5 space-y-2.5 transition-colors ${
-                            isSelected ? "bg-[#F8FAFC] border-l-4 border-l-[#4F46E5]" : "hover:bg-[#FAFAFA]"
+                            isSelected ? "bg-[#FAF8F4] border-l-4 border-l-[#1F6954]" : "hover:bg-[#FAFAFA]"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1">
-                              <span className="font-mono text-xs font-bold text-[#4F46E5]">
+                              <span className="font-mono text-xs font-bold text-[#1F6954]">
                                 {field.name}
                               </span>
                               <span
@@ -642,7 +642,7 @@ export default function TemplateManagementPage() {
                                 {Math.round(field.confidence * 100)}% Match
                               </span>
                               {field.isFixed && (
-                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#475569]">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#55645C]">
                                   Fixed Institutional
                                 </span>
                               )}
@@ -659,37 +659,37 @@ export default function TemplateManagementPage() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                             <div className="sm:col-span-2">
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 User-Facing Field Label *
                               </label>
                               <input
                                 type="text"
                                 value={field.label}
                                 onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 Stable Key *
                               </label>
                               <input
                                 type="text"
                                 value={field.name}
                                 onChange={(e) => handleUpdateField(field.id, { name: e.target.value })}
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] font-mono text-[11px]"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] font-mono text-[11px]"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 Data Type *
                               </label>
                               <select
                                 value={field.type}
                                 onChange={(e) => handleUpdateField(field.id, { type: e.target.value as FieldDataType })}
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs"
                               >
                                 <option value="text">Text (Single Line)</option>
                                 <option value="textarea">Text Area (Multi-line)</option>
@@ -705,22 +705,22 @@ export default function TemplateManagementPage() {
 
                           <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
                             <div className="flex items-center gap-4">
-                              <label className="flex items-center gap-1.5 text-[11px] font-medium text-[#18181B] cursor-pointer">
+                              <label className="flex items-center gap-1.5 text-[11px] font-medium text-[#1C2622] cursor-pointer">
                                 <input
                                   type="checkbox"
                                   checked={field.required}
                                   onChange={(e) => handleUpdateField(field.id, { required: e.target.checked })}
-                                  className="rounded text-[#4F46E5] focus:ring-[#4F46E5]"
+                                  className="rounded text-[#1F6954] focus:ring-[#1F6954]"
                                 />
                                 <span>Required Field</span>
                               </label>
 
-                              <label className="flex items-center gap-1.5 text-[11px] font-medium text-[#18181B] cursor-pointer">
+                              <label className="flex items-center gap-1.5 text-[11px] font-medium text-[#1C2622] cursor-pointer">
                                 <input
                                   type="checkbox"
                                   checked={field.isFixed || false}
                                   onChange={(e) => handleUpdateField(field.id, { isFixed: e.target.checked })}
-                                  className="rounded text-[#4F46E5] focus:ring-[#4F46E5]"
+                                  className="rounded text-[#1F6954] focus:ring-[#1F6954]"
                                 />
                                 <span>Fixed Administrative Value</span>
                               </label>
@@ -728,19 +728,19 @@ export default function TemplateManagementPage() {
 
                             {field.isFixed && (
                               <div className="flex items-center gap-1 flex-1 max-w-xs">
-                                <span className="text-[10px] text-[#64748B]">Value:</span>
+                                <span className="text-[10px] text-[#7A8A81]">Value:</span>
                                 <input
                                   type="text"
                                   placeholder="Fixed value..."
                                   value={field.fixedValue || ""}
                                   onChange={(e) => handleUpdateField(field.id, { fixedValue: e.target.value })}
-                                  className="w-full p-1 rounded border border-[#E2E8F0] text-xs"
+                                  className="w-full p-1 rounded border border-[#E5DFD5] text-xs"
                                 />
                               </div>
                             )}
 
                             {reviewingTemplate.format === "pdf" && field.boundingBox && (
-                              <div className="flex items-center gap-2 text-[10px] text-[#64748B]">
+                              <div className="flex items-center gap-2 text-[10px] text-[#7A8A81]">
                                 <span>Page {field.pageNumber || 1}:</span>
                                 <span>X: {field.boundingBox.x}</span>
                                 <span>Y: {field.boundingBox.y}</span>
@@ -756,9 +756,9 @@ export default function TemplateManagementPage() {
                 ) : (
                     /* Signature Blocks Tab View */
                     editableSigFields.length === 0 ? (
-                      <div className="p-8 text-center text-xs text-[#64748B] space-y-2">
+                      <div className="p-8 text-center text-xs text-[#7A8A81] space-y-2">
                         <PenTool className="h-6 w-6 text-[#94A3B8] mx-auto opacity-50" />
-                        <p className="font-semibold text-[#0F172A]">No Signature Blocks Configured</p>
+                        <p className="font-semibold text-[#1C2622]">No Signature Blocks Configured</p>
                         <p>Click "Add Signature" above to place required authority sign-off areas.</p>
                       </div>
                     ) : (
@@ -766,13 +766,13 @@ export default function TemplateManagementPage() {
                         <div key={sig.id} className="p-3.5 space-y-3 hover:bg-[#FAFAFA] transition-colors">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="h-5 w-5 rounded-full bg-[#EEF2FF] text-[#4F46E5] font-bold text-[10px] flex items-center justify-center">
+                              <span className="h-5 w-5 rounded-full bg-[#E7F3ED] text-[#1F6954] font-bold text-[10px] flex items-center justify-center">
                                 #{sig.signingOrder}
                               </span>
-                              <span className="font-bold text-xs text-[#0F172A]">
+                              <span className="font-bold text-xs text-[#1C2622]">
                                 {sig.designation}
                               </span>
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569] font-mono">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-[#F1F5F9] text-[#55645C] font-mono">
                                 Page {sig.pageNumber}
                               </span>
                             </div>
@@ -780,7 +780,7 @@ export default function TemplateManagementPage() {
                             <button
                               type="button"
                               onClick={() => handleRemoveSigField(sig.id)}
-                              className="text-[#64748B] hover:text-[#E11D48] p-1 rounded"
+                              className="text-[#7A8A81] hover:text-[#E11D48] p-1 rounded"
                               title="Delete signature block"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -789,7 +789,7 @@ export default function TemplateManagementPage() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
                             <div className="sm:col-span-5">
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 Designation / Role Title *
                               </label>
                               <input
@@ -797,12 +797,12 @@ export default function TemplateManagementPage() {
                                 value={sig.designation}
                                 onChange={(e) => handleUpdateSigField(sig.id, { designation: e.target.value })}
                                 placeholder="e.g. Signature of Student Head"
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs"
                               />
                             </div>
 
                             <div className="sm:col-span-4">
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 Default Directory Authority
                               </label>
                               <select
@@ -815,7 +815,7 @@ export default function TemplateManagementPage() {
                                     printedName: auth?.name || sig.printedName,
                                   });
                                 }}
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs font-medium"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs font-medium"
                               >
                                 <option value="">-- Unassigned (Role-based) --</option>
                                 {authoritiesList.map((a) => (
@@ -827,13 +827,13 @@ export default function TemplateManagementPage() {
                             </div>
 
                             <div className="sm:col-span-3">
-                              <label className="text-[10px] font-semibold text-[#64748B] block mb-0.5">
+                              <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
                                 Action Type
                               </label>
                               <select
                                 value={sig.actionType || "SIGNATURE_ONLY"}
                                 onChange={(e) => handleUpdateSigField(sig.id, { actionType: e.target.value as any })}
-                                className="w-full p-1.5 rounded border border-[#E2E8F0] text-xs"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs"
                               >
                                 <option value="SIGNATURE_ONLY">Signature Only</option>
                                 <option value="APPROVAL_AND_SIGNATURE">Approval + Signature</option>
@@ -842,8 +842,8 @@ export default function TemplateManagementPage() {
                           </div>
 
                           {/* Coordinates and Dimensions */}
-                          <div className="flex flex-wrap items-center gap-3 p-2 bg-[#F8FAFC] rounded border border-[#E2E8F0] text-[11px] text-[#475569]">
-                            <span className="font-semibold text-[#0F172A]">PDF Coordinates:</span>
+                          <div className="flex flex-wrap items-center gap-3 p-2 bg-[#FAF8F4] rounded border border-[#E5DFD5] text-[11px] text-[#55645C]">
+                            <span className="font-semibold text-[#1C2622]">PDF Coordinates:</span>
                             <div className="flex items-center gap-1">
                               <span>Page:</span>
                               <input
@@ -851,7 +851,7 @@ export default function TemplateManagementPage() {
                                 min={1}
                                 value={sig.pageNumber || 1}
                                 onChange={(e) => handleUpdateSigField(sig.id, { pageNumber: parseInt(e.target.value) || 1 })}
-                                className="w-12 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs font-bold"
+                                className="w-12 p-0.5 text-center rounded border border-[#D8D2C7] bg-white text-xs font-bold"
                               />
                             </div>
                             <div className="flex items-center gap-1">
@@ -864,7 +864,7 @@ export default function TemplateManagementPage() {
                                     position: { ...sig.position, x: parseInt(e.target.value) || 0 },
                                   })
                                 }
-                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                                className="w-14 p-0.5 text-center rounded border border-[#D8D2C7] bg-white text-xs"
                               />
                             </div>
                             <div className="flex items-center gap-1">
@@ -877,7 +877,7 @@ export default function TemplateManagementPage() {
                                     position: { ...sig.position, y: parseInt(e.target.value) || 0 },
                                   })
                                 }
-                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                                className="w-14 p-0.5 text-center rounded border border-[#D8D2C7] bg-white text-xs"
                               />
                             </div>
                             <div className="flex items-center gap-1">
@@ -890,7 +890,7 @@ export default function TemplateManagementPage() {
                                     position: { ...sig.position, width: parseInt(e.target.value) || 140 },
                                   })
                                 }
-                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                                className="w-14 p-0.5 text-center rounded border border-[#D8D2C7] bg-white text-xs"
                               />
                             </div>
                             <div className="flex items-center gap-1">
@@ -903,7 +903,7 @@ export default function TemplateManagementPage() {
                                     position: { ...sig.position, height: parseInt(e.target.value) || 45 },
                                   })
                                 }
-                                className="w-14 p-0.5 text-center rounded border border-[#CBD5E1] bg-white text-xs"
+                                className="w-14 p-0.5 text-center rounded border border-[#D8D2C7] bg-white text-xs"
                               />
                             </div>
                             <div className="ml-auto flex items-center gap-2">
@@ -912,9 +912,9 @@ export default function TemplateManagementPage() {
                                   type="checkbox"
                                   checked={sig.required}
                                   onChange={(e) => handleUpdateSigField(sig.id, { required: e.target.checked })}
-                                  className="rounded text-[#4F46E5]"
+                                  className="rounded text-[#1F6954]"
                                 />
-                                <span className="font-semibold text-[#0F172A]">Mandatory</span>
+                                <span className="font-semibold text-[#1C2622]">Mandatory</span>
                               </label>
                             </div>
                           </div>
@@ -931,20 +931,20 @@ export default function TemplateManagementPage() {
         {/* Templates Grid Listing */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {loading ? (
-            <div className="col-span-full p-8 text-center text-xs text-[#64748B]">Loading templates...</div>
+            <div className="col-span-full p-8 text-center text-xs text-[#7A8A81]">Loading templates...</div>
           ) : (
             templates.map((tmpl) => (
               <div
                 key={tmpl.id}
-                className="p-5 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs flex flex-col justify-between space-y-4"
+                className="p-5 rounded-lg border border-[#E5DFD5] bg-white shadow-2xs flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-[#E7F3ED] text-[#1F6954] border border-[#BCD8CB]">
                         {tmpl.documentType.replace(/_/g, " ")}
                       </span>
-                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0]">
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#FAF8F4] text-[#55645C] border border-[#E5DFD5]">
                         {tmpl.format?.toUpperCase() || "DOCX"}
                       </span>
                     </div>
@@ -952,7 +952,7 @@ export default function TemplateManagementPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleActive(tmpl)}
-                        className="text-xs text-[#64748B] hover:text-[#18181B] flex items-center gap-1"
+                        className="text-xs text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-1"
                         title={tmpl.isActive ? "Deactivate" : "Activate"}
                       >
                         {tmpl.isActive ? (
@@ -972,13 +972,13 @@ export default function TemplateManagementPage() {
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-sm text-[#18181B] mb-1">{tmpl.name}</h3>
-                  <p className="text-xs text-[#64748B] leading-relaxed">{tmpl.description}</p>
+                  <h3 className="font-bold text-sm text-[#1C2622] mb-1">{tmpl.name}</h3>
+                  <p className="text-xs text-[#7A8A81] leading-relaxed">{tmpl.description}</p>
                 </div>
 
-                <div className="space-y-3 pt-3 border-t border-[#E2E8F0]">
+                <div className="space-y-3 pt-3 border-t border-[#E5DFD5]">
                   <div>
-                    <span className="text-[10px] font-semibold uppercase text-[#64748B] tracking-wider block mb-1">
+                    <span className="text-[10px] font-semibold uppercase text-[#7A8A81] tracking-wider block mb-1">
                       Configured Fields ({tmpl.fields?.length || tmpl.placeholdersDetected?.length || 0}):
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -987,7 +987,7 @@ export default function TemplateManagementPage() {
                         return (
                           <span
                             key={idx}
-                            className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569]"
+                            className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#FAF8F4] border border-[#E5DFD5] text-[#55645C]"
                           >
                             &#123;{name}&#125;
                           </span>
@@ -1001,13 +1001,13 @@ export default function TemplateManagementPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1">
+                  <div className="flex items-center justify-between text-[11px] text-[#7A8A81] pt-1">
                     <span>v{tmpl.version} {tmpl.isSystemDefault ? "• System Core" : "• Custom"}</span>
 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openReviewStudio(tmpl)}
-                        className="text-[#4F46E5] hover:underline flex items-center gap-1 font-semibold"
+                        className="text-[#1F6954] hover:underline flex items-center gap-1 font-semibold"
                       >
                         <Edit3 className="h-3 w-3" />
                         <span>Review Fields</span>
@@ -1017,7 +1017,7 @@ export default function TemplateManagementPage() {
                         <a
                           href={tmpl.fileUrl}
                           download
-                          className="text-[#64748B] hover:text-[#18181B] flex items-center gap-1"
+                          className="text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-1"
                           title="Download original template file"
                         >
                           <Download className="h-3 w-3" />
@@ -1043,15 +1043,15 @@ export default function TemplateManagementPage() {
         {/* Upload Template Modal */}
         {showUploadModal && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-xl max-w-md w-full p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+            <div className="bg-white rounded-lg border border-[#E5DFD5] shadow-xl max-w-md w-full p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-3">
                 <div className="flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-[#4F46E5]" />
-                  <h3 className="font-bold text-sm text-[#18181B]">Upload Document Template</h3>
+                  <Upload className="h-4 w-4 text-[#1F6954]" />
+                  <h3 className="font-bold text-sm text-[#1C2622]">Upload Document Template</h3>
                 </div>
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="text-xs text-[#64748B] hover:text-[#18181B]"
+                  className="text-xs text-[#7A8A81] hover:text-[#1C2622]"
                 >
                   ✕
                 </button>
@@ -1059,23 +1059,23 @@ export default function TemplateManagementPage() {
 
               <form onSubmit={handleUpload} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Template Name *</label>
+                  <label className="font-semibold text-[#1C2622] block mb-1">Template Name *</label>
                   <input
                     type="text"
                     required
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
                     placeholder="e.g. Dean Sanction Letterhead"
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
+                    className="w-full p-2 rounded border border-[#E5DFD5]"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Document Category *</label>
+                  <label className="font-semibold text-[#1C2622] block mb-1">Document Category *</label>
                   <select
                     value={documentType}
                     onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
+                    className="w-full p-2 rounded border border-[#E5DFD5]"
                   >
                     <option value="EVENT_PROPOSAL">Event Proposal</option>
                     <option value="PERMISSION_LETTER">Permission Letter</option>
@@ -1089,18 +1089,18 @@ export default function TemplateManagementPage() {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">Description</label>
+                  <label className="font-semibold text-[#1C2622] block mb-1">Description</label>
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="e.g. Standard format for room requisitions"
-                    className="w-full p-2 rounded border border-[#E2E8F0]"
+                    className="w-full p-2 rounded border border-[#E5DFD5]"
                   />
                 </div>
 
                 <div>
-                  <label className="font-semibold text-[#18181B] block mb-1">
+                  <label className="font-semibold text-[#1C2622] block mb-1">
                     Template File (*.docx or *.pdf) *
                   </label>
                   <input
@@ -1108,9 +1108,9 @@ export default function TemplateManagementPage() {
                     accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     required
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="w-full p-2 rounded border border-[#E2E8F0] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-[#EEF2FF] file:text-[#4F46E5]"
+                    className="w-full p-2 rounded border border-[#E5DFD5] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-[#E7F3ED] file:text-[#1F6954]"
                   />
-                  <span className="text-[10px] text-[#64748B] mt-1 block">
+                  <span className="text-[10px] text-[#7A8A81] mt-1 block">
                     Upload DOCX or PDF with placeholders, labeled blanks, form fields, or logos.
                   </span>
                 </div>
@@ -1121,18 +1121,18 @@ export default function TemplateManagementPage() {
                   </div>
                 )}
 
-                <div className="pt-3 border-t border-[#E2E8F0] flex justify-end gap-2">
+                <div className="pt-3 border-t border-[#E5DFD5] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setShowUploadModal(false)}
-                    className="px-3 py-1.5 rounded border border-[#E2E8F0] text-xs text-[#64748B]"
+                    className="px-3 py-1.5 rounded border border-[#E5DFD5] text-xs text-[#7A8A81]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-[#4F46E5] text-white text-xs font-semibold disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-[#1F6954] text-white text-xs font-semibold disabled:opacity-50"
                   >
                     {uploading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     <span>{uploading ? "Analyzing Structure & Uploading..." : "Upload & Analyze"}</span>
@@ -1146,15 +1146,15 @@ export default function TemplateManagementPage() {
         {/* Delete Confirmation Modal */}
         {templateToDelete && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-xl max-w-sm w-full p-5 space-y-4">
+            <div className="bg-white rounded-lg border border-[#E5DFD5] shadow-xl max-w-sm w-full p-5 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-full bg-[#FEF2F2] text-[#EF4444] shrink-0">
                   <Trash2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-[#18181B]">Delete Template?</h3>
-                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
-                    Are you sure you want to permanently delete <strong className="text-[#18181B]">{templateToDelete.name}</strong>? This action cannot be undone.
+                  <h3 className="font-bold text-sm text-[#1C2622]">Delete Template?</h3>
+                  <p className="text-xs text-[#7A8A81] mt-1 leading-relaxed">
+                    Are you sure you want to permanently delete <strong className="text-[#1C2622]">{templateToDelete.name}</strong>? This action cannot be undone.
                   </p>
                 </div>
               </div>
@@ -1164,7 +1164,7 @@ export default function TemplateManagementPage() {
                   type="button"
                   disabled={deleting}
                   onClick={() => setTemplateToDelete(null)}
-                  className="px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs font-medium text-[#475569] hover:bg-[#F8FAFC]"
+                  className="px-3 py-1.5 rounded-md border border-[#E5DFD5] text-xs font-medium text-[#55645C] hover:bg-[#FAF8F4]"
                 >
                   Cancel
                 </button>

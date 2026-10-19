@@ -164,14 +164,14 @@ export function SignatureCanvas({
     <div className={`space-y-3 ${className}`}>
       {/* Mode Switcher */}
       <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-        <div className="flex items-center gap-1 bg-[#F1F5F9] p-0.5 rounded-md">
+        <div className="flex items-center gap-1 bg-[#EFECE6] p-0.5 rounded-lg">
           <button
             type="button"
             onClick={() => handleSwitchMode("draw")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
               mode === "draw"
-                ? "bg-white text-[#0F172A] shadow-2xs font-semibold"
-                : "text-[#64748B] hover:text-[#0F172A]"
+                ? "bg-white text-[#1F6954] shadow-2xs font-semibold"
+                : "text-[#66756D] hover:text-[#1C2622]"
             }`}
           >
             <PenTool className="h-3 w-3" />
@@ -180,10 +180,10 @@ export function SignatureCanvas({
           <button
             type="button"
             onClick={() => handleSwitchMode("type")}
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
               mode === "type"
-                ? "bg-white text-[#0F172A] shadow-2xs font-semibold"
-                : "text-[#64748B] hover:text-[#0F172A]"
+                ? "bg-white text-[#1F6954] shadow-2xs font-semibold"
+                : "text-[#66756D] hover:text-[#1C2622]"
             }`}
           >
             <Type className="h-3 w-3" />
@@ -195,7 +195,7 @@ export function SignatureCanvas({
           <button
             type="button"
             onClick={handleClear}
-            className="flex items-center gap-1 text-xs text-[#64748B] hover:text-[#E11D48] font-medium transition-colors"
+            className="flex items-center gap-1 text-xs text-[#66756D] hover:text-[#C24138] font-medium transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
             <span>Clear</span>
@@ -210,9 +210,9 @@ export function SignatureCanvas({
             value={typedName}
             onChange={handleTypeChange}
             placeholder="Type your official full name"
-            className="w-full px-3 py-1.5 text-xs rounded border border-[#CBD5E1] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+            className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#E5DFD5] bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
           />
-          <div className="flex items-center gap-2 text-[11px] text-[#64748B]">
+          <div className="flex items-center gap-2 text-[11px] text-[#66756D]">
             <span>Style:</span>
             {(["cursive", "serif", "sans"] as const).map((f) => (
               <button
@@ -222,10 +222,10 @@ export function SignatureCanvas({
                   setSelectedFont(f);
                   renderTypedSignature(typedName);
                 }}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border ${
+                className={`px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors ${
                   selectedFont === f
-                    ? "border-[#4F46E5] bg-[#EEF2FF] text-[#4F46E5]"
-                    : "border-[#E2E8F0] text-[#64748B]"
+                    ? "border-[#BCD8CB] bg-[#E7F3ED] text-[#1A5A48]"
+                    : "border-[#E5DFD5] text-[#66756D] hover:bg-[#FAF8F4]"
                 }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -236,7 +236,7 @@ export function SignatureCanvas({
       )}
 
       {/* Signature Canvas Area */}
-      <div className="relative rounded-lg border-2 border-dashed border-[#CBD5E1] bg-white overflow-hidden shadow-inner">
+      <div className="relative rounded-xl border-2 border-dashed border-[#D8D2C7] bg-white overflow-hidden shadow-inner">
         <canvas
           ref={canvasRef}
           onPointerDown={handlePointerDown}
@@ -249,23 +249,23 @@ export function SignatureCanvas({
         />
 
         {/* Guideline line */}
-        <div className="absolute bottom-6 left-6 right-6 border-b border-[#E2E8F0] pointer-events-none flex items-center justify-between text-[10px] text-[#94A3B8]">
+        <div className="absolute bottom-6 left-6 right-6 border-b border-[#E5DFD5] pointer-events-none flex items-center justify-between text-[10px] text-[#8B9B92]">
           <span>Sign above the line</span>
           <span>✕ Official E-Signature</span>
         </div>
 
         {!hasContent && mode === "draw" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-xs text-[#94A3B8] gap-1">
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-xs text-[#8B9B92] gap-1">
             <PenTool className="h-4 w-4 opacity-40" />
             <span>Draw your signature using mouse, trackpad, or touchscreen</span>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+      <div className="flex items-center justify-between text-[11px] text-[#66756D]">
         <span>Format: High-resolution vectorized PNG</span>
         {hasContent && (
-          <span className="flex items-center gap-1 text-[#059669] font-medium">
+          <span className="flex items-center gap-1 text-[#1F6954] font-medium">
             <Check className="h-3 w-3" /> Signature Captured
           </span>
         )}

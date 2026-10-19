@@ -98,7 +98,7 @@ export async function sendSignatureRequestEmail(
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
     .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .header { background: #4f46e5; color: #ffffff; padding: 24px 32px; text-align: left; }
+    .header { background: #1F6954; color: #ffffff; padding: 24px 32px; text-align: left; }
     .header h1 { margin: 0 0 6px 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
     .header p { margin: 0; font-size: 13px; opacity: 0.9; }
     .body { padding: 32px; line-height: 1.6; font-size: 14px; }
@@ -108,9 +108,9 @@ export async function sendSignatureRequestEmail(
     .card-label { color: #64748b; font-weight: 500; }
     .card-val { color: #0f172a; font-weight: 600; text-align: right; }
     .btn-container { text-align: center; margin: 32px 0 24px 0; }
-    .btn { display: inline-block; background: #4f46e5; color: #ffffff !important; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 6px; box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2); }
+    .btn { display: inline-block; background: #1F6954; color: #ffffff !important; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 6px; box-shadow: 0 1px 2px rgba(31, 105, 84, 0.2); }
     .footer { padding: 20px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.5; }
-    .direct-link { word-break: break-all; color: #4f46e5; font-size: 12px; }
+    .direct-link { word-break: break-all; color: #1F6954; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -198,6 +198,11 @@ This link is private and secure to you.
         text,
       });
 
+      if (res.error) {
+        console.warn(`[Resend API Error] (${res.error.name}): ${res.error.message}`);
+        throw new Error(res.error.message);
+      }
+
       const result: EmailDeliveryResult = {
         success: true,
         messageId: res.data?.id,
@@ -217,7 +222,7 @@ This link is private and secure to you.
 
       return result;
     } catch (err: any) {
-      console.error("Resend delivery failed, falling back to local logger:", err);
+      console.warn("Resend delivery unfulfilled, falling back to local institutional dispatch:", err?.message || err);
       // Fallback to local institutional logger so workflow does not block
     }
   }
@@ -316,13 +321,18 @@ View Document Record: ${docUrl}
         text,
       });
 
+      if (res.error) {
+        console.warn(`[Resend API Error] Completion email error: ${res.error.message}`);
+        throw new Error(res.error.message);
+      }
+
       return {
         success: true,
         messageId: res.data?.id,
         provider: "resend",
       };
     } catch (err: any) {
-      console.error("Resend completion delivery failed:", err);
+      console.warn("Resend completion delivery failed:", err?.message || err);
     }
   }
 
