@@ -136,16 +136,6 @@
       "isActive": true,
       "id": "auth_u0d7o107",
       "createdAt": "2026-10-19T14:48:26.257Z"
-    },
-    {
-      "name": "Dr. Arvind Sharma",
-      "email": "arvind.sharma@nit.ac.in",
-      "designation": "Faculty Coordinator",
-      "role": "FACULTY_COORDINATOR",
-      "department": "Computer Science",
-      "isActive": true,
-      "id": "auth_sjfr1wmv",
-      "createdAt": "2026-10-19T15:24:31.002Z"
     }
   ],
   "templates": [
@@ -1352,48 +1342,6 @@
   ],
   "versions": [
     {
-      "id": "ver_6mb7mgry",
-      "documentId": "doc_hzenb3uq",
-      "versionNumber": 1,
-      "dataSnapshot": {},
-      "docxUrl": "/generated/doc_test_custom_sig_1792423471040_initial.pdf",
-      "pdfUrl": "/generated/doc_test_custom_sig_1792423471040_initial.pdf",
-      "changeSummary": "Initial document generation",
-      "createdAt": "2026-10-19T15:24:31.041Z"
-    },
-    {
-      "id": "ver_ammk0sv6",
-      "documentId": "doc_dzb7tj52",
-      "versionNumber": 1,
-      "dataSnapshot": {},
-      "docxUrl": "/generated/doc_test_offline_1792423471035.pdf",
-      "pdfUrl": "/generated/doc_test_offline_1792423471035.pdf",
-      "changeSummary": "Initial document generation",
-      "createdAt": "2026-10-19T15:24:31.037Z"
-    },
-    {
-      "id": "ver_szw0mk9z",
-      "documentId": "doc_oy93gu9r",
-      "versionNumber": 1,
-      "dataSnapshot": {},
-      "docxUrl": "/generated/doc_test_e2e_1792423470977_initial.pdf",
-      "pdfUrl": "/generated/doc_test_e2e_1792423470977_initial.pdf",
-      "changeSummary": "Initial document generation",
-      "createdAt": "2026-10-19T15:24:31.030Z"
-    },
-    {
-      "id": "ver_r8tz3xjk",
-      "documentId": "doc_vek2tx37",
-      "versionNumber": 1,
-      "dataSnapshot": {
-        "eventName": "Tech Fest 2026"
-      },
-      "docxUrl": "/generated/doc_test_e2e_1792423470977_initial.pdf",
-      "pdfUrl": "/generated/doc_test_e2e_1792423470977_initial.pdf",
-      "changeSummary": "Initial document generation",
-      "createdAt": "2026-10-19T15:24:31.000Z"
-    },
-    {
       "id": "ver_gmq7nx2o",
       "documentId": "doc_qqykjyfm",
       "versionNumber": 1,
@@ -1590,9 +1538,9 @@
       "name": "Club Administrator",
       "email": "admin@campus.edu",
       "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Club%20Administrator",
-      "role": "CLUB_ADMIN",
+      "role": "FACULTY_APPROVER",
       "createdAt": "2026-10-19T14:48:01.217Z",
-      "updatedAt": "2026-10-19T14:59:07.769Z",
+      "updatedAt": "2026-10-19T15:41:39.796Z",
       "googleId": "g_kqemsa2h",
       "lastLoginAt": "2026-10-19T14:59:07.769Z"
     },
@@ -1615,46 +1563,26 @@
       "updatedAt": "2026-10-19T14:48:01.219Z"
     },
     {
-      "id": "usr_n3jqg0io",
-      "name": "Google Student User Updated",
-      "email": "test.google.1792421306182@gmail.com",
-      "image": "https://lh3.googleusercontent.com/photo.jpg",
-      "role": "MEMBER",
-      "googleId": "google_sub_12345",
-      "createdAt": "2026-10-19T14:48:26.182Z",
-      "updatedAt": "2026-10-19T14:48:26.183Z",
-      "lastLoginAt": "2026-10-19T14:48:26.183Z"
-    },
-    {
       "id": "usr_9o3knhzu",
-      "name": "aayush",
+      "name": "AAYUSH AWASTHI SVNIT",
       "email": "u25cs064@coed.svnit.ac.in",
-      "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=aayush",
-      "role": "MEMBER",
-      "googleId": "g_gax1xjg6",
+      "image": "https://lh3.googleusercontent.com/a/ACg8ocJojzHqFwsUOdVxmGl4jV7Q1ltmDOHWJSG29JwC9I6sdxMKyA=s96-c",
+      "role": "CLUB_ADMIN",
+      "googleId": "109103404886081457082",
       "createdAt": "2026-10-19T14:56:03.239Z",
-      "updatedAt": "2026-10-19T14:56:03.239Z",
-      "lastLoginAt": "2026-10-19T14:56:03.239Z"
+      "updatedAt": "2026-10-19T15:41:20.095Z",
+      "lastLoginAt": "2026-10-19T15:41:20.095Z"
     },
     {
       "id": "usr_plukl5nu",
-      "name": "Aayush Awasthi",
+      "name": "aayush",
       "email": "aayushawasthi311@gmail.com",
       "image": "https://lh3.googleusercontent.com/a/ACg8ocLmIQGWh80ngCcRkLV26bdEeTmi0MicuYcSbReBXQUnQh9-BsAw=s96-c",
-      "role": "CLUB_ADMIN",
+      "role": "MEMBER",
       "googleId": "100966657626077416993",
       "createdAt": "2026-10-19T15:21:09.845Z",
-      "updatedAt": "2026-10-19T15:23:54.491Z",
-      "lastLoginAt": "2026-10-19T15:22:27.628Z"
-    },
-    {
-      "id": "usr_u9w7bt2l",
-      "name": "Aayush Awasthi",
-      "email": "aayushawashi311@gmail.com",
-      "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Aayush",
-      "role": "CLUB_ADMIN",
-      "createdAt": "2026-10-19T15:23:54.490Z",
-      "updatedAt": "2026-10-19T15:23:54.491Z"
+      "updatedAt": "2026-10-19T15:42:02.582Z",
+      "lastLoginAt": "2026-10-19T15:42:02.582Z"
     }
   ]
 }
