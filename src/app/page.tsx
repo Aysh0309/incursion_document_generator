@@ -1,8 +1,14 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { FileText, ArrowRight, LayoutDashboard, PlusCircle, Heart } from "lucide-react";
+import { FileText, ArrowRight, LayoutDashboard, PlusCircle, Heart, ShieldCheck, LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInModal";
 
 export default function LandingPage() {
+  const { user, isAdmin, logout } = useAuth();
+
   return (
     <div className="relative min-h-screen bg-[#F8F6F0] text-[#1C2622] font-sans selection:bg-[#E7F3ED] selection:text-[#1F6954] overflow-x-hidden">
       {/* Top Glass Navigation */}
@@ -31,6 +37,34 @@ export default function LandingPage() {
           >
             Templates
           </Link>
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
+              <span>Admin</span>
+            </Link>
+          )}
+
+          {user ? (
+            <div className="flex items-center gap-2 pl-2">
+              <span className="text-xs font-semibold text-[#1C2622]">
+                {user.name}
+              </span>
+              <button
+                onClick={logout}
+                className="p-1.5 text-[#7A8A81] hover:text-red-600 rounded-lg hover:bg-[#EFECE6] transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <GoogleSignInButton size="small" />
+          )}
+
           <Link
             href="/events/new"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-semibold transition-all shadow-xs hover:shadow-sm"
@@ -358,11 +392,31 @@ export default function LandingPage() {
               Doc - Doctor
             </h1>
 
+            {/* Signed-in badge or Welcome info */}
+            {user ? (
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E7F3ED] border border-[#BCD8CB] text-xs text-[#1A5A48]">
+                <span>Signed in as <strong>{user.name}</strong></span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                  user.role === "CLUB_ADMIN"
+                    ? "bg-purple-100 text-purple-700"
+                    : user.role === "FACULTY_APPROVER"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}>
+                  {user.role === "CLUB_ADMIN" ? "Admin" : user.role === "FACULTY_APPROVER" ? "Faculty" : "Member"}
+                </span>
+              </div>
+            ) : null}
+
             {/* Call to Actions */}
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+              {!user ? (
+                <GoogleSignInButton size="large" className="w-full sm:w-auto" />
+              ) : null}
+
               <Link
                 href="/events/new"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#1F6954] hover:bg-[#175342] text-white text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#1F6954] hover:bg-[#175342] text-white text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
               >
                 <PlusCircle className="h-4 w-4 text-white" />
                 <span>Create Document</span>
@@ -370,11 +424,21 @@ export default function LandingPage() {
 
               <Link
                 href="/dashboard"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#E7F3ED] hover:bg-[#DDF0E6] border border-[#BCD8CB] text-[#1A5A48] text-sm font-semibold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#E7F3ED] hover:bg-[#DDF0E6] border border-[#BCD8CB] text-[#1A5A48] text-sm font-semibold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
               >
                 <LayoutDashboard className="h-4 w-4 text-[#1F6954]" />
                 <span>Dashboard</span>
               </Link>
+
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-sm font-semibold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <ShieldCheck className="h-4 w-4 text-purple-600" />
+                  <span>Admin Portal</span>
+                </Link>
+              )}
             </div>
           </div>
         </main>

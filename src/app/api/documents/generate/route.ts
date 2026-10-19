@@ -3,9 +3,18 @@ import { dbStore } from "@/lib/db/store";
 import { generateDocument, validateTemplateSubmission } from "@/lib/document-engine/generator";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { DocumentModel, DocumentVersionModel } from "@/models/Document";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: { message: "Unauthorized: Active authenticated session required." } },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { eventId, templateId, fieldValues } = body;
 

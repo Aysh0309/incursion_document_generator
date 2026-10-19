@@ -299,3 +299,16 @@ export interface EventRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  role: UserRole;
+  googleId?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
