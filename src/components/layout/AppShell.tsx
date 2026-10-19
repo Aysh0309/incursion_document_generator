@@ -30,27 +30,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
-
-  useEffect(() => {
-    if (user?.role) {
-      setCurrentRole(user.role);
-      localStorage.setItem("incursion_user_role", user.role);
-    } else {
-      const saved = localStorage.getItem("incursion_user_role") as UserRole;
-      if (saved) {
-        setCurrentRole(saved);
-      } else {
-        localStorage.setItem("incursion_user_role", "CLUB_ADMIN");
-      }
-    }
-  }, [user]);
-
-  const handleRoleChange = (role: UserRole) => {
-    setCurrentRole(role);
-    localStorage.setItem("incursion_user_role", role);
-    window.dispatchEvent(new CustomEvent("roleChange", { detail: role }));
-  };
+  const currentRole: UserRole = user?.role || "MEMBER";
 
   const navItems = [
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -138,29 +118,6 @@ export function AppShell({ children }: AppShellProps) {
               </Link>
             );
           })}
-        </div>
-
-        {/* User Role Simulator */}
-        <div className="p-3 border-t border-[#E5DFD5] bg-[#F5F2EC]">
-          <div className="text-[10px] font-semibold text-[#66756D] uppercase tracking-wider mb-1.5 flex items-center justify-between">
-            <span>Demo Role Simulator</span>
-            <ShieldCheck className="h-3 w-3 text-[#1F6954]" />
-          </div>
-          <div className="grid grid-cols-3 gap-1">
-            {(["MEMBER", "CLUB_ADMIN", "FACULTY_APPROVER"] as UserRole[]).map((role) => (
-              <button
-                key={role}
-                onClick={() => handleRoleChange(role)}
-                className={`text-[10px] py-1 px-1 text-center rounded-md border transition-all ${
-                  currentRole === role
-                    ? "bg-[#1F6954] text-white border-[#1F6954] font-semibold shadow-2xs"
-                    : "bg-[#FCFAF7] text-[#55645C] border-[#E5DFD5] hover:bg-[#EFECE6]"
-                }`}
-              >
-                {role === "MEMBER" ? "Member" : role === "CLUB_ADMIN" ? "Admin" : "Faculty"}
-              </button>
-            ))}
-          </div>
         </div>
       </aside>
 

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { X, Check, ArrowRight, ShieldCheck, UserCheck, GraduationCap, Sparkles } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { X, AlertCircle, RefreshCw, ShieldAlert, CheckCircle2 } from "lucide-react";
 
 export function GoogleLogo({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -27,77 +28,70 @@ export function GoogleLogo({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+const ERROR_MESSAGES: Record<string, { title: string; message: string }> = {
+  AccessDenied: {
+    title: "Access Denied: Unverified Email",
+    message:
+      "Your Google account email has not been verified by Google or lacks necessary institutional permissions. For security, only verified Google accounts can access this platform.",
+  },
+  Configuration: {
+    title: "Google OAuth Configuration Error",
+    message:
+      "There is a problem with the server's Google OAuth credentials (AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET). Please check your environment configuration.",
+  },
+  OAuthCallbackError: {
+    title: "Google Authentication Interrupted",
+    message:
+      "The Google sign-in was cancelled or encountered a callback validation error. Please try again.",
+  },
+  OAuthSignin: {
+    title: "Google Sign-In Failed",
+    message: "Unable to initiate authorization redirect with Google. Please check your network and try again.",
+  },
+  SessionRequired: {
+    title: "Authentication Required",
+    message: "Please sign in with your verified Google account to access this page.",
+  },
+};
+
+/**
+ * Modal to display genuine Google OAuth error and status states.
+ */
 export function GoogleSignInModal() {
-  const { isGoogleModalOpen, closeGoogleModal, loginWithGoogle } = useAuth();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const errorParam = searchParams.get("error");
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeError, setActiveError] = useState<{ title: string; message: string } | null>(null);
 
-  if (!isGoogleModalOpen) return null;
-
-  const handleCustomSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes("@")) {
-      setError("Please provide a valid Google email address");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      await loginWithGoogle({
-        email: email.trim(),
-        name: name.trim() || undefined,
+  useEffect(() => {
+    if (errorParam && ERROR_MESSAGES[errorParam]) {
+      setActiveError(ERROR_MESSAGES[errorParam]);
+      setIsOpen(true);
+    } else if (errorParam) {
+      setActiveError({
+        title: "Authentication Error",
+        message: `An error occurred during Google authentication (${errorParam}).`,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in with Google");
-    } finally {
-      setLoading(false);
+      setIsOpen(true);
     }
+  }, [errorParam]);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    // Remove error from URL without refreshing
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    url.searchParams.delete("callbackUrl");
+    router.replace(url.pathname, { scroll: false });
   };
 
-  const handleQuickSelect = async (account: { name: string; email: string; roleDesc: string; icon: any }) => {
-    setError(null);
-    setLoading(true);
-    try {
-      await loginWithGoogle({
-        name: account.name,
-        email: account.email,
-        image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(account.name)}`,
-      });
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in");
-    } finally {
-      setLoading(false);
-    }
+  const handleRetry = async () => {
+    setIsOpen(false);
+    await signIn("google", { callbackUrl: "/dashboard" });
   };
 
-  const QUICK_ACCOUNTS = [
-    {
-      name: "Club Administrator",
-      email: "admin@campus.edu",
-      roleDesc: "Full administrative access & role management",
-      icon: ShieldCheck,
-      badge: "Admin",
-      badgeColor: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
-    },
-    {
-      name: "Dr. Sunita Sharma",
-      email: "faculty@campus.edu",
-      roleDesc: "Faculty approver & document signer",
-      icon: GraduationCap,
-      badge: "Faculty",
-      badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
-    },
-    {
-      name: "Student Member",
-      email: "member@campus.edu",
-      roleDesc: "Event organizer & document generator",
-      icon: UserCheck,
-      badge: "Member",
-      badgeColor: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
-    },
-  ];
+  if (!isOpen || !activeError) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -105,20 +99,20 @@ export function GoogleSignInModal() {
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm">
-              <GoogleLogo className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 flex items-center justify-center shadow-xs text-red-600">
+              <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                Continue with Google
+                {activeError.title}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Sign in or sign up to your account
+                Google Authentication Status
               </p>
             </div>
           </div>
           <button
-            onClick={closeGoogleModal}
+            onClick={handleClose}
             className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
@@ -126,104 +120,26 @@ export function GoogleSignInModal() {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
-          {error && (
-            <div className="p-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-lg">
-              {error}
-            </div>
-          )}
+        <div className="p-6 space-y-4">
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            {activeError.message}
+          </p>
 
-          {/* Quick 1-click accounts */}
-          <div className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Choose an account
-            </span>
-            <div className="space-y-2">
-              {QUICK_ACCOUNTS.map((acc) => {
-                const Icon = acc.icon;
-                return (
-                  <button
-                    key={acc.email}
-                    disabled={loading}
-                    onClick={() => handleQuickSelect(acc)}
-                    className="w-full text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition group flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:scale-105 transition">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {acc.name}
-                          </span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${acc.badgeColor}`}>
-                            {acc.badge}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {acc.email}
-                        </p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
-            <span className="flex-shrink mx-3 text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">
-              Or use another Google account
-            </span>
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
-          </div>
-
-          {/* Custom form */}
-          <form onSubmit={handleCustomSubmit} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Google Email
-              </label>
-              <input
-                type="email"
-                placeholder="you@gmail.com or campus email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Full Name (optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Alex Johnson"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
-              />
-            </div>
-
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <button
-              type="submit"
-              disabled={loading || !email}
-              className="w-full mt-2 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition disabled:opacity-50 shadow-md shadow-blue-500/20"
+              onClick={handleClose}
+              className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
             >
-              <GoogleLogo className="w-4 h-4 bg-white rounded-full p-0.5" />
-              <span>{loading ? "Signing in..." : "Continue with Google"}</span>
+              Dismiss
             </button>
-          </form>
-        </div>
-
-        {/* Footer info */}
-        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-          Secure authentication for student clubs and faculty coordinators.
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow-xs"
+            >
+              <GoogleLogo className="w-3.5 h-3.5 bg-white rounded-full p-0.5" />
+              <span>Try Again</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -239,14 +155,21 @@ export function GoogleSignInButton({
   size?: "default" | "large" | "small";
   variant?: "white" | "dark" | "outline";
 }) {
-  const { openGoogleModal, user } = useAuth();
+  const [isConnecting, setIsConnecting] = useState(false);
 
-  if (user) {
-    return null;
-  }
+  const handleSignIn = async () => {
+    setIsConnecting(true);
+    try {
+      // Redirect to Google's real OAuth authorization screen
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (err) {
+      console.error("Failed to start Google sign-in:", err);
+      setIsConnecting(false);
+    }
+  };
 
   const baseStyles =
-    "inline-flex items-center justify-center font-medium transition duration-200 cursor-pointer shadow-sm active:scale-[0.99] select-none";
+    "inline-flex items-center justify-center font-medium transition duration-200 cursor-pointer shadow-sm active:scale-[0.99] select-none disabled:opacity-60";
 
   const sizeStyles = {
     small: "px-3 py-1.5 text-xs rounded-md space-x-2",
@@ -265,11 +188,18 @@ export function GoogleSignInButton({
   return (
     <button
       type="button"
-      onClick={openGoogleModal}
+      disabled={isConnecting}
+      onClick={handleSignIn}
       className={`${baseStyles} ${sizeStyles} ${variantStyles} ${className}`}
     >
-      <GoogleLogo className={size === "small" ? "w-4 h-4" : size === "large" ? "w-5 h-5" : "w-4 h-4"} />
-      <span className="font-semibold tracking-tight">Continue with Google</span>
+      {isConnecting ? (
+        <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+      ) : (
+        <GoogleLogo className={size === "small" ? "w-4 h-4" : size === "large" ? "w-5 h-5" : "w-4 h-4"} />
+      )}
+      <span className="font-semibold tracking-tight">
+        {isConnecting ? "Connecting to Google..." : "Continue with Google"}
+      </span>
     </button>
   );
 }

@@ -136,6 +136,36 @@
       "isActive": true,
       "id": "auth_u0d7o107",
       "createdAt": "2026-10-19T14:48:26.257Z"
+    },
+    {
+      "name": "Dr. Arvind Sharma",
+      "email": "arvind.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science",
+      "isActive": true,
+      "id": "auth_z2l85pye",
+      "createdAt": "2026-10-19T15:13:35.297Z"
+    },
+    {
+      "name": "Dr. Arvind Sharma",
+      "email": "arvind.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science",
+      "isActive": true,
+      "id": "auth_4ncwty53",
+      "createdAt": "2026-10-19T15:17:00.906Z"
+    },
+    {
+      "name": "Dr. Arvind Sharma",
+      "email": "arvind.sharma@nit.ac.in",
+      "designation": "Faculty Coordinator",
+      "role": "FACULTY_COORDINATOR",
+      "department": "Computer Science",
+      "isActive": true,
+      "id": "auth_g8zlho30",
+      "createdAt": "2026-10-19T15:17:32.055Z"
     }
   ],
   "templates": [
@@ -1342,6 +1372,132 @@
   ],
   "versions": [
     {
+      "id": "ver_smvn61un",
+      "documentId": "doc_c4g4desy",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_custom_sig_1792423052107_initial.pdf",
+      "pdfUrl": "/generated/doc_test_custom_sig_1792423052107_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:32.108Z"
+    },
+    {
+      "id": "ver_iskhw6mr",
+      "documentId": "doc_nf6fcstx",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_offline_1792423052100.pdf",
+      "pdfUrl": "/generated/doc_test_offline_1792423052100.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:32.104Z"
+    },
+    {
+      "id": "ver_eiy774b0",
+      "documentId": "doc_40yd96xf",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_e2e_1792423052017_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792423052017_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:32.094Z"
+    },
+    {
+      "id": "ver_ph90osue",
+      "documentId": "doc_8ief2ksk",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "eventName": "Tech Fest 2026"
+      },
+      "docxUrl": "/generated/doc_test_e2e_1792423052017_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792423052017_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:32.052Z"
+    },
+    {
+      "id": "ver_1cgrz3kw",
+      "documentId": "doc_f076pwi3",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_custom_sig_1792423020957_initial.pdf",
+      "pdfUrl": "/generated/doc_test_custom_sig_1792423020957_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:00.958Z"
+    },
+    {
+      "id": "ver_vbehsvlf",
+      "documentId": "doc_rkhv7n96",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_offline_1792423020949.pdf",
+      "pdfUrl": "/generated/doc_test_offline_1792423020949.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:00.953Z"
+    },
+    {
+      "id": "ver_l7tkh96v",
+      "documentId": "doc_4g652eqt",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_e2e_1792423020877_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792423020877_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:00.943Z"
+    },
+    {
+      "id": "ver_i3wct7ib",
+      "documentId": "doc_dnygp440",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "eventName": "Tech Fest 2026"
+      },
+      "docxUrl": "/generated/doc_test_e2e_1792423020877_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792423020877_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:17:00.905Z"
+    },
+    {
+      "id": "ver_c9h0882a",
+      "documentId": "doc_mva7t2hr",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_custom_sig_1792422815337_initial.pdf",
+      "pdfUrl": "/generated/doc_test_custom_sig_1792422815337_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:13:35.338Z"
+    },
+    {
+      "id": "ver_tayvwei5",
+      "documentId": "doc_64fgf43u",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_offline_1792422815330.pdf",
+      "pdfUrl": "/generated/doc_test_offline_1792422815330.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:13:35.332Z"
+    },
+    {
+      "id": "ver_unobb09q",
+      "documentId": "doc_e9djtopa",
+      "versionNumber": 1,
+      "dataSnapshot": {},
+      "docxUrl": "/generated/doc_test_e2e_1792422815278_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792422815278_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:13:35.325Z"
+    },
+    {
+      "id": "ver_zcklpxac",
+      "documentId": "doc_zdozf34m",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "eventName": "Tech Fest 2026"
+      },
+      "docxUrl": "/generated/doc_test_e2e_1792422815278_initial.pdf",
+      "pdfUrl": "/generated/doc_test_e2e_1792422815278_initial.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:13:35.296Z"
+    },
+    {
       "id": "ver_gmq7nx2o",
       "documentId": "doc_qqykjyfm",
       "versionNumber": 1,
@@ -1537,10 +1693,12 @@
       "id": "usr_admin_01",
       "name": "Club Administrator",
       "email": "admin@campus.edu",
-      "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Admin",
+      "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=Club%20Administrator",
       "role": "CLUB_ADMIN",
       "createdAt": "2026-10-19T14:48:01.217Z",
-      "updatedAt": "2026-10-19T14:48:01.219Z"
+      "updatedAt": "2026-10-19T14:59:07.769Z",
+      "googleId": "g_kqemsa2h",
+      "lastLoginAt": "2026-10-19T14:59:07.769Z"
     },
     {
       "id": "usr_faculty_01",
@@ -1570,6 +1728,28 @@
       "createdAt": "2026-10-19T14:48:26.182Z",
       "updatedAt": "2026-10-19T14:48:26.183Z",
       "lastLoginAt": "2026-10-19T14:48:26.183Z"
+    },
+    {
+      "id": "usr_9o3knhzu",
+      "name": "aayush",
+      "email": "u25cs064@coed.svnit.ac.in",
+      "image": "https://api.dicebear.com/7.x/avataaars/svg?seed=aayush",
+      "role": "MEMBER",
+      "googleId": "g_gax1xjg6",
+      "createdAt": "2026-10-19T14:56:03.239Z",
+      "updatedAt": "2026-10-19T14:56:03.239Z",
+      "lastLoginAt": "2026-10-19T14:56:03.239Z"
+    },
+    {
+      "id": "usr_8f4ylzw7",
+      "name": "Google Student User Updated",
+      "email": "test.google.1792422815197@gmail.com",
+      "image": "https://lh3.googleusercontent.com/photo.jpg",
+      "role": "MEMBER",
+      "googleId": "google_sub_12345",
+      "createdAt": "2026-10-19T15:13:35.197Z",
+      "updatedAt": "2026-10-19T15:13:35.198Z",
+      "lastLoginAt": "2026-10-19T15:13:35.198Z"
     }
   ]
 }

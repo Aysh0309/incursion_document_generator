@@ -1,22 +1,26 @@
-import { cookies } from "next/headers";
+import { auth } from "@/auth";
 import { UserAccount } from "@/types";
 import { dbStore } from "@/lib/db/store";
 
-export const SESSION_COOKIE_NAME = "clubhub_session_uid";
-
 /**
- * Retrieves the currently logged-in user from the session cookie,
- * or returns null if unauthenticated.
+ * Retrieves the currently logged-in user from the genuine NextAuth session,
+ * verifying provider identity on the server side.
+ * Returns null if unauthenticated.
  */
 export async function getCurrentUser(): Promise<UserAccount | null> {
   try {
-    const cookieStore = await cookies();
-    const uid = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-    if (!uid) return null;
+    const session = await auth();
+    if (!session?.user?.email) {
+      return null;
+    }
 
-    const user = dbStore.getUserById(uid);
+    const user = session.user.id
+      ? dbStore.getUserById(session.user.id) || dbStore.getUserByEmail(session.user.email)
+      : dbStore.getUserByEmail(session.user.email);
+
     return user || null;
   } catch (err) {
+    console.error("Error retrieving session user:", err);
     return null;
   }
 }

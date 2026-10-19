@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 export default function AdminPage() {
-  const { user, isAdmin, openGoogleModal, refreshUser: refreshAuthUser } = useAuth();
+  const { user, isAdmin, refreshUser: refreshAuthUser } = useAuth();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -167,6 +167,22 @@ export default function AdminPage() {
       members: users.filter((u) => u.role === "MEMBER").length,
     };
   }, [users]);
+
+  if (!isAdmin) {
+    return (
+      <AppShell>
+        <div className="max-w-md mx-auto py-16 text-center space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-full bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1C2622]">Admin Access Restricted</h2>
+          <p className="text-xs text-[#55645C] leading-relaxed">
+            You must be signed in with an authorized Club Administrator account to view and manage institutional roles.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

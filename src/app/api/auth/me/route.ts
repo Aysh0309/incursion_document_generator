@@ -1,29 +1,27 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { auth } from "@/auth";
 import { dbStore } from "@/lib/db/store";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const queryUid = searchParams.get("userId");
-    const queryEmail = searchParams.get("email");
+    const session = await auth();
 
-    const cookieStore = await cookies();
-    const cookieUid = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!session?.user?.email) {
+      return NextResponse.json({ authenticated: false, user: null });
+    }
 
-    const targetUid = queryUid || cookieUid;
+    // Lookup user by verified session identity
+    const user = session.user.id
+      ? dbStore.getUserById(session.user.id) || dbStore.getUserByEmail(session.user.email)
+      : dbStore.getUserByEmail(session.user.email);
 
-    let user = null;
-    if (targetUid) {
-      user = dbStore.getUserById(targetUid);
-    } else if (queryEmail) {
-      user = dbStore.getUserByEmail(queryEmail);
+    if (!user) {
+      return NextResponse.json({ authenticated: false, user: null });
     }
 
     return NextResponse.json({
-      authenticated: !!user,
-      user: user || null,
+      authenticated: true,
+      user,
     });
   } catch (error) {
     console.error("Error in /api/auth/me:", error);

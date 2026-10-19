@@ -3,6 +3,84 @@
     "type": "WORKFLOW_COMPLETED",
     "to": "requester@nit.ac.in",
     "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
+    "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792423052017_signed.pdf",
+    "sentAt": "2026-10-19T15:17:32.094Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "arvind.sharma@nit.ac.in",
+    "authorityName": "Dr. Arvind Sharma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
+    "signingUrl": "http://localhost:3000/sign/52ac664f0d12f8d922c8600c54d1868f373e337720e2bfa9f8f1ea9d7bfdafa6",
+    "sentAt": "2026-10-19T15:17:32.083Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "student.head@nit.ac.in",
+    "authorityName": "Rohan Verma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
+    "signingUrl": "http://localhost:3000/sign/7748cac224ea889c591b7da25dddcb22f8ff4317bd8856a4ec7fa758d6efc6cf",
+    "sentAt": "2026-10-19T15:17:32.066Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "WORKFLOW_COMPLETED",
+    "to": "requester@nit.ac.in",
+    "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
+    "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792423020877_signed.pdf",
+    "sentAt": "2026-10-19T15:17:00.942Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "arvind.sharma@nit.ac.in",
+    "authorityName": "Dr. Arvind Sharma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
+    "signingUrl": "http://localhost:3000/sign/a6f2ac22e334cc61864d5d67fd2615b765ea4ea0bd23751ad95517fa1b860fd9",
+    "sentAt": "2026-10-19T15:17:00.935Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "student.head@nit.ac.in",
+    "authorityName": "Rohan Verma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
+    "signingUrl": "http://localhost:3000/sign/db85a09319d88a8e5669cf5ff0926e36fb2c2c49395c6885461b4030c610b1dd",
+    "sentAt": "2026-10-19T15:17:00.921Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "WORKFLOW_COMPLETED",
+    "to": "requester@nit.ac.in",
+    "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
+    "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792422815278_signed.pdf",
+    "sentAt": "2026-10-19T15:13:35.323Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "arvind.sharma@nit.ac.in",
+    "authorityName": "Dr. Arvind Sharma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
+    "signingUrl": "http://localhost:3000/sign/a12b2b06a8f3b0a576889c4f26c323c8054f58883bcb2fed7c977ec0898b23b9",
+    "sentAt": "2026-10-19T15:13:35.317Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "student.head@nit.ac.in",
+    "authorityName": "Rohan Verma",
+    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
+    "signingUrl": "http://localhost:3000/sign/5e9ae8fe3d78878a756eb6166223bf19ab0102861fb97d8bf189b2b6bb62c91e",
+    "sentAt": "2026-10-19T15:13:35.307Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "WORKFLOW_COMPLETED",
+    "to": "requester@nit.ac.in",
+    "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
     "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792421306236_signed.pdf",
     "sentAt": "2026-10-19T14:48:26.286Z",
     "provider": "local_institutional_logger"

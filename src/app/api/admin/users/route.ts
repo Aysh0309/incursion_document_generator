@@ -1,11 +1,31 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { dbStore } from "@/lib/db/store";
 import { UserRole } from "@/types";
 
 const VALID_ROLES: UserRole[] = ["MEMBER", "FACULTY_APPROVER", "CLUB_ADMIN"];
 
+async function verifyAdminAuth() {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return { authorized: false, status: 401, error: "Unauthorized: Active authenticated session required" };
+  }
+
+  const role = (session.user as any).role as UserRole | undefined;
+  if (role !== "CLUB_ADMIN") {
+    return { authorized: false, status: 403, error: "Forbidden: Administrative privileges required" };
+  }
+
+  return { authorized: true, user: session.user };
+}
+
 export async function GET() {
   try {
+    const authCheck = await verifyAdminAuth();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const users = dbStore.getUsers();
     return NextResponse.json({
       success: true,
@@ -20,6 +40,11 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
+    const authCheck = await verifyAdminAuth();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const body = await req.json();
     const { userId, role } = body;
 
@@ -52,6 +77,11 @@ export async function PATCH(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const authCheck = await verifyAdminAuth();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const body = await req.json();
     const { name, email, role } = body;
 
@@ -87,6 +117,11 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const authCheck = await verifyAdminAuth();
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+    }
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 

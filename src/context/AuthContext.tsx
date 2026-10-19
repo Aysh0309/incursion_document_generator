@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { UserAccount, UserRole } from "@/types";
+import { UserAccount } from "@/types";
+import { signIn as nextAuthSignIn, signOut as nextAuthSignOut, useSession, SessionProvider } from "next-auth/react";
 
 interface AuthContextType {
   user: UserAccount | null;
@@ -9,128 +10,58 @@ interface AuthContextType {
   isAdmin: boolean;
   isFaculty: boolean;
   isMember: boolean;
-  isGoogleModalOpen: boolean;
-  openGoogleModal: () => void;
-  closeGoogleModal: () => void;
-  loginWithGoogle: (details?: { name?: string; email?: string; image?: string; googleId?: string }) => Promise<UserAccount>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  switchUserSimulated: (user: UserAccount) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = "clubhub_cached_user";
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthStateInner({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<UserAccount | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const openGoogleModal = useCallback(() => setIsGoogleModalOpen(true), []);
-  const closeGoogleModal = useCallback(() => setIsGoogleModalOpen(false), []);
-
-  const refreshUser = useCallback(async () => {
+  const fetchCurrentUser = useCallback(async () => {
+    setIsVerifying(true);
     try {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
         const data = await res.json();
-        if (data.user) {
+        if (data.authenticated && data.user) {
           setUser(data.user);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data.user));
           return;
         }
       }
-      // If server has no user, check local storage cached user or leave null
-      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          // Verify with server using cached id
-          const verifyRes = await fetch(`/api/auth/me?userId=${parsed.id}`);
-          if (verifyRes.ok) {
-            const verifyData = await verifyRes.json();
-            if (verifyData.user) {
-              setUser(verifyData.user);
-              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(verifyData.user));
-              return;
-            }
-          }
-        } catch (_) {}
-      }
       setUser(null);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
     } catch (e) {
-      console.warn("Failed to check auth state", e);
+      console.warn("Failed to retrieve current verified user:", e);
+      setUser(null);
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   }, []);
 
   useEffect(() => {
-    // Attempt rapid initial state from local storage before remote call
-    try {
-      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (cached) {
-        setUser(JSON.parse(cached));
-      }
-    } catch (_) {}
-
-    refreshUser();
-  }, [refreshUser]);
-
-  const loginWithGoogle = async (details?: {
-    name?: string;
-    email?: string;
-    image?: string;
-    googleId?: string;
-  }): Promise<UserAccount> => {
-    setIsLoading(true);
-    try {
-      const payload = {
-        name: details?.name || "Google User",
-        email: details?.email || "user@gmail.com",
-        image: details?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(details?.name || "GoogleUser")}`,
-        googleId: details?.googleId || "g_" + Math.random().toString(36).substring(2, 10),
-      };
-
-      const res = await fetch("/api/auth/google/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to sign in with Google");
-      }
-
-      const data = await res.json();
-      setUser(data.user);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data.user));
-      closeGoogleModal();
-      return data.user;
-    } finally {
-      setIsLoading(false);
+    if (status === "authenticated" && session?.user) {
+      fetchCurrentUser();
+    } else if (status === "unauthenticated") {
+      setUser(null);
     }
+  }, [status, session, fetchCurrentUser]);
+
+  const loginWithGoogle = async () => {
+    // Redirects directly to Google's genuine OAuth consent page
+    await nextAuthSignIn("google", { callbackUrl: "/dashboard" });
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
-    }
+    // Genuine sign out through NextAuth
+    await nextAuthSignOut({ callbackUrl: "/" });
+    setUser(null);
   };
 
-  const switchUserSimulated = (newUser: UserAccount) => {
-    setUser(newUser);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newUser));
-  };
-
+  const isLoading = status === "loading" || isVerifying;
   const isAdmin = user?.role === "CLUB_ADMIN";
   const isFaculty = user?.role === "FACULTY_APPROVER";
   const isMember = user?.role === "MEMBER";
@@ -143,17 +74,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isFaculty,
         isMember,
-        isGoogleModalOpen,
-        openGoogleModal,
-        closeGoogleModal,
         loginWithGoogle,
         logout,
-        refreshUser,
-        switchUserSimulated,
+        refreshUser: fetchCurrentUser,
       }}
     >
       {children}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthStateInner>{children}</AuthStateInner>
+    </SessionProvider>
   );
 }
 
