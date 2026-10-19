@@ -202,4 +202,94 @@ describe("Placeholder Detection Test Suite", () => {
     assert.strictEqual(key2, "startDate");
     assert.strictEqual(key3, "startDate");
   });
+
+  test("Normal text document without blanks or curly braces parses all fields completely", async () => {
+    // A completely normal DOCX document without {{tags}} and without _____ underscores
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>Proposal for Student Workshop</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Event Name: Web3 & AI Hackathon</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Venue: Main Seminar Hall B</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Target Audience: Computer Science Undergraduate Students</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Expected Number of Participants: 150</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Mode of Event: Offline / In-Person</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Registration Fee: Free of Charge</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Duration: 3 Days</w:t></w:r></w:p>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>1.</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Event Coordinator</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Alex Morgan</w:t></w:r></w:p></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:p><w:r><w:t>2.</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>Proposed Budget</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>INR 45,000</w:t></w:r></w:p></w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p><w:r><w:t>Signature of Faculty Coordinator: Dr. S. Rao</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Signature of Dean Student Welfare: Prof. K. Sharma</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+
+    const buffer = createDocxWithXml(xml);
+    const result = await analyzeDocxTemplate(buffer);
+
+    const names = result.fields.map((f) => f.name);
+    // Verify ALL normal text fields were captured without leaving any field behind
+    assert.ok(names.includes("eventName"), "Must parse normal text Event Name");
+    assert.ok(names.includes("venue"), "Must parse normal text Venue");
+    assert.ok(names.includes("targetAudience"), "Must parse normal text Target Audience");
+    assert.ok(names.includes("eventMode") || names.includes("modeOfEvent"), "Must parse normal text Mode of Event");
+    assert.ok(names.includes("registrationFee"), "Must parse normal text Registration Fee");
+    assert.ok(names.includes("duration"), "Must parse normal text Duration");
+    assert.ok(names.includes("eventCoordinator") || names.includes("coordinatorName") || names.includes("organizerName"), "Must parse table row Event Coordinator");
+    assert.ok(names.includes("proposedBudget") || names.includes("totalBudget") || names.includes("budgetRequested"), "Must parse table row Proposed Budget");
+
+    // Verify signatures are identified as signature placeholders
+    const sigFields = result.signatureFields || [];
+    assert.ok(sigFields.length >= 2, "Must identify signature sections");
+    const designations = sigFields.map((s) => s.designation.toLowerCase());
+    assert.ok(designations.some((d) => d.includes("faculty coordinator")), "Must detect faculty coordinator signature");
+    assert.ok(designations.some((d) => d.includes("dean")), "Must detect dean signature");
+  });
+
+  test("Document with static college name, branch, and institutional letterhead does not add them as extra fields", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>NATIONAL INSTITUTE OF TECHNOLOGY</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Name of the College: National Institute of Technology</w:t></w:r></w:p>
+    <w:p><w:r><w:t>College Name: NIT Campus</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Branch: Computer Science &amp; Engineering</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Name of the Branch: Information Technology</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Department: Computer Science</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Affiliated to: State Technological University</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Pin Code: 800005</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Event Name: Annual Hackathon 2026</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Venue: Main Auditorium</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Signature of Faculty Coordinator: Dr. Arvind</w:t></w:r></w:p>
+  </w:body>
+</w:document>`;
+
+    const buffer = createDocxWithXml(xml);
+    const result = await analyzeDocxTemplate(buffer);
+
+    const names = result.fields.map((f) => f.name.toLowerCase());
+    const labels = result.fields.map((f) => f.label.toLowerCase());
+
+    // Must NOT contain college or branch as extra fields
+    assert.strictEqual(names.includes("collegename"), false, "Must NOT add collegeName");
+    assert.strictEqual(names.includes("nameofthecollege"), false, "Must NOT add nameOfTheCollege");
+    assert.strictEqual(names.includes("branch"), false, "Must NOT add branch");
+    assert.strictEqual(names.includes("nameofthebranch"), false, "Must NOT add nameOfTheBranch");
+    assert.strictEqual(names.includes("department"), false, "Must NOT add department as extra field");
+    assert.strictEqual(labels.some((l) => l.includes("college")), false, "No label should contain college");
+    assert.strictEqual(labels.some((l) => l.includes("branch")), false, "No label should contain branch");
+
+    // But valid event fields must still be present
+    assert.ok(names.includes("eventname"), "Must retain eventName");
+    assert.ok(names.includes("venue"), "Must retain venue");
+  });
 });

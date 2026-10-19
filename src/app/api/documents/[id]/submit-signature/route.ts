@@ -61,32 +61,21 @@ export async function POST(
 
     for (const field of signatureFields) {
       const assigned = assignments?.find((a: any) => a.fieldId === field.id);
-      let auth = assigned?.authorityId ? dbStore.getAuthorityById(assigned.authorityId) : undefined;
+      const authorityName = (assigned?.authorityName || "").trim();
+      const authorityEmail = (assigned?.authorityEmail || "").trim().toLowerCase();
+      const authorityId = assigned?.authorityId || "custom_auth";
 
-      // Fallback to default authority configured on the field
-      if (!auth && field.defaultAuthorityId) {
-        auth = dbStore.getAuthorityById(field.defaultAuthorityId);
-      }
-      // Or fallback to role
-      if (!auth && field.assignedRole) {
-        auth = dbStore.getAuthorityByRole(field.assignedRole);
-      }
-
-      if (field.required && !auth && !assigned?.authorityEmail) {
+      if (field.required && (!authorityName || !authorityEmail)) {
         return NextResponse.json(
           {
             success: false,
             error: {
-              message: `Cannot submit document: Required signature field "${field.designation}" has no assigned authority.`,
+              message: `Cannot submit document: Required signature field "${field.designation}" requires both a signatory name and delivery email.`,
             },
           },
           { status: 422 }
         );
       }
-
-      const authorityName = assigned?.authorityName || auth?.name || field.printedName || "Designated Authority";
-      const authorityEmail = (assigned?.authorityEmail || auth?.email || "").trim().toLowerCase();
-      const authorityId = auth?.id || assigned?.authorityId || "custom_auth";
 
       // Generate cryptographically secure token and SHA-256 hash
       const rawToken = crypto.randomBytes(32).toString("hex");
@@ -96,7 +85,7 @@ export async function POST(
         id: "sigreq_" + Math.random().toString(36).substring(2, 10),
         documentId: document.id,
         fieldId: field.id,
-        printedName: field.printedName || authorityName,
+        printedName: authorityName || field.printedName || field.designation,
         designation: field.designation,
         assignedAuthorityId: authorityId,
         authorityName,

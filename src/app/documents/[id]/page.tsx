@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, use, Suspense } from "react";
@@ -19,6 +18,8 @@ import {
   ChevronRight,
   Download,
   Trash2,
+  Plus,
+  PenTool,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentRecord, DocumentVersionRecord, StructuredEventData, UserRole } from "@/types";
@@ -41,6 +42,36 @@ function DocumentReviewContent({ id }: { id: string }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
   const router = useRouter();
+
+  // Additional field creation state
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState("");
+  const [isSignatureField, setIsSignatureField] = useState(false);
+
+  const handleAddNewField = () => {
+    if (!newFieldLabel.trim()) return;
+    const clean = newFieldLabel.trim();
+    const key = clean
+      .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+      .replace(/^[A-Z]/, (c) => c.toLowerCase())
+      .replace(/[^a-zA-Z0-9]/g, "");
+
+    const finalKey = key || `customField_${Date.now()}`;
+    const finalVal = isSignatureField
+      ? (newFieldValue.trim() || clean)
+      : (newFieldValue.trim() || "");
+
+    setEditableData((prev) => ({
+      ...prev,
+      [finalKey]: finalVal,
+    }));
+
+    setNewFieldLabel("");
+    setNewFieldValue("");
+    setIsSignatureField(false);
+    setShowAddField(false);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("incursion_user_role") as UserRole;
@@ -154,7 +185,7 @@ function DocumentReviewContent({ id }: { id: string }) {
   if (loading) {
     return (
       <AppShell>
-        <div className="p-12 text-center text-xs text-[#64748B]">Loading document review studio...</div>
+        <div className="p-12 text-center text-xs text-[#7A8A81]">Loading document review studio...</div>
       </AppShell>
     );
   }
@@ -163,9 +194,9 @@ function DocumentReviewContent({ id }: { id: string }) {
     return (
       <AppShell>
         <div className="p-12 text-center space-y-3">
-          <AlertCircle className="h-8 w-8 text-[#E11D48] mx-auto" />
-          <h2 className="text-sm font-semibold text-[#18181B]">Document Not Found</h2>
-          <Link href="/documents" className="text-xs text-[#4F46E5] hover:underline">
+          <AlertCircle className="h-8 w-8 text-[#C24138] mx-auto" />
+          <h2 className="text-sm font-semibold text-[#1C2622]">Document Not Found</h2>
+          <Link href="/documents" className="text-xs text-[#1F6954] hover:text-[#175342]">
             ← Return to Documents Library
           </Link>
         </div>
@@ -177,36 +208,36 @@ function DocumentReviewContent({ id }: { id: string }) {
     <AppShell>
       <div className="max-w-6xl mx-auto space-y-5">
         {/* Header Ribbon */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border border-[#E5DFD5] bg-white shadow-2xs">
           <div className="flex items-center gap-3">
             <Link
               href="/documents"
-              className="p-1.5 rounded-md hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#18181B] transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[#FAF8F4] text-[#66756D] hover:text-[#1C2622] transition-colors border border-transparent hover:border-[#E5DFD5]"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-[#18181B] tracking-tight">{doc.title}</h1>
-                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+                <h1 className="text-sm font-bold text-[#1C2622] tracking-tight">{doc.title}</h1>
+                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#E7F3ED] text-[#1A5A48] border border-[#BCD8CB]">
                   Version {doc.currentVersion}
                 </span>
                 <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded ${doc.status === "APPROVED"
-                      ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${doc.status === "APPROVED"
+                      ? "bg-[#E7F3ED] text-[#1A5A48] border border-[#BCD8CB]"
                       : doc.status === "SUBMITTED"
-                        ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
-                        : "bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]"
+                        ? "bg-[#FEF3E6] text-[#D9822B] border border-[#FBD8B3]"
+                        : "bg-[#EFECE6] text-[#55645C] border border-[#E5DFD5]"
                     }`}
                 >
                   {doc.status.replace(/_/g, " ")}
                 </span>
               </div>
-              <p className="text-[11px] text-[#64748B] mt-0.5">
+              <p className="text-[11px] text-[#7A8A81] mt-0.5">
                 Type: {doc.documentType.replace(/_/g, " ")} • Event:{" "}
                 <Link
                   href={`/events/new?eventId=${doc.eventId}`}
-                  className="text-[#4F46E5] hover:underline font-medium"
+                  className="text-[#1F6954] hover:text-[#175342] font-medium"
                 >
                   {doc.dataSnapshot?.eventName || "View Associated Event"}
                 </Link>
@@ -215,10 +246,10 @@ function DocumentReviewContent({ id }: { id: string }) {
           </div>
 
           {/* Action Downloads & Signature Submission */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowSignatureModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold shadow-xs transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-bold shadow-xs transition-colors"
             >
               <Send className="h-3.5 w-3.5" />
               <span>
@@ -230,9 +261,9 @@ function DocumentReviewContent({ id }: { id: string }) {
 
             <button
               onClick={() => setShowHistoryModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-white text-xs font-medium text-[#475569] shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5DFD5] bg-[#FAF8F4] hover:bg-white text-xs font-medium text-[#55645C] shadow-2xs transition-colors"
             >
-              <History className="h-3.5 w-3.5 text-[#64748B]" />
+              <History className="h-3.5 w-3.5 text-[#1F6954]" />
               <span>Versions ({versions.length})</span>
             </button>
 
@@ -240,9 +271,9 @@ function DocumentReviewContent({ id }: { id: string }) {
               <a
                 href={doc.docxUrl}
                 download
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] text-xs font-medium text-[#18181B] shadow-2xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5DFD5] bg-white hover:bg-[#FAF8F4] text-xs font-medium text-[#1C2622] shadow-2xs transition-colors"
               >
-                <Download className="h-3.5 w-3.5 text-[#64748B]" />
+                <Download className="h-3.5 w-3.5 text-[#66756D]" />
                 <span>DOCX</span>
               </a>
             )}
@@ -251,7 +282,7 @@ function DocumentReviewContent({ id }: { id: string }) {
               <a
                 href={doc.pdfUrl}
                 download
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold shadow-xs transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-semibold shadow-xs transition-colors"
                 title="Download latest generated or signed PDF"
               >
                 <FileDown className="h-3.5 w-3.5" />
@@ -262,7 +293,7 @@ function DocumentReviewContent({ id }: { id: string }) {
             {isAdmin && (
               <button
                 onClick={handleDeleteDoc}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FECDD3] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-xs font-medium text-[#E11D48] shadow-2xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#F7C8C4] bg-[#FDF2F0] hover:bg-[#FCE8E6] text-xs font-medium text-[#C24138] shadow-2xs transition-colors"
                 title="Delete Document (Admin)"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -279,24 +310,24 @@ function DocumentReviewContent({ id }: { id: string }) {
 
         {/* Status Callout Banner */}
         {doc.status === "DRAFT" && (
-          <div className="p-4 rounded-lg bg-[#F8FAFC] border border-[#CBD5E1] text-xs text-[#334155] flex items-start gap-3 shadow-2xs">
-            <Clock className="h-5 w-5 text-[#64748B] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-xl bg-[#FAF8F4] border border-[#E5DFD5] text-xs text-[#2D3934] flex items-start gap-3 shadow-2xs">
+            <Clock className="h-5 w-5 text-[#66756D] shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-bold text-[#18181B] block">
+              <span className="font-bold text-[#1C2622] block">
                 Private Draft • Not Submitted to Faculty
               </span>
-              <p className="text-[#475569]">
+              <p className="text-[#55645C]">
                 This document is strictly in draft status and has NOT been sent to the faculty coordinator.
                 You can freely edit the parameters below and regenerate. When you are finished, click{" "}
-                <strong className="text-[#18181B]">"Submit to Faculty for Approval"</strong> to send it for formal review.
+                <strong className="text-[#1C2622]">"Submit to Faculty for Approval"</strong> to send it for formal review.
               </p>
             </div>
           </div>
         )}
 
         {doc.status === "SUBMITTED" && (
-          <div className="p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-xs text-[#92400E] flex items-start gap-3 shadow-2xs">
-            <Clock className="h-5 w-5 text-[#D97706] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-xl bg-[#FEF3E6] border border-[#FBD8B3] text-xs text-[#92400E] flex items-start gap-3 shadow-2xs">
+            <Clock className="h-5 w-5 text-[#D9822B] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold text-[#92400E] block">
                 Submitted to Faculty Coordinator • In Review Queue
@@ -310,14 +341,14 @@ function DocumentReviewContent({ id }: { id: string }) {
         )}
 
         {doc.status === "CHANGES_REQUESTED" && (
-          <div className="p-4 rounded-lg bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
-            <AlertCircle className="h-5 w-5 text-[#E11D48] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-xl bg-[#FDF2F0] border border-[#F7C8C4] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
+            <AlertCircle className="h-5 w-5 text-[#C24138] shrink-0 mt-0.5" />
             <div className="space-y-1.5 flex-1">
               <span className="font-bold text-[#9F1239] block text-sm">
                 Action Required: Faculty Coordinator Requested Changes
               </span>
               {doc.reviewComments && (
-                <div className="p-2.5 rounded bg-white/80 border border-[#FECDD3] text-xs text-[#881337]">
+                <div className="p-2.5 rounded-lg bg-white/80 border border-[#F7C8C4] text-xs text-[#881337]">
                   <span className="font-semibold block mb-0.5">Faculty Remarks:</span>
                   <p className="italic">"{doc.reviewComments}"</p>
                   {doc.approvedBy && (
@@ -335,18 +366,18 @@ function DocumentReviewContent({ id }: { id: string }) {
         )}
 
         {doc.status === "APPROVED" && (
-          <div className="p-4 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0] text-xs text-[#065F46] flex items-start gap-3 shadow-2xs">
-            <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-xl bg-[#E7F3ED] border border-[#BCD8CB] text-xs text-[#1A5A48] flex items-start gap-3 shadow-2xs">
+            <CheckCircle2 className="h-5 w-5 text-[#1F6954] shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-bold text-[#065F46] block text-sm">
+              <span className="font-bold text-[#1A5A48] block text-sm">
                 Officially Approved & Endorsed
               </span>
-              <p className="text-[#047857]">
+              <p className="text-[#1F6954]">
                 Signed off by <strong>{doc.approvedBy || "Faculty Coordinator"}</strong>
                 {doc.approvedAt && ` on ${new Date(doc.approvedAt).toLocaleDateString()}`}.
               </p>
               {doc.reviewComments && (
-                <p className="text-[11px] italic text-[#065F46] mt-0.5">
+                <p className="text-[11px] italic text-[#1A5A48] mt-0.5">
                   Endorsement Note: "{doc.reviewComments}"
                 </p>
               )}
@@ -355,8 +386,8 @@ function DocumentReviewContent({ id }: { id: string }) {
         )}
 
         {doc.status === "REJECTED" && (
-          <div className="p-4 rounded-lg bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
-            <AlertCircle className="h-5 w-5 text-[#E11D48] shrink-0 mt-0.5" />
+          <div className="p-4 rounded-xl bg-[#FDF2F0] border border-[#F7C8C4] text-xs text-[#9F1239] flex items-start gap-3 shadow-2xs">
+            <AlertCircle className="h-5 w-5 text-[#C24138] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold text-[#9F1239] block">Document Rejected</span>
               <p className="text-[#BE123C]">
@@ -369,14 +400,14 @@ function DocumentReviewContent({ id }: { id: string }) {
 
         {/* Feedback Messages */}
         {actionSuccess && (
-          <div className="p-3.5 rounded-md bg-[#ECFDF5] border border-[#A7F3D0] text-xs text-[#059669] flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-[#E7F3ED] border border-[#BCD8CB] text-xs text-[#1A5A48] flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1F6954]" />
             <span>{actionSuccess}</span>
           </div>
         )}
 
         {errorMsg && (
-          <div className="p-3.5 rounded-md bg-[#FEF2F2] border border-[#FECDD3] text-xs text-[#E11D48] flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-[#FDF2F0] border border-[#F7C8C4] text-xs text-[#C24138] flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -385,12 +416,12 @@ function DocumentReviewContent({ id }: { id: string }) {
         {/* Side-by-Side Split Review: Left Editable Parameters, Right PDF Canvas */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Panel: Structured Field Editor (5 Cols) */}
-          <div className="lg:col-span-5 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#E2E8F0] bg-[#FCFDFE] flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
+          <div className="lg:col-span-5 rounded-xl border border-[#E5DFD5] bg-white shadow-2xs overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-[#E5DFD5] bg-[#FAF8F4] flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-[#1C2622] uppercase tracking-wider">
                 1. Edit Document Parameters
               </h2>
-              <span className="text-[10px] text-[#64748B]">Auto-synced</span>
+              <span className="text-[10px] text-[#7A8A81]">Auto-synced</span>
             </div>
 
             <div className="p-4 space-y-3.5 text-xs max-h-[560px] overflow-y-auto">
@@ -404,7 +435,11 @@ function DocumentReviewContent({ id }: { id: string }) {
                     key === "currentDate" ||
                     key === "universityName" ||
                     key === "department" ||
-                    key === "clubName"
+                    key === "clubName" ||
+                    key === "collegeName" ||
+                    key === "branch" ||
+                    key.toLowerCase().includes("college") ||
+                    key.toLowerCase().includes("branch")
                   ) {
                     return null;
                   }
@@ -425,11 +460,25 @@ function DocumentReviewContent({ id }: { id: string }) {
                     key.toLowerCase().includes("budget") ||
                     key.toLowerCase().includes("participants");
 
+                  const isSigField =
+                    key.toLowerCase().includes("signature") ||
+                    key.toLowerCase().includes("sign") ||
+                    (typeof value === "string" && value.toLowerCase().includes("signature"));
+
                   return (
-                    <div key={key}>
-                      <label className="font-semibold text-[#18181B] block mb-1">
-                        {formattedLabel}
-                      </label>
+                    <div key={key} className="p-2.5 rounded-lg border border-[#E5DFD5]/80 bg-[#FAF8F4]/50 hover:bg-[#FAF8F4] transition-colors">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label className="font-semibold text-[#1C2622]">
+                            {formattedLabel}
+                          </label>
+                          {isSigField && (
+                            <span className="text-[9px] font-semibold text-[#1A5A48] bg-[#E7F3ED] border border-[#BCD8CB] px-1.5 py-0.5 rounded">
+                              Signature Placeholder (Online / Offline)
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       {isMultiline ? (
                         <textarea
                           rows={2}
@@ -437,7 +486,7 @@ function DocumentReviewContent({ id }: { id: string }) {
                           onChange={(e) =>
                             setEditableData({ ...editableData, [key]: e.target.value })
                           }
-                          className="w-full p-2 rounded border border-[#E2E8F0] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all text-xs"
                         />
                       ) : (
                         <input
@@ -449,7 +498,8 @@ function DocumentReviewContent({ id }: { id: string }) {
                               [key]: isNumberField && e.target.value !== "" ? Number(e.target.value) : e.target.value,
                             })
                           }
-                          className="w-full p-2 rounded border border-[#E2E8F0] focus:ring-1 focus:ring-[#4F46E5] focus:outline-hidden"
+                          placeholder={isSigField ? "e.g. Signature of Dean (Online or Offline)" : ""}
+                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all text-xs"
                         />
                       )}
                     </div>
@@ -457,12 +507,108 @@ function DocumentReviewContent({ id }: { id: string }) {
                 })
               )}
 
+              {/* Add Additional Field Section */}
+              <div className="pt-2 border-t border-dashed border-[#E5DFD5]">
+                {!showAddField ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddField(true)}
+                    className="w-full py-2 px-3 rounded-lg border border-dashed border-[#BCD8CB] bg-[#F4F9F6] hover:bg-[#E7F3ED] text-[#1F6954] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Additional Field / Signature</span>
+                  </button>
+                ) : (
+                  <div className="p-3 rounded-xl border border-[#BCD8CB] bg-[#F4F9F6] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#1C2622] text-xs">Add New Document Field</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddField(false)}
+                        className="text-[#7A8A81] hover:text-[#1C2622] text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-[#55645C] block">
+                        Field Label or Authority Designation
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dean Academics Signature or Mode of Event"
+                        value={newFieldLabel}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewFieldLabel(val);
+                          if (/signature|sign\b/i.test(val)) {
+                            setIsSignatureField(true);
+                          }
+                        }}
+                        className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-[#55645C] block">
+                        Field Value / Initial Content
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={isSignatureField ? "(Signature: Online or Offline)" : "Value or text content"}
+                        value={newFieldValue}
+                        onChange={(e) => setNewFieldValue(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="isSigCheckbox"
+                        checked={isSignatureField}
+                        onChange={(e) => setIsSignatureField(e.target.checked)}
+                        className="rounded border-[#BCD8CB] text-[#1F6954] focus:ring-[#1F6954] h-3.5 w-3.5"
+                      />
+                      <label htmlFor="isSigCheckbox" className="text-xs font-semibold text-[#1C2622] cursor-pointer flex items-center gap-1">
+                        <PenTool className="h-3 w-3 text-[#1F6954]" />
+                        <span>Treat as Signature Placeholder (Online or Offline sign-off)</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleAddNewField}
+                        disabled={!newFieldLabel.trim()}
+                        className="flex-1 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white font-semibold text-xs transition-colors disabled:opacity-50"
+                      >
+                        Insert Field into Document
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddField(false);
+                          setNewFieldLabel("");
+                          setNewFieldValue("");
+                          setIsSignatureField(false);
+                        }}
+                        className="py-1.5 px-3 rounded-lg border border-[#E5DFD5] bg-white hover:bg-[#FAF8F4] text-[#55645C] text-xs transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
+              <div className="pt-3 border-t border-[#E5DFD5] space-y-2">
                 <button
                   onClick={handleRegenerate}
                   disabled={regenerating}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold shadow-xs transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white font-semibold shadow-xs transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`h-4 w-4 ${regenerating ? "animate-spin" : ""}`} />
                   <span>
@@ -474,9 +620,9 @@ function DocumentReviewContent({ id }: { id: string }) {
                   <button
                     onClick={handleSubmitApproval}
                     disabled={submitting}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-md bg-[#059669] hover:bg-[#047857] text-white font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#E7F3ED] hover:bg-[#DDF0E6] text-[#1A5A48] border border-[#BCD8CB] font-semibold text-xs shadow-2xs transition-colors disabled:opacity-50"
                   >
-                    <Send className="h-3.5 w-3.5" />
+                    <Send className="h-3.5 w-3.5 text-[#1F6954]" />
                     <span>
                       {submitting
                         ? "Submitting to Queue..."
@@ -491,11 +637,11 @@ function DocumentReviewContent({ id }: { id: string }) {
           </div>
 
           {/* Right Panel: Embedded PDF Preview & Viewer (7 Cols) */}
-          <div className="lg:col-span-7 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden flex flex-col h-[680px]">
-            <div className="px-4 py-3 border-b border-[#E2E8F0] bg-[#FCFDFE] flex items-center justify-between">
+          <div className="lg:col-span-7 rounded-xl border border-[#E5DFD5] bg-white shadow-2xs overflow-hidden flex flex-col h-[680px]">
+            <div className="px-4 py-3.5 border-b border-[#E5DFD5] bg-[#FAF8F4] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[#4F46E5]" />
-                <h2 className="text-xs font-semibold text-[#18181B] uppercase tracking-wider">
+                <FileText className="h-4 w-4 text-[#1F6954]" />
+                <h2 className="text-xs font-semibold text-[#1C2622] uppercase tracking-wider">
                   2. Rendered PDF Output
                 </h2>
               </div>
@@ -505,7 +651,7 @@ function DocumentReviewContent({ id }: { id: string }) {
                   href={doc.pdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-[#4F46E5] hover:underline flex items-center gap-1 font-medium"
+                  className="text-xs text-[#1F6954] hover:text-[#175342] flex items-center gap-1 font-medium transition-colors"
                 >
                   <span>Open in Full Tab</span>
                   <ExternalLink className="h-3 w-3" />
@@ -513,15 +659,15 @@ function DocumentReviewContent({ id }: { id: string }) {
               )}
             </div>
 
-            <div className="flex-1 bg-[#F1F5F9] p-3 overflow-hidden flex items-center justify-center">
+            <div className="flex-1 bg-[#EFECE6] p-3 overflow-hidden flex items-center justify-center">
               {doc.pdfUrl ? (
                 <iframe
                   src={`${doc.pdfUrl}#toolbar=0&navpanes=0`}
                   title={doc.title}
-                  className="w-full h-full rounded border border-[#CBD5E1] bg-white shadow-xs"
+                  className="w-full h-full rounded-lg border border-[#D8D2C7] bg-white shadow-xs"
                 />
               ) : (
-                <div className="text-center text-xs text-[#64748B]">
+                <div className="text-center text-xs text-[#7A8A81]">
                   PDF preview not generated yet.
                 </div>
               )}
@@ -531,16 +677,16 @@ function DocumentReviewContent({ id }: { id: string }) {
 
         {/* Version History Modal */}
         {showHistoryModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-lg max-w-lg w-full p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+          <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-[#E5DFD5] shadow-xl max-w-lg w-full p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-3">
                 <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 text-[#4F46E5]" />
-                  <h3 className="font-bold text-sm text-[#18181B]">Document Version History</h3>
+                  <History className="h-4 w-4 text-[#1F6954]" />
+                  <h3 className="font-bold text-sm text-[#1C2622]">Document Version History</h3>
                 </div>
                 <button
                   onClick={() => setShowHistoryModal(false)}
-                  className="text-xs text-[#64748B] hover:text-[#18181B]"
+                  className="text-xs text-[#7A8A81] hover:text-[#1C2622]"
                 >
                   ✕ Close
                 </button>
@@ -550,18 +696,18 @@ function DocumentReviewContent({ id }: { id: string }) {
                 {versions.map((ver) => (
                   <div
                     key={ver.id}
-                    className="p-3 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] space-y-1.5 text-xs"
+                    className="p-3.5 rounded-xl border border-[#E5DFD5] bg-[#FAF8F4] space-y-1.5 text-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#18181B]">Version {ver.versionNumber}</span>
-                      <span className="text-[10px] text-[#64748B]">
+                      <span className="font-bold text-[#1C2622]">Version {ver.versionNumber}</span>
+                      <span className="text-[10px] text-[#7A8A81]">
                         {new Date(ver.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-[#475569]">{ver.changeSummary}</p>
+                    <p className="text-[#55645C]">{ver.changeSummary}</p>
                     <div className="pt-2 flex items-center gap-3 text-[11px]">
                       {ver.docxUrl && (
-                        <a href={ver.docxUrl} download className="text-[#4F46E5] hover:underline">
+                        <a href={ver.docxUrl} download className="text-[#1F6954] hover:text-[#175342] font-medium">
                           Download DOCX
                         </a>
                       )}
@@ -570,7 +716,7 @@ function DocumentReviewContent({ id }: { id: string }) {
                           href={ver.pdfUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[#4F46E5] hover:underline"
+                          className="text-[#1F6954] hover:text-[#175342] font-medium"
                         >
                           View PDF
                         </a>
@@ -608,7 +754,7 @@ function DocumentReviewPageInner({ params }: { params: Promise<{ id: string }> }
 
 export default function DocumentReviewPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-[#64748B]">Loading review studio...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#7A8A81]">Loading review studio...</div>}>
       <DocumentReviewPageInner params={params} />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbStore } from "@/lib/db/store";
 import { generateDocument, validateTemplateSubmission } from "@/lib/document-engine/generator";
+import { isStaticInstitutionalMetadata } from "@/lib/document-engine/analyzer";
 import { evaluateMissingFields, isEventComplete } from "@/schemas/event.schema";
 
 export async function POST(
@@ -35,6 +36,82 @@ export async function POST(
       ...document.dataSnapshot,
       ...(updatedEventData || {}),
     };
+
+    // Sync any newly added fields and signature placeholders to template
+    let templateUpdated = false;
+    const currentFields = [...(template.fields || [])];
+    const currentSigFields = [...(template.signatureFields || [])];
+
+    for (const [key, val] of Object.entries(mergedData)) {
+      if (
+        key === "formattedBudget" ||
+        key === "formattedDateRange" ||
+        key === "currentDate" ||
+        key === "universityName" ||
+        key === "department" ||
+        key === "clubName" ||
+        isStaticInstitutionalMetadata(key, key)
+      ) {
+        continue;
+      }
+
+      const lowerKey = key.toLowerCase();
+      const valStr = typeof val === "string" ? val : "";
+      const isSig = lowerKey.includes("signature") || lowerKey.includes("sign") || valStr.toLowerCase().includes("signature");
+
+      // Check if exists in fields
+      const fieldExists = currentFields.some((f) => f.name === key || f.id === key);
+      if (!fieldExists) {
+        currentFields.push({
+          id: "fld_" + key,
+          name: key,
+          label: key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase()),
+          type: isSig ? "signature" : "text",
+          required: false,
+          confidence: 1.0,
+          adminConfirmed: true,
+          isSignature: isSig,
+          signMethod: "BOTH",
+        });
+        templateUpdated = true;
+      }
+
+      // If signature, check if exists in signatureFields
+      if (isSig) {
+        const sigExists = currentSigFields.some((s) => s.name === key || s.id === `sig_${key}`);
+        if (!sigExists) {
+          const order = currentSigFields.length + 1;
+          const isLeft = order % 2 === 1;
+          const designation = valStr && !valStr.toLowerCase().includes("online or offline")
+            ? valStr
+            : key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase());
+
+          currentSigFields.push({
+            id: `sig_${key}`,
+            name: key,
+            printedName: "",
+            designation,
+            assignedRole: key.toUpperCase().replace(/[^A-Z0-9]+/g, "_"),
+            pageNumber: 1,
+            position: { x: isLeft ? 72 : 380, y: 120, width: 140, height: 45 },
+            required: true,
+            signingOrder: order,
+            actionType: "SIGNATURE_ONLY",
+            signMethod: "BOTH",
+          });
+          templateUpdated = true;
+        }
+      }
+    }
+
+    if (templateUpdated) {
+      template.fields = currentFields;
+      template.signatureFields = currentSigFields;
+      dbStore.updateTemplate(template.id, {
+        fields: currentFields,
+        signatureFields: currentSigFields,
+      });
+    }
 
     // Central Server-side validation
     const validation = validateTemplateSubmission(template, mergedData);

@@ -2,39 +2,43 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #18181b;
-    --card: #ffffff;
-    --card-foreground: #18181b;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --primary: #4f46e5;
-    --primary-foreground: #ffffff;
-    --primary-hover: #4338ca;
-    --secondary: #f8fafc;
-    --secondary-foreground: #0f172a;
-    --accent: #f1f5f9;
-    --accent-foreground: #0f172a;
-    --success: #059669;
-    --success-foreground: #ffffff;
-    --warning: #d97706;
-    --warning-foreground: #ffffff;
-    --destructive: #e11d48;
-    --destructive-foreground: #ffffff;
-    --ring: #4f46e5;
+    --background: #F8F6F0;
+    --foreground: #1C2622;
+    --card: #FFFFFF;
+    --card-foreground: #1C2622;
+    --card-warm: #FCFAF7;
+    --muted: #EFECE6;
+    --muted-foreground: #66756D;
+    --border: #E5DFD5;
+    --input: #E5DFD5;
+    --primary: #1F6954;
+    --primary-foreground: #FFFFFF;
+    --primary-hover: #175342;
+    --primary-light: #E7F3ED;
+    --primary-light-border: #BCD8CB;
+    --primary-light-foreground: #1A5A48;
+    --secondary: #EFECE6;
+    --secondary-foreground: #1C2622;
+    --accent: #E7F3ED;
+    --accent-foreground: #1F6954;
+    --success: #1F6954;
+    --success-foreground: #FFFFFF;
+    --warning: #D9822B;
+    --warning-foreground: #FFFFFF;
+    --destructive: #C24138;
+    --destructive-foreground: #FFFFFF;
+    --ring: #1F6954;
   }
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: #F8F6F0;
+  color: #1C2622;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle, crisp custom scrollbars */
+/* Subtle, crisp custom scrollbars matching warm aesthetic */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -43,9 +47,16 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D8D2C7;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #B8B0A2;
+}
+
+/* Soft transition for interactive elements */
+a, button {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

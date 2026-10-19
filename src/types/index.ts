@@ -97,7 +97,8 @@ export type FieldDataType =
   | "email"
   | "phone"
   | "textarea"
-  | "select";
+  | "select"
+  | "signature";
 
 export interface TemplateField {
   id: string;
@@ -109,6 +110,9 @@ export interface TemplateField {
   isFixed?: boolean;
   fixedValue?: string;
   isSystem?: boolean;
+  isSignature?: boolean;
+  signMethod?: "ONLINE" | "OFFLINE" | "BOTH";
+  defaultValue?: string;
   pageNumber?: number;
   boundingBox?: {
     x: number;
@@ -164,6 +168,7 @@ export interface TemplateSignatureField {
   signingOrder: number; // 1, 2, 3...
   actionType?: "SIGNATURE_ONLY" | "APPROVAL_ONLY" | "APPROVAL_AND_SIGNATURE";
   includeDate?: boolean;
+  signMethod?: "ONLINE" | "OFFLINE" | "BOTH";
 }
 
 export interface SignatureRequest {
@@ -194,6 +199,10 @@ export interface SignatureRequest {
   declineReason?: string;
   emailDeliveryStatus?: "PENDING" | "SENT" | "DELIVERED" | "FAILED";
   emailDeliveryError?: string;
+  signatureMethod?: "ONLINE" | "OFFLINE";
+  offlineSignerName?: string;
+  offlineSignDate?: string;
+  offlineNote?: string;
 }
 
 export interface WorkflowEvent {
@@ -205,6 +214,7 @@ export interface WorkflowEvent {
     | "EMAIL_SENT"
     | "DOCUMENT_VIEWED"
     | "DOCUMENT_SIGNED"
+    | "DOCUMENT_SIGNED_OFFLINE"
     | "NEXT_AUTHORITY_NOTIFIED"
     | "REQUEST_DECLINED"
     | "WORKFLOW_COMPLETED"

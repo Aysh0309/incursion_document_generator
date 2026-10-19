@@ -126,12 +126,12 @@ export default function DocumentsLibraryPage() {
     <AppShell>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-[#E2E8F0] bg-white shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl border border-[#E5DFD5] bg-white shadow-2xs">
           <div>
-            <h1 className="text-base font-bold text-[#18181B] tracking-tight">
+            <h1 className="text-base font-bold text-[#1C2622] tracking-tight">
               Document Archive & Outputs
             </h1>
-            <p className="text-xs text-[#64748B]">
+            <p className="text-xs text-[#7A8A81] mt-0.5">
               Browse, inspect, and export compiled OpenXML (.docx) and Vectorized (.pdf) documents.
             </p>
           </div>
@@ -140,7 +140,7 @@ export default function DocumentsLibraryPage() {
             {isAdmin && selectedDocIds.length > 0 && (
               <button
                 onClick={handleBatchDelete}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#FECDD3] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-xs font-semibold text-[#E11D48] shadow-2xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#F7C8C4] bg-[#FDF2F0] hover:bg-[#FCE8E6] text-xs font-semibold text-[#C24138] shadow-2xs transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Delete Selected ({selectedDocIds.length})</span>
@@ -151,9 +151,9 @@ export default function DocumentsLibraryPage() {
               <a
                 href={batchZipUrl}
                 download
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#18181B] shadow-2xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5DFD5] bg-white hover:bg-[#FAF8F4] text-xs font-semibold text-[#1C2622] shadow-2xs transition-colors"
               >
-                <Package className="h-3.5 w-3.5 text-[#4F46E5]" />
+                <Package className="h-3.5 w-3.5 text-[#1F6954]" />
                 <span>
                   {selectedDocIds.length > 0
                     ? `Download Selected ZIP (${selectedDocIds.length})`
@@ -164,7 +164,7 @@ export default function DocumentsLibraryPage() {
 
             <Link
               href="/events/new"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-semibold shadow-xs transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span>Create New Document</span>
@@ -173,8 +173,8 @@ export default function DocumentsLibraryPage() {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#64748B] font-medium flex items-center gap-1">
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="text-[#66756D] font-medium flex items-center gap-1 mr-1">
             <Filter className="h-3 w-3" />
             <span>Filter by:</span>
           </span>
@@ -182,10 +182,10 @@ export default function DocumentsLibraryPage() {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 statusFilter === st
-                  ? "bg-[#4F46E5] text-white"
-                  : "bg-white border border-[#E2E8F0] text-[#64748B] hover:bg-[#F1F5F9]"
+                  ? "bg-[#1F6954] text-white shadow-2xs"
+                  : "bg-white border border-[#E5DFD5] text-[#66756D] hover:bg-[#FAF8F4]"
               }`}
             >
               {st.replace(/_/g, " ")}
@@ -194,19 +194,19 @@ export default function DocumentsLibraryPage() {
         </div>
 
         {/* Documents Table */}
-        <div className="rounded-lg border border-[#E2E8F0] bg-white shadow-2xs overflow-hidden">
+        <div className="rounded-xl border border-[#E5DFD5] bg-white shadow-2xs overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-xs text-[#64748B]">Loading archive...</div>
+            <div className="p-8 text-center text-xs text-[#7A8A81]">Loading archive...</div>
           ) : filteredDocs.length === 0 ? (
             <div className="p-12 text-center space-y-2">
-              <FileText className="h-8 w-8 text-[#94A3B8] mx-auto" />
-              <p className="text-xs font-medium text-[#18181B]">No documents matching filter</p>
-              <p className="text-[11px] text-[#64748B]">
+              <FileText className="h-8 w-8 text-[#A3B0A8] mx-auto" />
+              <p className="text-xs font-medium text-[#1C2622]">No documents matching filter</p>
+              <p className="text-[11px] text-[#7A8A81]">
                 Generate an event document from the studio to view it here.
               </p>
               <Link
                 href="/events/new"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-[#4F46E5] text-white text-xs font-medium mt-2"
+                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-medium mt-2 shadow-2xs"
               >
                 <span>Create Documents</span>
               </Link>
@@ -214,7 +214,7 @@ export default function DocumentsLibraryPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#F8FAFC] text-[#64748B] border-b border-[#E2E8F0]">
+                <thead className="bg-[#F5F2EC] text-[#66756D] border-b border-[#E5DFD5]">
                   <tr>
                     <th className="py-2.5 px-3 w-8">
                       <input
@@ -224,7 +224,7 @@ export default function DocumentsLibraryPage() {
                           filteredDocs.length > 0
                         }
                         onChange={handleSelectAll}
-                        className="rounded text-[#4F46E5]"
+                        className="rounded accent-[#1F6954]"
                       />
                     </th>
                     <th className="py-2.5 px-4 font-medium">Document Title</th>
@@ -234,35 +234,35 @@ export default function DocumentsLibraryPage() {
                     <th className="py-2.5 px-4 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
+                <tbody className="divide-y divide-[#E5DFD5]">
                   {filteredDocs.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-[#F8FAFC] transition-colors">
+                    <tr key={doc.id} className="hover:bg-[#FAF8F4] transition-colors">
                       <td className="py-3 px-3">
                         <input
                           type="checkbox"
                           checked={selectedDocIds.includes(doc.id)}
                           onChange={() => toggleSelect(doc.id)}
-                          className="rounded text-[#4F46E5]"
+                          className="rounded accent-[#1F6954]"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <Link
                           href={`/documents/${doc.id}`}
-                          className="font-semibold text-[#18181B] hover:text-[#4F46E5] block"
+                          className="font-semibold text-[#1C2622] hover:text-[#1F6954] block transition-colors"
                         >
                           {doc.title}
                         </Link>
-                        <span className="text-[10px] text-[#64748B]">
+                        <span className="text-[10px] text-[#7A8A81]">
                           Created {new Date(doc.createdAt).toLocaleDateString()}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="text-[11px] text-[#475569]">
+                        <span className="text-[11px] text-[#55645C]">
                           {doc.documentType.replace(/_/g, " ")}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#475569] font-bold">
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#EFECE6] text-[#55645C] font-bold border border-[#E5DFD5]">
                           v{doc.currentVersion}
                         </span>
                       </td>
@@ -270,12 +270,12 @@ export default function DocumentsLibraryPage() {
                         <span
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
                             doc.status === "APPROVED"
-                              ? "bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0]"
+                              ? "bg-[#E7F3ED] text-[#1A5A48] border border-[#BCD8CB]"
                               : doc.status === "CHANGES_REQUESTED"
-                              ? "bg-[#FEF2F2] text-[#E11D48] border border-[#FECDD3]"
+                              ? "bg-[#FDF2F0] text-[#C24138] border border-[#F7C8C4]"
                               : doc.status === "SUBMITTED"
-                              ? "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]"
-                              : "bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]"
+                              ? "bg-[#FEF3E6] text-[#D9822B] border border-[#FBD8B3]"
+                              : "bg-[#EFECE6] text-[#55645C] border border-[#E5DFD5]"
                           }`}
                         >
                           {doc.status.replace(/_/g, " ")}
@@ -287,7 +287,7 @@ export default function DocumentsLibraryPage() {
                             <a
                               href={doc.docxUrl}
                               download
-                              className="px-2 py-1 rounded border border-[#E2E8F0] hover:bg-[#F1F5F9] text-[#475569] text-[10px] font-medium inline-flex items-center gap-1"
+                              className="px-2 py-1 rounded-md border border-[#E5DFD5] hover:bg-[#EFECE6] text-[#55645C] text-[10px] font-medium inline-flex items-center gap-1 transition-colors"
                               title="Download DOCX"
                             >
                               <span>DOCX</span>
@@ -297,7 +297,7 @@ export default function DocumentsLibraryPage() {
                             <a
                               href={doc.pdfUrl}
                               download
-                              className="px-2 py-1 rounded bg-[#EEF2FF] hover:bg-[#E0E7FF] text-[#4F46E5] text-[10px] font-medium inline-flex items-center gap-1"
+                              className="px-2 py-1 rounded-md bg-[#E7F3ED] hover:bg-[#DDF0E6] text-[#1A5A48] border border-[#BCD8CB] text-[10px] font-medium inline-flex items-center gap-1 transition-colors"
                               title="Download PDF"
                             >
                               <span>PDF</span>
@@ -305,7 +305,7 @@ export default function DocumentsLibraryPage() {
                           )}
                           <Link
                             href={`/documents/${doc.id}`}
-                            className="p-1 text-[#64748B] hover:text-[#18181B]"
+                            className="p-1 text-[#7A8A81] hover:text-[#1F6954] transition-colors"
                             title="Open Review Studio"
                           >
                             <ArrowRight className="h-3.5 w-3.5" />
@@ -315,7 +315,7 @@ export default function DocumentsLibraryPage() {
                             <button
                               onClick={() => handleDelete(doc.id, doc.title)}
                               disabled={deletingId === doc.id}
-                              className="p-1 rounded text-[#94A3B8] hover:text-[#E11D48] hover:bg-[#FEF2F2] transition-colors ml-1 disabled:opacity-50"
+                              className="p-1 rounded text-[#A3B0A8] hover:text-[#C24138] hover:bg-[#FDF2F0] transition-colors ml-1 disabled:opacity-50"
                               title="Delete Document (Admin)"
                             >
                               <Trash2 className="h-3.5 w-3.5" />

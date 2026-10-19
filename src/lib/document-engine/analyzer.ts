@@ -27,36 +27,34 @@ export function normalizeFieldKey(label: string): string {
 
   // Common synonyms mapping
   const lower = cleaned.toLowerCase();
-  if (lower === "event name" || lower === "event title" || lower === "name of event" || lower === "title" || lower === "title of the event") return "eventName";
-  if (lower === "date" || lower === "event date" || lower === "date of event" || lower === "start date" || lower === "schedule of event date day" || lower === "schedule of event") return "startDate";
-  if (lower === "end date") return "endDate";
-  if (lower === "time" || lower === "start time" || lower === "timings") return "startTime";
+  if (lower === "event name" || lower === "event title" || lower === "name of event" || lower === "title" || lower === "title of the event" || lower === "name of the event") return "eventName";
+  if (lower === "date" || lower === "event date" || lower === "date of event" || lower === "start date" || lower === "schedule of event date day" || lower === "schedule of event" || lower === "date s" || lower === "date of submission") return "startDate";
+  if (lower === "end date" || lower === "closing date") return "endDate";
+  if (lower === "time" || lower === "start time" || lower === "timings" || lower === "timing" || lower === "schedule") return "startTime";
   if (lower === "end time") return "endTime";
-  if (lower === "venue" || lower === "location" || lower === "place" || lower === "room" || lower === "lab" || lower === "event venue") return "venue";
+  if (lower === "venue" || lower === "location" || lower === "place" || lower === "room" || lower === "lab" || lower === "event venue" || lower === "requested venue lab") return "venue";
   if (lower === "department" || lower === "dept") return "department";
   if (lower === "hod" || lower === "head of department" || lower === "department hod") return "departmentHOD";
-  if (lower === "faculty coordinator" || lower === "coordinator" || lower === "faculty advisor") return "facultyCoordinator";
-  if (lower === "organizer" || lower === "organizer name" || lower === "student lead" || lower === "lead") return "organizerName";
-  if (lower === "budget" || lower === "budget requested" || lower === "estimated budget" || lower === "amount") return "budgetRequested";
-  if (lower === "participants" || lower === "expected participants" || lower === "attendees" || lower === "student attendance" || lower === "expectednumberof participants" || lower === "expected number of participants") return "expectedParticipants";
-  if (lower === "description" || lower === "event description" || lower === "synopsis" || lower === "brief description") return "eventDescription";
-  if (lower === "target audience" || lower === "audience") return "targetAudience";
-  if (lower === "speaker" || lower === "guest" || lower === "resource person" || lower === "speaker name") return "speakerName";
+  if (lower === "faculty coordinator" || lower === "coordinator" || lower === "faculty advisor" || lower === "faculty incharge" || lower === "faculty in charge") return "facultyCoordinator";
+  if (lower === "organizer" || lower === "organizer name" || lower === "student lead" || lower === "lead" || lower === "student coordinator" || lower === "student head" || lower === "student secretary") return "organizerName";
+  if (lower === "budget" || lower === "budget requested" || lower === "estimated budget" || lower === "amount" || lower === "estimated expenditure" || lower === "budget proposal" || lower === "financial proposal") return "budgetRequested";
+  if (lower === "participants" || lower === "expected participants" || lower === "attendees" || lower === "student attendance" || lower === "expectednumberof participants" || lower === "expected number of participants" || lower === "expected student attendance") return "expectedParticipants";
+  if (lower === "description" || lower === "event description" || lower === "synopsis" || lower === "brief description" || lower === "about the event" || lower === "objectives" || lower === "objectives overview") return "eventDescription";
+  if (lower === "target audience" || lower === "audience" || lower === "participants category") return "targetAudience";
+  if (lower === "speaker" || lower === "guest" || lower === "resource person" || lower === "speaker name" || lower === "keynote speaker" || lower === "chief guest") return "speakerName";
   if (lower === "speaker designation" || lower === "designation") return "speakerDesignation";
-  if (lower === "speaker organization" || lower === "organization") return "speakerOrganization";
-  if (lower === "contact email" || lower === "email") return "contactEmail";
-  if (lower === "contact phone" || lower === "phone" || lower === "mobile") return "contactPhone";
-  if (lower === "club" || lower === "club name" || lower === "student body" || lower === "chapter club society section name") return "clubName";
-  if (lower === "category of the event" || lower === "category") return "eventType";
-  if (lower === "subject") return "subject";
-  if (lower === "description" || lower === "event description" || lower === "objectives" || lower === "synopsis") return "eventDescription";
-  if (lower === "target audience" || lower === "audience") return "targetAudience";
-  if (lower === "speaker" || lower === "guest" || lower === "resource person" || lower === "speaker name") return "speakerName";
-  if (lower === "speaker designation" || lower === "designation") return "speakerDesignation";
-  if (lower === "speaker organization" || lower === "organization") return "speakerOrganization";
-  if (lower === "contact email" || lower === "email") return "contactEmail";
-  if (lower === "contact phone" || lower === "phone" || lower === "mobile") return "contactPhone";
-  if (lower === "club" || lower === "club name" || lower === "student body") return "clubName";
+  if (lower === "speaker organization" || lower === "organization" || lower === "speaker affiliation" || lower === "affiliation") return "speakerOrganization";
+  if (lower === "topic" || lower === "speaker topic" || lower === "talk topic" || lower === "theme" || lower === "focus area") return "speakerTopic";
+  if (lower === "contact email" || lower === "email" || lower === "mail id" || lower === "email address") return "contactEmail";
+  if (lower === "contact phone" || lower === "phone" || lower === "mobile" || lower === "contact no" || lower === "phone number") return "contactPhone";
+  if (lower === "club" || lower === "club name" || lower === "student body" || lower === "chapter club society section name" || lower === "organized by") return "clubName";
+  if (lower === "category of the event" || lower === "category" || lower === "event category" || lower === "type of event" || lower === "event type") return "eventType";
+  if (lower === "subject" || lower === "subj") return "subject";
+  if (lower === "no" || lower === "ref no" || lower === "ref" || lower === "doc no" || lower === "reference number" || lower === "document reference number") return "documentRefNumber";
+  if (lower === "submitted to" || lower === "submitted for approval to") return "submittedTo";
+  if (lower === "registration fee" || lower === "reg fee" || lower === "fees") return "registrationFee";
+  if (lower === "mode of event" || lower === "event mode" || lower === "mode") return "eventMode";
+  if (lower === "duration") return "duration";
 
   // Convert to camelCase
   const parts = cleaned.split(/[\s_-]+/);
@@ -75,14 +73,94 @@ export function normalizeFieldKey(label: string): string {
  */
 export function inferFieldType(key: string, label: string): FieldDataType {
   const combined = (key + " " + label).toLowerCase();
+  if (combined.includes("signature") || combined.includes("sign ") || combined.endsWith("sign") || combined.startsWith("sign")) return "signature";
   if (combined.includes("date")) return "date";
-  if (combined.includes("time")) return "time";
-  if (combined.includes("budget") || combined.includes("amount") || combined.includes("cost") || combined.includes("fee") || combined.includes("inr")) return "currency";
-  if (combined.includes("participant") || combined.includes("count") || combined.includes("attendee") || combined.includes("number")) return "number";
+  if (combined.includes("time") || combined.includes("timings")) return "time";
+  if (combined.includes("budget") || combined.includes("amount") || combined.includes("cost") || combined.includes("fee") || combined.includes("inr") || combined.includes("expense") || combined.includes("price")) return "currency";
+  if (combined.includes("participant") || combined.includes("count") || combined.includes("attendee") || combined.includes("number of") || combined.includes("strength")) return "number";
   if (combined.includes("email") || combined.includes("mail")) return "email";
-  if (combined.includes("phone") || combined.includes("mobile") || combined.includes("contact")) return "phone";
-  if (combined.includes("description") || combined.includes("objective") || combined.includes("synopsis") || combined.includes("overview")) return "textarea";
+  if (combined.includes("phone") || combined.includes("mobile") || combined.includes("contact no")) return "phone";
+  if (combined.includes("description") || combined.includes("objective") || combined.includes("synopsis") || combined.includes("overview") || combined.includes("about") || combined.includes("remarks") || combined.includes("note")) return "textarea";
   return "text";
+}
+
+/**
+ * Checks whether a detected label or normalized key represents static institutional/letterhead
+ * metadata (e.g. college name, branch, university, accreditation, address) that should NOT
+ * be added as an extra variable document field.
+ */
+export function isStaticInstitutionalMetadata(label: string, key?: string): boolean {
+  const clean = label
+    .trim()
+    .toLowerCase()
+    .replace(/[:_–—\(\)\[\]\/,\\.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const k = (key || normalizeFieldKey(label)).toLowerCase();
+
+  // Protect signatories / approvers
+  if (
+    clean.includes("hod") ||
+    clean.includes("head of department") ||
+    clean.includes("coordinator") ||
+    clean.includes("incharge") ||
+    clean.includes("advisor") ||
+    clean.includes("signature") ||
+    clean.includes("sign") ||
+    k.includes("hod") ||
+    k.includes("coordinator")
+  ) {
+    return false;
+  }
+
+  // 1. College / University / Institute names (e.g. "Name of the College", "College Name", "College", "University")
+  const collegeRegex =
+    /^(?:name\s+of\s+(?:the\s+)?(?:college|institute|institution|university|campus|school)|college(?:\s+name)?|institute(?:\s+name)?|institution(?:\s+name)?|university(?:\s+name)?|campus(?:\s+name)?|school(?:\s+name)?)$/i;
+  if (collegeRegex.test(clean)) return true;
+
+  const collegeKeys = [
+    "universityname",
+    "collegename",
+    "nameofthecollege",
+    "college",
+    "institutename",
+    "nameoftheinstitute",
+    "institutionname",
+    "nameoftheinstitution",
+    "campusname",
+    "nameoftheuniversity",
+    "nameofcollege",
+    "nameofinstitute",
+    "nameofinstitution",
+    "nameofuniversity",
+  ];
+  if (collegeKeys.includes(k)) return true;
+
+  // 2. Branch / Stream / Discipline / Department (e.g. "Branch", "Name of the Branch", "Branch Name", "Department")
+  const branchRegex =
+    /^(?:name\s+of\s+(?:the\s+)?(?:branch|stream|discipline|department)|branch(?:\s+name)?|stream|discipline|course(?:\s+name)?|programme(?:\s+name)?|program(?:\s+name)?|department(?:\s+name)?|dept)$/i;
+  if (branchRegex.test(clean)) return true;
+
+  const branchKeys = [
+    "branch",
+    "branchname",
+    "nameofthebranch",
+    "nameofbranch",
+    "stream",
+    "discipline",
+    "departmentname",
+    "nameofthedepartment",
+    "department",
+    "dept",
+  ];
+  if (branchKeys.includes(k)) return true;
+
+  // 3. Boilerplate institutional letterhead (affiliation, accreditation, address, pin code)
+  const boilerplateRegex =
+    /^(?:affiliated\s+to|affiliation|approved\s+by|accredited\s+by|aicte|naac|nba|autonomous|ugc|pincode|pin\s*code|postal\s*code|college\s*code|inst\w*\s*code|website|web\s*portal|fax(?:\s*no)?|office\s+use(?:\s+only)?|for\s+office\s+use(?:\s+only)?|address|college\s+address|institute\s+address)$/i;
+  if (boilerplateRegex.test(clean)) return true;
+
+  return false;
 }
 
 /**
@@ -110,14 +188,21 @@ export function detectSignatureSections(fullText: string): TemplateSignatureFiel
   const detected: TemplateSignatureField[] = [];
 
   const patterns = [
-    { regex: /signature\s+of\s+student\s+head/i, designation: "Signature of Student Head", role: "STUDENT_HEAD", defaultAuthorityId: "auth_student_head" },
-    { regex: /signature\s+of\s+student\s+secretary/i, designation: "Signature of Student Secretary", role: "STUDENT_SECRETARY", defaultAuthorityId: "auth_student_sec" },
-    { regex: /signature\s+of\s+faculty\s+co[\s-]?chairman/i, designation: "Signature of Faculty Co-Chairman", role: "FACULTY_CO_CHAIRMAN", defaultAuthorityId: "auth_faculty_cochair" },
-    { regex: /signature\s+of\s+faculty\s+chairman/i, designation: "Signature of Faculty Chairman", role: "FACULTY_CHAIRMAN", defaultAuthorityId: "auth_faculty_chair" },
-    { regex: /signature\s+of\s+faculty\s+coordinator|faculty\s+coordinator/i, designation: "Signature of Faculty Coordinator", role: "FACULTY_COORDINATOR", defaultAuthorityId: "auth_faculty_coord" },
-    { regex: /signature\s+of\s+head\s+of\s+department|signature\s+of\s+hod|head\s+of\s+department/i, designation: "Signature of Head of Department", role: "HOD", defaultAuthorityId: "auth_hod_cse" },
-    { regex: /associate\s+dean/i, designation: "Signature of Associate Dean", role: "ASSOCIATE_DEAN", defaultAuthorityId: "auth_dean_sw" },
-    { regex: /signature\s+of\s+dean|dean\s*\(\s*students?\s*welfare\s*\)/i, designation: "Signature of Dean (Student Welfare)", role: "DEAN", defaultAuthorityId: "auth_dean_sw" },
+    { regex: /signature\s+of\s+student\s+head/i, designation: "Signature of Student Head", role: "STUDENT_HEAD" },
+    { regex: /signature\s+of\s+student\s+secretary/i, designation: "Signature of Student Secretary", role: "STUDENT_SECRETARY" },
+    { regex: /signature\s+of\s+student\s+coordinator|student\s+coordinator\s+signature/i, designation: "Signature of Student Coordinator", role: "STUDENT_COORDINATOR" },
+    { regex: /signature\s+of\s+faculty\s+co[\s-]?chairman/i, designation: "Signature of Faculty Co-Chairman", role: "FACULTY_CO_CHAIRMAN" },
+    { regex: /signature\s+of\s+faculty\s+chairman/i, designation: "Signature of Faculty Chairman", role: "FACULTY_CHAIRMAN" },
+    { regex: /signature\s+of\s+faculty\s+coordinator|faculty\s+coordinator/i, designation: "Signature of Faculty Coordinator", role: "FACULTY_COORDINATOR" },
+    { regex: /signature\s+of\s+faculty\s+advisor|faculty\s+advisor\s+signature/i, designation: "Signature of Faculty Advisor", role: "FACULTY_ADVISOR" },
+    { regex: /signature\s+of\s+faculty\s+in[\s-]?charge|faculty\s+in[\s-]?charge/i, designation: "Signature of Faculty In-Charge", role: "FACULTY_INCHARGE" },
+    { regex: /signature\s+of\s+head\s+of\s+department|signature\s+of\s+hod|head\s+of\s+department/i, designation: "Signature of Head of Department", role: "HOD" },
+    { regex: /associate\s+dean/i, designation: "Signature of Associate Dean", role: "ASSOCIATE_DEAN" },
+    { regex: /signature\s+of\s+dean|dean\s*\(\s*students?\s*welfare\s*\)/i, designation: "Signature of Dean (Student Welfare)", role: "DEAN" },
+    { regex: /signature\s+of\s+director|director\s+signature/i, designation: "Signature of Director", role: "DIRECTOR" },
+    { regex: /signature\s+of\s+principal|principal\s+signature/i, designation: "Signature of Principal", role: "PRINCIPAL" },
+    { regex: /signature\s+of\s+registrar|registrar\s+signature/i, designation: "Signature of Registrar", role: "REGISTRAR" },
+    { regex: /signature\s+of\s+treasurer|treasurer\s+signature/i, designation: "Signature of Treasurer", role: "TREASURER" },
     { regex: /signature\s+of\s+convenor|convenor/i, designation: "Signature of Convenor", role: "CONVENOR" },
     { regex: /authorized\s+signatory/i, designation: "Authorized Signatory", role: "AUTHORIZED_SIGNATORY" },
   ];
@@ -138,14 +223,45 @@ export function detectSignatureSections(fullText: string): TemplateSignatureFiel
         printedName: "",
         designation: pat.designation,
         assignedRole: pat.role,
-        defaultAuthorityId: pat.defaultAuthorityId,
+        defaultAuthorityId: "",
         pageNumber: 1,
         position: { x, y, width: 140, height: 45 },
         required: true,
         signingOrder: order++,
         actionType: order === 2 ? "APPROVAL_AND_SIGNATURE" : "SIGNATURE_ONLY",
+        signMethod: "BOTH",
       });
     }
+  }
+
+  // Broad scan for any other "Signature of [Role]" or "[Role] Signature" in the document
+  const genericSigRegex = /(?:signature\s+of\s+|signature\s*:\s*)([A-Za-z0-9\s/&()-]{2,35})/gi;
+  let genericMatch: RegExpExecArray | null;
+  while ((genericMatch = genericSigRegex.exec(fullText)) !== null) {
+    const rawRole = genericMatch[1].trim();
+    if (!rawRole || rawRole.length < 3 || rawRole.length > 35) continue;
+    if (rawRole.includes("___") || rawRole.includes("...") || rawRole.toLowerCase().includes("online") || rawRole.toLowerCase().includes("offline")) continue;
+
+    const roleKey = rawRole.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    if (!roleKey || seenRoles.has(roleKey)) continue;
+
+    seenRoles.add(roleKey);
+    const isLeft = order % 2 === 1;
+    const designation = `Signature of ${rawRole.replace(/^\w/, (c) => c.toUpperCase())}`;
+
+    detected.push({
+      id: `sig_${roleKey.toLowerCase()}`,
+      name: `${roleKey.toLowerCase()}Signature`,
+      printedName: "",
+      designation,
+      assignedRole: roleKey,
+      pageNumber: 1,
+      position: { x: isLeft ? 72 : 380, y: 120, width: 140, height: 45 },
+      required: true,
+      signingOrder: order++,
+      actionType: "SIGNATURE_ONLY",
+      signMethod: "BOTH",
+    });
   }
 
   return detected;
@@ -209,84 +325,171 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
       continue;
     }
 
-    // A. Parse tables: detect any key-value row (label cell + colon/empty + value or blank cell)
-    const trs = doc.getElementsByTagName("w:tr");
-    for (let i = 0; i < trs.length; i++) {
-      const tr = trs[i];
-      const tcs = tr.getElementsByTagName("w:tc");
-      if (tcs.length < 2) continue;
+    // Helper to register detected fields
+    const registerField = (
+      rawLabel: string,
+      val: string,
+      sourceEvidence: string
+    ) => {
+      const cleanLabel = rawLabel
+        .replace(/[:_–—\s]+$/, "")
+        .replace(/^[-•\*\d+\.\)]\s*/, "")
+        .trim();
+      if (!cleanLabel || cleanLabel.length < 2 || cleanLabel.length > 70) return;
 
-      const cellTexts: string[] = [];
-      for (let c = 0; c < tcs.length; c++) {
-        const ts = tcs[c].getElementsByTagName("w:t");
-        let txt = "";
-        for (let k = 0; k < ts.length; k++) {
-          txt += ts[k].textContent || "";
+      const lower = cleanLabel.toLowerCase();
+      if (
+        [
+          "sr no",
+          "s no",
+          "sl no",
+          "s.no",
+          "sr. no",
+          "total",
+          "items",
+          "item",
+          "amount in words",
+          "note",
+          "nb",
+          "page",
+          "http",
+          "https",
+          "office use only",
+          "for office use",
+        ].includes(lower)
+      ) {
+        return;
+      }
+
+      // Check if value contains an explicit tag like {{tag}}
+      const tagMatch = val.match(/\{\{([a-zA-Z0-9_\.]+)\}\}|\{([a-zA-Z0-9_\.]+)\}/);
+      const normalizedKey = tagMatch
+        ? normalizeFieldKey(tagMatch[1] || tagMatch[2])
+        : normalizeFieldKey(cleanLabel);
+
+      if (isStaticInstitutionalMetadata(cleanLabel, normalizedKey)) {
+        return;
+      }
+
+      if (fieldsMap.has(normalizedKey)) {
+        const existing = fieldsMap.get(normalizedKey)!;
+        if (!existing.repeatedFieldKeys?.includes(cleanLabel)) {
+          existing.repeatedFieldKeys = existing.repeatedFieldKeys || [];
+          existing.repeatedFieldKeys.push(cleanLabel);
         }
-        cellTexts.push(txt.trim());
+      } else {
+        const isSys = ["currentDate", "formattedDateRange", "formattedBudget"].includes(normalizedKey);
+        const isFix = ["universityName"].includes(normalizedKey);
+        const cleanVal = val.replace(/^[_\s\.\–—-]+|[_\s\.\–—-]+$/g, "").trim();
+        const fType = inferFieldType(normalizedKey, cleanLabel);
+
+        fieldsMap.set(normalizedKey, {
+          id: `fld_${normalizedKey}`,
+          name: normalizedKey,
+          label: cleanLabel,
+          type: fType,
+          required: isSys || isFix ? false : isLikelyRequired(normalizedKey, cleanLabel),
+          isSystem: isSys,
+          isFixed: isFix,
+          fixedValue: isFix ? "National Institute of Technology & Advanced Science" : undefined,
+          isSignature: fType === "signature",
+          defaultValue: cleanVal || undefined,
+          confidence: tagMatch ? 0.98 : cleanVal ? 0.92 : 0.88,
+          adminConfirmed: true,
+          sourceEvidence,
+          repeatedFieldKeys: [cleanLabel, normalizedKey],
+          description: cleanVal
+            ? `Template default / sample: "${cleanVal}"`
+            : "Variable field (blank in template)",
+        });
       }
+    };
 
-      // Check for section headers or pure column headers to skip
-      const rawLabel = cellTexts[0];
-      if (!rawLabel || rawLabel.length < 2 || rawLabel.length > 80) continue;
-      if (
-        ["about the event", "financial proposal", "office use", "event expenses", "total", "items", "sr. no", "s.no"].includes(
-          rawLabel.toLowerCase()
-        )
-      ) {
-        continue;
-      }
-      // Skip pure signature header lines unless clerk/staff
-      if (
-        rawLabel.toLowerCase().includes("signature") &&
-        !rawLabel.toLowerCase().includes("clerk") &&
-        !rawLabel.toLowerCase().includes("name")
-      ) {
-        continue;
-      }
+    const isHeaderOrFooter = partName.startsWith("word/header") || partName.startsWith("word/footer");
 
-      let val = "";
-      let valIdx = -1;
-      if (cellTexts.length >= 3 && (cellTexts[1] === ":" || cellTexts[1] === "" || cellTexts[1] === "-")) {
-        val = cellTexts[2];
-        valIdx = 2;
-      } else if (cellTexts.length >= 2) {
-        val = cellTexts[1];
-        valIdx = 1;
-      }
+    // A. Parse tables: detect any key-value row (label cell + colon/empty + value or blank cell)
+    // Only in main document body, skip headers and footers (which contain static college letterheads)
+    if (!isHeaderOrFooter) {
+      const trs = doc.getElementsByTagName("w:tr");
+      for (let i = 0; i < trs.length; i++) {
+        const tr = trs[i];
+        const tcs = tr.getElementsByTagName("w:tc");
+        if (tcs.length === 0) continue;
 
-      if (valIdx !== -1) {
-        const cleanLabelStr = rawLabel.replace(/:$/, "").trim();
-        const normalizedKey = normalizeFieldKey(cleanLabelStr);
-
-        // Check if value contains an explicit tag like {{tag}}
-        const tagMatch = val.match(/\{\{([a-zA-Z0-9_\.]+)\}\}|\{([a-zA-Z0-9_\.]+)\}/);
-        const effectiveKey = tagMatch ? normalizeFieldKey(tagMatch[1] || tagMatch[2]) : normalizedKey;
-
-        if (fieldsMap.has(effectiveKey)) {
-          const existing = fieldsMap.get(effectiveKey)!;
-          if (!existing.repeatedFieldKeys?.includes(cleanLabelStr)) {
-            existing.repeatedFieldKeys = existing.repeatedFieldKeys || [];
-            existing.repeatedFieldKeys.push(cleanLabelStr);
+        const cellTexts: string[] = [];
+        for (let c = 0; c < tcs.length; c++) {
+          const ts = tcs[c].getElementsByTagName("w:t");
+          let txt = "";
+          for (let k = 0; k < ts.length; k++) {
+            txt += ts[k].textContent || "";
           }
-        } else {
-          fieldsMap.set(effectiveKey, {
-            id: `fld_${effectiveKey}`,
-            name: effectiveKey,
-            label: cleanLabelStr,
-            type: inferFieldType(effectiveKey, cleanLabelStr),
-            required: isLikelyRequired(effectiveKey, cleanLabelStr),
-            confidence: 0.92,
-            adminConfirmed: true,
-            sourceEvidence: `Table row "${cleanLabelStr}" (current text: "${val || "blank"}")`,
-            repeatedFieldKeys: [cleanLabelStr, effectiveKey],
-            description: val ? `Template default / sample: "${val}"` : "Variable field (blank in template)",
-          });
+          cellTexts.push(txt.trim());
+        }
+
+        // Append table text to fullText for signature & keyword detection
+        fullText += cellTexts.join(" | ") + "\n";
+
+        // 1. Check if first cell is a serial number/counter (e.g. "1.", "1", "S.No", "(a)")
+        let startIdx = 0;
+        if (
+          cellTexts.length >= 3 &&
+          /^(?:\d+[\.\)]?|[a-zA-Z][\.\)]|s\.?\s*no\.?|sr\.?\s*no\.?|sl\.?\s*no\.?)$/i.test(cellTexts[0])
+        ) {
+          startIdx = 1;
+        }
+
+        // 2. Process primary key-value pair in this row
+        if (cellTexts.length >= startIdx + 2) {
+          const rawLabel = cellTexts[startIdx];
+          let val = "";
+          let nextIdx = startIdx + 1;
+
+          if (
+            cellTexts.length >= startIdx + 3 &&
+            (cellTexts[startIdx + 1] === ":" || cellTexts[startIdx + 1] === "-" || cellTexts[startIdx + 1] === "")
+          ) {
+            val = cellTexts[startIdx + 2];
+            nextIdx = startIdx + 3;
+          } else {
+            val = cellTexts[startIdx + 1];
+            nextIdx = startIdx + 2;
+          }
+
+          if (rawLabel) {
+            registerField(rawLabel, val, `Table row "${rawLabel}" in ${partName}`);
+          }
+
+          // 3. Process secondary key-value pair if 4+ columns exist (e.g. [Date, 12/10, Time, 10:00])
+          if (cellTexts.length >= nextIdx + 2) {
+            const secondLabel = cellTexts[nextIdx];
+            let secondVal = "";
+            if (
+              cellTexts.length >= nextIdx + 3 &&
+              (cellTexts[nextIdx + 1] === ":" || cellTexts[nextIdx + 1] === "-" || cellTexts[nextIdx + 1] === "")
+            ) {
+              secondVal = cellTexts[nextIdx + 2];
+            } else {
+              secondVal = cellTexts[nextIdx + 1];
+            }
+            if (secondLabel) {
+              registerField(secondLabel, secondVal, `Table secondary column "${secondLabel}" in ${partName}`);
+            }
+          }
+        }
+
+        // 4. Check if individual cells contain embedded "Label: Value"
+        for (const cText of cellTexts) {
+          if (cText.includes(":") && !cText.startsWith("http")) {
+            const m = cText.match(/^([A-Za-z0-9\s/&()-]{2,40}):\s*(.*)$/);
+            if (m && m[1] && m[1].length < 40) {
+              registerField(m[1].trim(), m[2]?.trim() || "", `Table cell text "${m[1].trim()}" in ${partName}`);
+            }
+          }
         }
       }
     }
 
-    // B. Parse paragraphs: detect explicit placeholders, labeled underlines, and labeled blanks
+    // B. Parse paragraphs: detect explicit placeholders, normal text key-values, and labeled blanks
     const ps = doc.getElementsByTagName("w:p");
     for (let i = 0; i < ps.length; i++) {
       const p = ps[i];
@@ -301,11 +504,12 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
 
       // 1. Explicit placeholders: {{field_name}} or {field_name}
       const tagRegex = /(?:\{\{([a-zA-Z0-9_\.]+)\}\}|\{([a-zA-Z0-9_\.]+)\})/g;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = tagRegex.exec(pText)) !== null) {
         const rawKey = match[1] || match[2];
         if (!rawKey) continue;
         const normalizedKey = normalizeFieldKey(rawKey);
+        if (isStaticInstitutionalMetadata(rawKey, normalizedKey)) continue;
 
         if (fieldsMap.has(normalizedKey)) {
           const existing = fieldsMap.get(normalizedKey)!;
@@ -335,39 +539,37 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
             confidence: 0.98,
             adminConfirmed: true,
             sourceEvidence: `Explicit placeholder {${rawKey}} in ${partName}`,
-            repeatedFieldKeys: [rawKey, label],
           });
         }
       }
 
-      // 2. Labeled blanks / underlines (e.g. "Event Name: _________________" or "Venue: [   ]")
-      const labelBlankRegex = /([A-Za-z0-9\s/&()-]{2,40}):\s*(?:_{2,}|\.{3,}|—+|–+|\[\s*\]|\s{3,}|$)/g;
-      let lbMatch;
-      while ((lbMatch = labelBlankRegex.exec(pText)) !== null) {
-        const rawLabel = lbMatch[1].trim();
-        if (
-          ["about the event", "financial proposal", "office use", "signature"].includes(rawLabel.toLowerCase())
-        ) {
-          continue;
-        }
-        const normalizedKey = normalizeFieldKey(rawLabel);
+      // If this paragraph is in a header or footer, only explicit placeholders (above) are processed.
+      // Skip normal text matching to prevent college letterheads/addresses from becoming form fields.
+      if (isHeaderOrFooter) continue;
 
-        if (!fieldsMap.has(normalizedKey)) {
-          fieldsMap.set(normalizedKey, {
-            id: `fld_${normalizedKey}`,
-            name: normalizedKey,
-            label: rawLabel,
-            type: inferFieldType(normalizedKey, rawLabel),
-            required: isLikelyRequired(normalizedKey, rawLabel),
-            confidence: 0.88,
-            adminConfirmed: false,
-            sourceEvidence: `Labeled blank "${lbMatch[0].trim()}" in ${partName}`,
-            repeatedFieldKeys: [rawLabel],
-          });
+      // 2. Normal text fields and labeled blanks in paragraphs
+      // Handles single or multiple fields on a line: e.g. "Event Name: Hackathon", "Date: 12/10/2026   Time: 10:00 AM"
+      const kvPattern = /(?:^|\s{2,}|\t|;\s*|\n)([A-Za-z0-9][A-Za-z0-9\s/&()_\-\.]{1,40}):\s*([^\n\r\t]+?)(?=\s{3,}[A-Za-z0-9]|\t|\s*\|\s*|$)/g;
+      let kvMatch: RegExpExecArray | null;
+      while ((kvMatch = kvPattern.exec(pText)) !== null) {
+        const rawLabel = kvMatch[1].trim();
+        const rawVal = kvMatch[2]?.trim() || "";
+        if (rawLabel.toLowerCase().startsWith("http") || rawLabel.toLowerCase() === "note") continue;
+        registerField(rawLabel, rawVal, `Paragraph "${rawLabel}" in ${partName}`);
+      }
+
+      // 3. Dash-separated fields: e.g. "- Venue: Seminar Hall" or "Speaker - Dev Sharma"
+      const dashPattern = /(?:^|\n)[-•\*\d+\.\)]*\s*([A-Za-z0-9][A-Za-z0-9\s/&()_\.]{2,35})\s+[-–—]\s+([^\n\r]+)/g;
+      let dashMatch: RegExpExecArray | null;
+      while ((dashMatch = dashPattern.exec(pText)) !== null) {
+        const rawLabel = dashMatch[1].trim();
+        const rawVal = dashMatch[2]?.trim() || "";
+        if (rawLabel.length >= 3 && !rawLabel.toLowerCase().startsWith("http")) {
+          registerField(rawLabel, rawVal, `Dash-separated field "${rawLabel}" in ${partName}`);
         }
       }
 
-      // 3. Known administrative paragraph fields (e.g. "Date: 08/09/2026", "No: ACM/2026-27/SIH/001", "Subject: ...")
+      // 4. Known administrative paragraph patterns (Date, No, Subject, Submitted to)
       const adminPatterns = [
         { regex: /(?:^|\s)Date:\s*([^\s\n\r]+|\s*_{2,}|\s*)/i, label: "Date", key: "startDate" },
         { regex: /(?:^|\s)No:\s*([^\s\n\r]+|\s*_{2,}|\s*)/i, label: "Document Reference Number", key: "documentRefNumber" },
@@ -379,18 +581,7 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
         const pMatch = pText.match(ptn.regex);
         if (pMatch && !fieldsMap.has(ptn.key)) {
           const valStr = pMatch[1]?.trim() || "";
-          fieldsMap.set(ptn.key, {
-            id: `fld_${ptn.key}`,
-            name: ptn.key,
-            label: ptn.label,
-            type: inferFieldType(ptn.key, ptn.label),
-            required: isLikelyRequired(ptn.key, ptn.label),
-            confidence: 0.85,
-            adminConfirmed: false,
-            sourceEvidence: `Paragraph field "${ptn.label}" (sample: "${valStr || "blank"}")`,
-            repeatedFieldKeys: [ptn.label],
-            description: valStr ? `Default sample: "${valStr}"` : "Variable field",
-          });
+          registerField(ptn.label, valStr, `Administrative line "${ptn.label}" in ${partName}`);
         }
       }
     }
@@ -546,6 +737,7 @@ export async function analyzePdfTemplate(buffer: Buffer): Promise<AnalysisResult
           const rawKey = match[1] || match[2];
           if (!rawKey) continue;
           const normalizedKey = normalizeFieldKey(rawKey);
+          if (isStaticInstitutionalMetadata(rawKey, normalizedKey)) continue;
 
           if (!fieldsMap.has(normalizedKey)) {
             const label = rawKey
@@ -575,31 +767,43 @@ export async function analyzePdfTemplate(buffer: Buffer): Promise<AnalysisResult
           }
         }
 
-        // B. Check for labeled blanks: e.g. "Event Title: ________________" or "Date: ___________"
-        const labelBlankRegex = /([A-Za-z0-9\s/&()-]{2,35}):\s*(?:_{2,}|\.{3,}|—+|–+|\[\s*\])/g;
-        let lbMatch;
-        while ((lbMatch = labelBlankRegex.exec(lineText)) !== null) {
-          const rawLabel = lbMatch[1].trim();
-          const normalizedKey = normalizeFieldKey(rawLabel);
+        // B. Check for normal text fields and labeled blanks: e.g. "Event Title: National Hackathon" or "Date: ___________"
+        const kvPdfPattern = /(?:^|\s{2,}|\t|;\s*)([A-Za-z0-9][A-Za-z0-9\s/&()_\-\.]{1,35}):\s*([^\n\r\t]+?)(?=\s{3,}[A-Za-z0-9]|\t|\s*\|\s*|$)/g;
+        let kvMatch: RegExpExecArray | null;
+        while ((kvMatch = kvPdfPattern.exec(lineText)) !== null) {
+          const rawLabel = kvMatch[1].trim();
+          const rawVal = kvMatch[2]?.trim() || "";
+          if (rawLabel.toLowerCase().startsWith("http") || rawLabel.toLowerCase() === "note") continue;
 
+          const cleanLabel = rawLabel.replace(/[:_–—\(\)\[\]]+$/, "").replace(/^[-•\*\d+\.\)]\s*/, "").trim();
+          if (!cleanLabel || cleanLabel.length < 2 || cleanLabel.length > 50) continue;
+
+          const normalizedKey = normalizeFieldKey(cleanLabel);
+          if (isStaticInstitutionalMetadata(cleanLabel, normalizedKey)) continue;
           if (!fieldsMap.has(normalizedKey)) {
+            const cleanVal = rawVal.replace(/^[_\s\.\–—-]+|[_\s\.\–—-]+$/g, "").trim();
+            const fType = inferFieldType(normalizedKey, cleanLabel);
+
             fieldsMap.set(normalizedKey, {
               id: `fld_${normalizedKey}`,
               name: normalizedKey,
-              label: rawLabel,
-              type: inferFieldType(normalizedKey, rawLabel),
-              required: isLikelyRequired(normalizedKey, rawLabel),
+              label: cleanLabel,
+              type: fType,
+              required: isLikelyRequired(normalizedKey, cleanLabel),
               pageNumber: pageNum,
               boundingBox: {
-                x: Math.round(lineX + 100),
+                x: Math.round(lineX),
                 y: Math.round(y),
-                width: Math.max(160, Math.round(lineWidth)),
+                width: Math.max(140, Math.round(lineWidth)),
                 height: Math.round(lineHeight),
               },
-              confidence: 0.88,
-              adminConfirmed: false,
-              sourceEvidence: `Labeled blank "${lbMatch[0].trim()}" at page ${pageNum} (y:${Math.round(y)})`,
-              repeatedFieldKeys: [rawLabel],
+              isSignature: fType === "signature",
+              defaultValue: cleanVal || undefined,
+              confidence: cleanVal ? 0.92 : 0.88,
+              adminConfirmed: true,
+              sourceEvidence: `PDF text "${cleanLabel}: ${cleanVal || "blank"}" at page ${pageNum} (y:${Math.round(y)})`,
+              repeatedFieldKeys: [cleanLabel, normalizedKey],
+              description: cleanVal ? `Template default / sample: "${cleanVal}"` : "Variable field",
             });
           }
         }

@@ -121,6 +121,120 @@ export async function embedSignatureInPdf(options: EmbedSignatureOptions): Promi
   return Buffer.from(updatedPdfBytes);
 }
 
+export interface EmbedOfflineSignatureOptions {
+  existingPdfBytes: Buffer;
+  pageNumber: number;
+  position: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  signerName: string;
+  signerDesignation: string;
+  signDate?: string;
+  note?: string;
+  isTopOrigin?: boolean;
+}
+
+/**
+ * Stamps an official physical / offline signature verification mark onto the PDF artifact.
+ */
+export async function embedOfflineSignatureStampInPdf(
+  options: EmbedOfflineSignatureOptions
+): Promise<Buffer> {
+  const {
+    existingPdfBytes,
+    pageNumber,
+    position,
+    signerName,
+    signerDesignation,
+    signDate = new Date().toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }),
+    note = "Verified physical ink signature on paper copy",
+    isTopOrigin = false,
+  } = options;
+
+  if (!existingPdfBytes || existingPdfBytes.length === 0) {
+    throw new Error("Cannot stamp offline signature: input PDF buffer is empty");
+  }
+
+  const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+  const totalPages = pdfDoc.getPageCount();
+  const targetPageIndex = Math.max(0, Math.min(pageNumber - 1, totalPages - 1));
+  const page = pdfDoc.getPage(targetPageIndex);
+  const { width: pageWidth, height: pageHeight } = page.getSize();
+
+  const stampWidth = Math.max(160, position.width || 160);
+  const stampHeight = Math.max(48, position.height || 48);
+  const targetX = Math.max(20, Math.min(position.x, pageWidth - stampWidth - 20));
+
+  let targetY: number;
+  if (isTopOrigin) {
+    targetY = pageHeight - position.y - stampHeight;
+  } else {
+    targetY = position.y;
+  }
+  targetY = Math.max(25, Math.min(targetY, pageHeight - stampHeight - 25));
+
+  // Draw background box for offline verification stamp
+  page.drawRectangle({
+    x: targetX,
+    y: targetY,
+    width: stampWidth,
+    height: stampHeight,
+    color: rgb(0.92, 0.97, 0.94),
+    borderColor: rgb(0.12, 0.41, 0.33),
+    borderWidth: 1,
+  });
+
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontNormal = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  // Header line
+  page.drawText("[ OFFICIAL OFFLINE SIGNATURE ]", {
+    x: targetX + 8,
+    y: targetY + stampHeight - 12,
+    size: 7,
+    font: fontBold,
+    color: rgb(0.12, 0.41, 0.33),
+  });
+
+  // Signer name and designation
+  page.drawText(`${signerName} • ${signerDesignation}`, {
+    x: targetX + 8,
+    y: targetY + stampHeight - 23,
+    size: 7.5,
+    font: fontBold,
+    color: rgb(0.11, 0.15, 0.13),
+  });
+
+  // Date and method
+  page.drawText(`Date: ${signDate} | Physical Sign-off Verified`, {
+    x: targetX + 8,
+    y: targetY + stampHeight - 34,
+    size: 6.5,
+    font: fontNormal,
+    color: rgb(0.2, 0.3, 0.25),
+  });
+
+  // Note snippet
+  const safeNote = note.length > 40 ? note.substring(0, 37) + "..." : note;
+  page.drawText(safeNote, {
+    x: targetX + 8,
+    y: targetY + 4,
+    size: 6,
+    font: fontNormal,
+    color: rgb(0.35, 0.45, 0.4),
+  });
+
+  const updatedPdfBytes = await pdfDoc.save();
+  return Buffer.from(updatedPdfBytes);
+}
+
 /**
  * Validates that a generated or signed PDF is non-empty and syntactically valid.
  */
@@ -132,3 +246,4 @@ export async function verifyPdfIntegrity(pdfBytes: Buffer): Promise<{ valid: boo
     return { valid: false, pageCount: 0 };
   }
 }
+
