@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description: "Doc - Doctor: Instant verified document generator.",
 };
 
+import { AuthProvider } from "@/context/AuthContext";
+import { GoogleSignInModal } from "@/components/auth/GoogleSignInModal";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans bg-[#F8F6F0] text-[#1C2622] selection:bg-[#E7F3ED] selection:text-[#1F6954]">
-        {children}
+        <AuthProvider>
+          {children}
+          <GoogleSignInModal />
+        </AuthProvider>
       </body>
     </html>
   );

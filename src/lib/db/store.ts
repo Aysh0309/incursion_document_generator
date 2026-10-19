@@ -11,11 +11,43 @@ import {
   StructuredEventData,
   TemplateMetadata,
   TemplateSignatureField,
+  UserAccount,
+  UserRole,
   WorkflowEvent,
 } from "@/types";
 import { TEMPLATE_REQUIRED_FIELDS } from "@/schemas/event.schema";
 
 const STORAGE_FILE = path.join(process.cwd(), "public", "storage", "db-state.json");
+
+export const DEFAULT_USERS: UserAccount[] = [
+  {
+    id: "usr_admin_01",
+    name: "Club Administrator",
+    email: "admin@campus.edu",
+    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Admin",
+    role: "CLUB_ADMIN",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "usr_faculty_01",
+    name: "Dr. Sunita Sharma",
+    email: "faculty@campus.edu",
+    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Faculty",
+    role: "FACULTY_APPROVER",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "usr_member_01",
+    name: "Student Member",
+    email: "member@campus.edu",
+    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Member",
+    role: "MEMBER",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 interface DatabaseState {
   club: ClubBranding;
@@ -24,6 +56,7 @@ interface DatabaseState {
   events: EventRecord[];
   documents: DocumentRecord[];
   versions: DocumentVersionRecord[];
+  users: UserAccount[];
 }
 
 export const DEFAULT_AUTHORITIES: AuthorityRecord[] = [];
@@ -347,6 +380,7 @@ class MemoryStore {
           events: parsed.events || SAMPLE_EVENTS,
           documents: parsed.documents || [],
           versions: parsed.versions || [],
+          users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : DEFAULT_USERS,
         };
       }
     } catch (e) {
@@ -360,6 +394,7 @@ class MemoryStore {
       events: SAMPLE_EVENTS,
       documents: [],
       versions: [],
+      users: DEFAULT_USERS,
     };
     this.saveState(initial);
     return initial;
@@ -675,6 +710,101 @@ class MemoryStore {
     this.saveState(this.state);
     return newEvent;
   }
+
+  // --- User & Role operations ---
+  getUsers(): UserAccount[] {
+    return this.state.users || [];
+  }
+
+  getUserById(id: string): UserAccount | undefined {
+    return (this.state.users || []).find((u) => u.id === id);
+  }
+
+  getUserByEmail(email: string): UserAccount | undefined {
+    const normalized = email.trim().toLowerCase();
+    return (this.state.users || []).find((u) => u.email.trim().toLowerCase() === normalized);
+  }
+
+  upsertUser(payload: {
+    email: string;
+    name: string;
+    image?: string;
+    role?: UserRole;
+    googleId?: string;
+  }): UserAccount {
+    if (!this.state.users) {
+      this.state.users = [];
+    }
+
+    const existingIdx = this.state.users.findIndex(
+      (u) => u.email.trim().toLowerCase() === payload.email.trim().toLowerCase()
+    );
+
+    const now = new Date().toISOString();
+
+    if (existingIdx !== -1) {
+      const existing = this.state.users[existingIdx];
+      const updated: UserAccount = {
+        ...existing,
+        name: payload.name || existing.name,
+        image: payload.image || existing.image,
+        googleId: payload.googleId || existing.googleId,
+        role: payload.role || existing.role,
+        lastLoginAt: now,
+        updatedAt: now,
+      };
+      this.state.users[existingIdx] = updated;
+      this.saveState(this.state);
+      return updated;
+    }
+
+    // Assign default role: first user or admin email gets CLUB_ADMIN, otherwise payload.role or MEMBER
+    let role: UserRole = payload.role || "MEMBER";
+    if (this.state.users.length === 0 || payload.email.toLowerCase().includes("admin")) {
+      role = "CLUB_ADMIN";
+    }
+
+    const newUser: UserAccount = {
+      id: "usr_" + Math.random().toString(36).substring(2, 10),
+      name: payload.name,
+      email: payload.email.trim().toLowerCase(),
+      image: payload.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(payload.name)}`,
+      role,
+      googleId: payload.googleId,
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: now,
+    };
+
+    this.state.users.push(newUser);
+    this.saveState(this.state);
+    return newUser;
+  }
+
+  updateUserRole(userId: string, role: UserRole): UserAccount | undefined {
+    if (!this.state.users) return undefined;
+    const idx = this.state.users.findIndex((u) => u.id === userId);
+    if (idx === -1) return undefined;
+
+    this.state.users[idx] = {
+      ...this.state.users[idx],
+      role,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveState(this.state);
+    return this.state.users[idx];
+  }
+
+  deleteUser(userId: string): boolean {
+    if (!this.state.users) return false;
+    const initialLen = this.state.users.length;
+    this.state.users = this.state.users.filter((u) => u.id !== userId);
+    if (this.state.users.length !== initialLen) {
+      this.saveState(this.state);
+      return true;
+    }
+    return false;
+  }
 }
 
 // Global singleton for Next.js hot reload safety
@@ -683,7 +813,7 @@ declare global {
   var __memoryStore: MemoryStore | undefined;
 }
 
-if (!global.__memoryStore) {
+if (!global.__memoryStore || typeof global.__memoryStore.getUsers !== "function") {
   global.__memoryStore = new MemoryStore();
 }
 

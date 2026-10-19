@@ -12,12 +12,15 @@ import {
   Building2,
   Plus,
   FileCheck,
-  ChevronRight,
   ShieldCheck,
   Menu,
   X,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 import { UserRole } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInModal";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -25,17 +28,23 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
 
   useEffect(() => {
-    const saved = localStorage.getItem("incursion_user_role") as UserRole;
-    if (saved) {
-      setCurrentRole(saved);
+    if (user?.role) {
+      setCurrentRole(user.role);
+      localStorage.setItem("incursion_user_role", user.role);
     } else {
-      localStorage.setItem("incursion_user_role", "CLUB_ADMIN");
+      const saved = localStorage.getItem("incursion_user_role") as UserRole;
+      if (saved) {
+        setCurrentRole(saved);
+      } else {
+        localStorage.setItem("incursion_user_role", "CLUB_ADMIN");
+      }
     }
-  }, []);
+  }, [user]);
 
   const handleRoleChange = (role: UserRole) => {
     setCurrentRole(role);
@@ -49,6 +58,7 @@ export function AppShell({ children }: AppShellProps) {
     { label: "Documents", href: "/documents", icon: FileText },
     { label: "Templates", href: "/templates", icon: FileStack, adminOnly: true },
     { label: "Approvals", href: "/approvals", icon: CheckSquare, approverOnly: true },
+    { label: "Role Management", href: "/admin", icon: ShieldCheck, adminOnly: true },
     { label: "Club Settings", href: "/settings", icon: Building2 },
   ];
 
@@ -165,11 +175,7 @@ export function AppShell({ children }: AppShellProps) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-1.5 text-xs text-[#7A8A81]">
-              <Link href="/dashboard" className="hover:text-[#1C2622]">
-                Campus Hub
-              </Link>
-              <ChevronRight className="h-3 w-3 text-[#A3B0A8]" />
+            <div className="flex items-center text-xs text-[#7A8A81]">
               <span className="font-semibold text-[#1C2622] capitalize">
                 {pathname === "/" ? "Home" : pathname.replace(/^\//, "").split("/")[0]}
               </span>
@@ -177,6 +183,41 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            {user ? (
+              <div className="flex items-center gap-2.5 pl-2">
+                <img
+                  src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full border border-[#E5DFD5] object-cover"
+                />
+                <div className="hidden sm:block text-left">
+                  <div className="text-xs font-semibold text-[#1C2622] leading-none">
+                    {user.name}
+                  </div>
+                  <span
+                    className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded mt-0.5 ${
+                      user.role === "CLUB_ADMIN"
+                        ? "bg-purple-100 text-purple-700"
+                        : user.role === "FACULTY_APPROVER"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {user.role === "CLUB_ADMIN" ? "Admin" : user.role === "FACULTY_APPROVER" ? "Faculty" : "Member"}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-1.5 text-[#7A8A81] hover:text-red-600 rounded-lg hover:bg-[#EFECE6] transition-colors ml-1"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <GoogleSignInButton size="small" />
+            )}
+
             <Link
               href="/events/new"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white text-xs font-medium transition-all shadow-2xs hover:shadow-xs active:scale-[0.98]"
