@@ -1228,7 +1228,8 @@
         "currentProposedAmount",
         "balanceAmount",
         "signatureOfficeClerk",
-        "svnitsvnitno"
+        "svnitsvnitno",
+        "extraField"
       ],
       "placeholdersDetected": [
         "subject",
@@ -1248,7 +1249,8 @@
         "currentProposedAmount",
         "balanceAmount",
         "signatureOfficeClerk",
-        "svnitsvnitno"
+        "svnitsvnitno",
+        "extraField"
       ],
       "pageCount": 1,
       "pageDimensions": [
@@ -1282,14 +1284,35 @@
       ],
       "analysisWarnings": [],
       "status": "PUBLISHED",
-      "version": 4,
+      "version": 5,
       "isActive": true,
       "isSystemDefault": false,
       "createdAt": "2026-10-19T13:40:49.816Z",
-      "updatedAt": "2026-10-19T13:54:42.980Z"
+      "updatedAt": "2026-10-19T15:52:28.745Z"
     }
   ],
   "events": [
+    {
+      "clubId": "club_gdg_main",
+      "eventName": "hheqhq",
+      "rawInputText": "",
+      "structuredData": {
+        "subject": "gerqheqth",
+        "clubName": "hqeheth",
+        "startDate": "2026-10-30",
+        "eventName": "hheqhq",
+        "venue": "hqq",
+        "expectedNumberofParticipants": 197,
+        "nameOfJudges": "xfghj",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "completenessStatus": "COMPLETED",
+      "missingFields": [],
+      "id": "evt_qmbwhn7g",
+      "createdAt": "2026-10-19T15:53:16.055Z",
+      "updatedAt": "2026-10-19T15:53:16.215Z"
+    },
     {
       "clubId": "club_gdg_main",
       "eventName": "hhtweh",
@@ -1313,6 +1336,33 @@
     }
   ],
   "documents": [
+    {
+      "title": "p1 - hheqhq",
+      "eventId": "evt_qmbwhn7g",
+      "templateId": "tmpl_r2rh2818",
+      "documentType": "EVENT_PROPOSAL",
+      "clubId": "club_gdg_main",
+      "status": "SUBMITTED",
+      "currentVersion": 1,
+      "docxUrl": "/generated/doc_wvjhlzgy.docx",
+      "pdfUrl": "/generated/doc_wvjhlzgy.pdf",
+      "pdfEngineUsed": "headless_browser",
+      "dataSnapshot": {
+        "subject": "gerqheqth",
+        "clubName": "hqeheth",
+        "startDate": "2026-10-30",
+        "eventName": "hheqhq",
+        "venue": "hqq",
+        "expectedNumberofParticipants": 197,
+        "nameOfJudges": "xfghj",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "id": "doc_bvx3ivqd",
+      "createdAt": "2026-10-19T15:53:16.911Z",
+      "updatedAt": "2026-10-19T15:56:54.436Z",
+      "reviewComments": "Submitted for faculty coordinator review and venue sign-off."
+    },
     {
       "title": "p1 - hhtweh",
       "eventId": "evt_hlxqcwcv",
@@ -1341,6 +1391,26 @@
     }
   ],
   "versions": [
+    {
+      "id": "ver_a7zgmy9i",
+      "documentId": "doc_bvx3ivqd",
+      "versionNumber": 1,
+      "dataSnapshot": {
+        "subject": "gerqheqth",
+        "clubName": "hqeheth",
+        "startDate": "2026-10-30",
+        "eventName": "hheqhq",
+        "venue": "hqq",
+        "expectedNumberofParticipants": 197,
+        "nameOfJudges": "xfghj",
+        "universityName": "SVNIT",
+        "department": "Department of Computer Science & Engineering"
+      },
+      "docxUrl": "/generated/doc_wvjhlzgy.docx",
+      "pdfUrl": "/generated/doc_wvjhlzgy.pdf",
+      "changeSummary": "Initial document generation",
+      "createdAt": "2026-10-19T15:53:16.911Z"
+    },
     {
       "id": "ver_gmq7nx2o",
       "documentId": "doc_qqykjyfm",
@@ -1570,8 +1640,8 @@
       "role": "CLUB_ADMIN",
       "googleId": "109103404886081457082",
       "createdAt": "2026-10-19T14:56:03.239Z",
-      "updatedAt": "2026-10-19T15:41:20.095Z",
-      "lastLoginAt": "2026-10-19T15:41:20.095Z"
+      "updatedAt": "2026-10-19T15:51:20.810Z",
+      "lastLoginAt": "2026-10-19T15:51:20.810Z"
     },
     {
       "id": "usr_plukl5nu",
