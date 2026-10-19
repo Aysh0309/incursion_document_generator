@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  PenTool,
 } from "lucide-react";
 import { SignatureCanvas } from "@/components/signatures/SignatureCanvas";
 
@@ -32,7 +33,10 @@ export default function AuthoritySigningPage({ params }: SigningPageProps) {
   const [alreadySigned, setAlreadySigned] = useState(false);
 
   // Signature state
+  const [signMode, setSignMode] = useState<"ONLINE" | "OFFLINE">("ONLINE");
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [offlineSignerName, setOfflineSignerName] = useState("");
+  const [offlineNote, setOfflineNote] = useState("Physically signed on printed copy");
   const [consent, setConsent] = useState(false);
   const [signing, setSigning] = useState(false);
   const [signSuccess, setSignSuccess] = useState<any | null>(null);
@@ -108,6 +112,34 @@ export default function AuthoritySigningPage({ params }: SigningPageProps) {
         throw new Error(json.error?.message || "Failed to affix signature.");
       }
 
+      setSignSuccess(json.data);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  const handleOfflineSignSubmit = async () => {
+    if (!consent) {
+      alert("Please acknowledge the consent checkbox to verify your offline signature.");
+      return;
+    }
+    setSigning(true);
+    try {
+      const res = await fetch("/api/signatures/offline-sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          offlineSignerName: offlineSignerName.trim() || data?.request?.authorityName,
+          offlineNote: offlineNote.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error?.message || "Failed to record offline signature.");
+      }
       setSignSuccess(json.data);
     } catch (e: any) {
       alert(e.message);
@@ -386,16 +418,81 @@ export default function AuthoritySigningPage({ params }: SigningPageProps) {
               </div>
             </div>
 
-            {/* Signature Drawing Canvas */}
-            <div className="pt-2">
-              <label className="text-xs font-bold text-[#1C2622] block mb-2">
-                Draw or Type Your Signature:
-              </label>
-              <SignatureCanvas
-                onSignatureChange={(sig) => setSignatureDataUrl(sig)}
-                signerName={request.authorityName}
-              />
+            {/* Signing Method Switcher: Online e-Sign vs Offline Physical Sign-off */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF8F4] rounded-lg border border-[#E5DFD5] text-xs">
+              <button
+                type="button"
+                onClick={() => setSignMode("ONLINE")}
+                className={`py-1.5 px-3 rounded-md font-semibold transition-all ${
+                  signMode === "ONLINE"
+                    ? "bg-[#1F6954] text-white shadow-xs"
+                    : "text-[#55645C] hover:text-[#1C2622]"
+                }`}
+              >
+                Online e-Signature
+              </button>
+              <button
+                type="button"
+                onClick={() => setSignMode("OFFLINE")}
+                className={`py-1.5 px-3 rounded-md font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  signMode === "OFFLINE"
+                    ? "bg-[#1F6954] text-white shadow-xs"
+                    : "text-[#55645C] hover:text-[#1C2622]"
+                }`}
+              >
+                <PenTool className="h-3 w-3" />
+                <span>Offline Physical Sign-off</span>
+              </button>
             </div>
+
+            {signMode === "ONLINE" ? (
+              /* Online Signature Drawing Canvas */
+              <div className="pt-2">
+                <label className="text-xs font-bold text-[#1C2622] block mb-2">
+                  Draw or Type Your Signature:
+                </label>
+                <SignatureCanvas
+                  onSignatureChange={(sig) => setSignatureDataUrl(sig)}
+                  signerName={request.authorityName}
+                />
+              </div>
+            ) : (
+              /* Offline Ink Signature Confirmation */
+              <div className="pt-2 space-y-3 p-3.5 rounded-lg border border-[#BCD8CB] bg-[#F4F9F6]">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#1F6954]">
+                  <PenTool className="h-4 w-4" />
+                  <span>Physical Document Sign-off</span>
+                </div>
+                <p className="text-[11px] text-[#55645C] leading-relaxed">
+                  Use this option if you have printed this official document and physically signed the paper copy with pen. Confirming below records your physical sign-off in the system while leaving the signature space clean and empty on the document.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#1C2622] block">
+                    Signatory Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={offlineSignerName || request.authorityName}
+                    onChange={(e) => setOfflineSignerName(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[#1C2622] block">
+                    Verification Remarks:
+                  </label>
+                  <input
+                    type="text"
+                    value={offlineNote}
+                    onChange={(e) => setOfflineNote(e.target.value)}
+                    placeholder="e.g. Physically signed on hard copy document"
+                    className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Consent Checkbox */}
             <div className="pt-2">
@@ -407,7 +504,9 @@ export default function AuthoritySigningPage({ params }: SigningPageProps) {
                   className="mt-0.5 rounded border-[#E5DFD5] accent-[#1F6954]"
                 />
                 <span className="leading-snug">
-                  I confirm that I have reviewed this document and agree to affix my official electronic signature in accordance with institutional guidelines.
+                  {signMode === "ONLINE"
+                    ? "I confirm that I have reviewed this document and agree to affix my official electronic signature in accordance with institutional guidelines."
+                    : "I confirm that I have physically reviewed and signed the printed hard copy of this official document."}
                 </span>
               </label>
             </div>
@@ -416,19 +515,25 @@ export default function AuthoritySigningPage({ params }: SigningPageProps) {
             <div className="pt-3 border-t border-[#E5DFD5] space-y-2.5">
               <button
                 type="button"
-                onClick={handleSignSubmit}
-                disabled={signing || !signatureDataUrl || !consent}
+                onClick={signMode === "ONLINE" ? handleSignSubmit : handleOfflineSignSubmit}
+                disabled={signing || (signMode === "ONLINE" ? !signatureDataUrl : false) || !consent}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white font-bold text-xs shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {signing ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Embedding Signature into PDF...</span>
+                    <span>
+                      {signMode === "ONLINE"
+                        ? "Embedding Signature into PDF..."
+                        : "Recording Offline Sign-off..."}
+                    </span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>Sign Document</span>
+                    <span>
+                      {signMode === "ONLINE" ? "Affix Electronic Signature" : "Confirm Physical / Offline Sign-off"}
+                    </span>
                   </>
                 )}
               </button>

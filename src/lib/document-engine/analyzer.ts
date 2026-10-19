@@ -85,6 +85,85 @@ export function inferFieldType(key: string, label: string): FieldDataType {
 }
 
 /**
+ * Checks whether a detected label or normalized key represents static institutional/letterhead
+ * metadata (e.g. college name, branch, university, accreditation, address) that should NOT
+ * be added as an extra variable document field.
+ */
+export function isStaticInstitutionalMetadata(label: string, key?: string): boolean {
+  const clean = label
+    .trim()
+    .toLowerCase()
+    .replace(/[:_–—\(\)\[\]\/,\\.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const k = (key || normalizeFieldKey(label)).toLowerCase();
+
+  // Protect signatories / approvers
+  if (
+    clean.includes("hod") ||
+    clean.includes("head of department") ||
+    clean.includes("coordinator") ||
+    clean.includes("incharge") ||
+    clean.includes("advisor") ||
+    clean.includes("signature") ||
+    clean.includes("sign") ||
+    k.includes("hod") ||
+    k.includes("coordinator")
+  ) {
+    return false;
+  }
+
+  // 1. College / University / Institute names (e.g. "Name of the College", "College Name", "College", "University")
+  const collegeRegex =
+    /^(?:name\s+of\s+(?:the\s+)?(?:college|institute|institution|university|campus|school)|college(?:\s+name)?|institute(?:\s+name)?|institution(?:\s+name)?|university(?:\s+name)?|campus(?:\s+name)?|school(?:\s+name)?)$/i;
+  if (collegeRegex.test(clean)) return true;
+
+  const collegeKeys = [
+    "universityname",
+    "collegename",
+    "nameofthecollege",
+    "college",
+    "institutename",
+    "nameoftheinstitute",
+    "institutionname",
+    "nameoftheinstitution",
+    "campusname",
+    "nameoftheuniversity",
+    "nameofcollege",
+    "nameofinstitute",
+    "nameofinstitution",
+    "nameofuniversity",
+  ];
+  if (collegeKeys.includes(k)) return true;
+
+  // 2. Branch / Stream / Discipline / Department (e.g. "Branch", "Name of the Branch", "Branch Name", "Department")
+  const branchRegex =
+    /^(?:name\s+of\s+(?:the\s+)?(?:branch|stream|discipline|department)|branch(?:\s+name)?|stream|discipline|course(?:\s+name)?|programme(?:\s+name)?|program(?:\s+name)?|department(?:\s+name)?|dept)$/i;
+  if (branchRegex.test(clean)) return true;
+
+  const branchKeys = [
+    "branch",
+    "branchname",
+    "nameofthebranch",
+    "nameofbranch",
+    "stream",
+    "discipline",
+    "departmentname",
+    "nameofthedepartment",
+    "department",
+    "dept",
+  ];
+  if (branchKeys.includes(k)) return true;
+
+  // 3. Boilerplate institutional letterhead (affiliation, accreditation, address, pin code)
+  const boilerplateRegex =
+    /^(?:affiliated\s+to|affiliation|approved\s+by|accredited\s+by|aicte|naac|nba|autonomous|ugc|pincode|pin\s*code|postal\s*code|college\s*code|inst\w*\s*code|website|web\s*portal|fax(?:\s*no)?|office\s+use(?:\s+only)?|for\s+office\s+use(?:\s+only)?|address|college\s+address|institute\s+address)$/i;
+  if (boilerplateRegex.test(clean)) return true;
+
+  return false;
+}
+
+/**
  * Checks if a field should default to required.
  */
 export function isLikelyRequired(key: string, label: string): boolean {
@@ -109,17 +188,17 @@ export function detectSignatureSections(fullText: string): TemplateSignatureFiel
   const detected: TemplateSignatureField[] = [];
 
   const patterns = [
-    { regex: /signature\s+of\s+student\s+head/i, designation: "Signature of Student Head", role: "STUDENT_HEAD", defaultAuthorityId: "auth_student_head" },
-    { regex: /signature\s+of\s+student\s+secretary/i, designation: "Signature of Student Secretary", role: "STUDENT_SECRETARY", defaultAuthorityId: "auth_student_sec" },
+    { regex: /signature\s+of\s+student\s+head/i, designation: "Signature of Student Head", role: "STUDENT_HEAD" },
+    { regex: /signature\s+of\s+student\s+secretary/i, designation: "Signature of Student Secretary", role: "STUDENT_SECRETARY" },
     { regex: /signature\s+of\s+student\s+coordinator|student\s+coordinator\s+signature/i, designation: "Signature of Student Coordinator", role: "STUDENT_COORDINATOR" },
-    { regex: /signature\s+of\s+faculty\s+co[\s-]?chairman/i, designation: "Signature of Faculty Co-Chairman", role: "FACULTY_CO_CHAIRMAN", defaultAuthorityId: "auth_faculty_cochair" },
-    { regex: /signature\s+of\s+faculty\s+chairman/i, designation: "Signature of Faculty Chairman", role: "FACULTY_CHAIRMAN", defaultAuthorityId: "auth_faculty_chair" },
-    { regex: /signature\s+of\s+faculty\s+coordinator|faculty\s+coordinator/i, designation: "Signature of Faculty Coordinator", role: "FACULTY_COORDINATOR", defaultAuthorityId: "auth_faculty_coord" },
+    { regex: /signature\s+of\s+faculty\s+co[\s-]?chairman/i, designation: "Signature of Faculty Co-Chairman", role: "FACULTY_CO_CHAIRMAN" },
+    { regex: /signature\s+of\s+faculty\s+chairman/i, designation: "Signature of Faculty Chairman", role: "FACULTY_CHAIRMAN" },
+    { regex: /signature\s+of\s+faculty\s+coordinator|faculty\s+coordinator/i, designation: "Signature of Faculty Coordinator", role: "FACULTY_COORDINATOR" },
     { regex: /signature\s+of\s+faculty\s+advisor|faculty\s+advisor\s+signature/i, designation: "Signature of Faculty Advisor", role: "FACULTY_ADVISOR" },
     { regex: /signature\s+of\s+faculty\s+in[\s-]?charge|faculty\s+in[\s-]?charge/i, designation: "Signature of Faculty In-Charge", role: "FACULTY_INCHARGE" },
-    { regex: /signature\s+of\s+head\s+of\s+department|signature\s+of\s+hod|head\s+of\s+department/i, designation: "Signature of Head of Department", role: "HOD", defaultAuthorityId: "auth_hod_cse" },
-    { regex: /associate\s+dean/i, designation: "Signature of Associate Dean", role: "ASSOCIATE_DEAN", defaultAuthorityId: "auth_dean_sw" },
-    { regex: /signature\s+of\s+dean|dean\s*\(\s*students?\s*welfare\s*\)/i, designation: "Signature of Dean (Student Welfare)", role: "DEAN", defaultAuthorityId: "auth_dean_sw" },
+    { regex: /signature\s+of\s+head\s+of\s+department|signature\s+of\s+hod|head\s+of\s+department/i, designation: "Signature of Head of Department", role: "HOD" },
+    { regex: /associate\s+dean/i, designation: "Signature of Associate Dean", role: "ASSOCIATE_DEAN" },
+    { regex: /signature\s+of\s+dean|dean\s*\(\s*students?\s*welfare\s*\)/i, designation: "Signature of Dean (Student Welfare)", role: "DEAN" },
     { regex: /signature\s+of\s+director|director\s+signature/i, designation: "Signature of Director", role: "DIRECTOR" },
     { regex: /signature\s+of\s+principal|principal\s+signature/i, designation: "Signature of Principal", role: "PRINCIPAL" },
     { regex: /signature\s+of\s+registrar|registrar\s+signature/i, designation: "Signature of Registrar", role: "REGISTRAR" },
@@ -144,7 +223,7 @@ export function detectSignatureSections(fullText: string): TemplateSignatureFiel
         printedName: "",
         designation: pat.designation,
         assignedRole: pat.role,
-        defaultAuthorityId: pat.defaultAuthorityId,
+        defaultAuthorityId: "",
         pageNumber: 1,
         position: { x, y, width: 140, height: 45 },
         required: true,
@@ -288,6 +367,10 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
         ? normalizeFieldKey(tagMatch[1] || tagMatch[2])
         : normalizeFieldKey(cleanLabel);
 
+      if (isStaticInstitutionalMetadata(cleanLabel, normalizedKey)) {
+        return;
+      }
+
       if (fieldsMap.has(normalizedKey)) {
         const existing = fieldsMap.get(normalizedKey)!;
         if (!existing.repeatedFieldKeys?.includes(cleanLabel)) {
@@ -322,80 +405,85 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
       }
     };
 
+    const isHeaderOrFooter = partName.startsWith("word/header") || partName.startsWith("word/footer");
+
     // A. Parse tables: detect any key-value row (label cell + colon/empty + value or blank cell)
-    const trs = doc.getElementsByTagName("w:tr");
-    for (let i = 0; i < trs.length; i++) {
-      const tr = trs[i];
-      const tcs = tr.getElementsByTagName("w:tc");
-      if (tcs.length === 0) continue;
+    // Only in main document body, skip headers and footers (which contain static college letterheads)
+    if (!isHeaderOrFooter) {
+      const trs = doc.getElementsByTagName("w:tr");
+      for (let i = 0; i < trs.length; i++) {
+        const tr = trs[i];
+        const tcs = tr.getElementsByTagName("w:tc");
+        if (tcs.length === 0) continue;
 
-      const cellTexts: string[] = [];
-      for (let c = 0; c < tcs.length; c++) {
-        const ts = tcs[c].getElementsByTagName("w:t");
-        let txt = "";
-        for (let k = 0; k < ts.length; k++) {
-          txt += ts[k].textContent || "";
+        const cellTexts: string[] = [];
+        for (let c = 0; c < tcs.length; c++) {
+          const ts = tcs[c].getElementsByTagName("w:t");
+          let txt = "";
+          for (let k = 0; k < ts.length; k++) {
+            txt += ts[k].textContent || "";
+          }
+          cellTexts.push(txt.trim());
         }
-        cellTexts.push(txt.trim());
-      }
 
-      // Append table text to fullText for signature & keyword detection
-      fullText += cellTexts.join(" | ") + "\n";
+        // Append table text to fullText for signature & keyword detection
+        fullText += cellTexts.join(" | ") + "\n";
 
-      // 1. Check if first cell is a serial number/counter (e.g. "1.", "1", "S.No", "(a)")
-      let startIdx = 0;
-      if (
-        cellTexts.length >= 3 &&
-        /^(?:\d+[\.\)]?|[a-zA-Z][\.\)]|s\.?\s*no\.?|sr\.?\s*no\.?|sl\.?\s*no\.?)$/i.test(cellTexts[0])
-      ) {
-        startIdx = 1;
-      }
-
-      // 2. Process primary key-value pair in this row
-      if (cellTexts.length >= startIdx + 2) {
-        const rawLabel = cellTexts[startIdx];
-        let val = "";
-        let nextIdx = startIdx + 1;
-
+        // 1. Check if first cell is a serial number/counter (e.g. "1.", "1", "S.No", "(a)")
+        let startIdx = 0;
         if (
-          cellTexts.length >= startIdx + 3 &&
-          (cellTexts[startIdx + 1] === ":" || cellTexts[startIdx + 1] === "-" || cellTexts[startIdx + 1] === "")
+          cellTexts.length >= 3 &&
+          /^(?:\d+[\.\)]?|[a-zA-Z][\.\)]|s\.?\s*no\.?|sr\.?\s*no\.?|sl\.?\s*no\.?)$/i.test(cellTexts[0])
         ) {
-          val = cellTexts[startIdx + 2];
-          nextIdx = startIdx + 3;
-        } else {
-          val = cellTexts[startIdx + 1];
-          nextIdx = startIdx + 2;
+          startIdx = 1;
         }
 
-        if (rawLabel) {
-          registerField(rawLabel, val, `Table row "${rawLabel}" in ${partName}`);
-        }
+        // 2. Process primary key-value pair in this row
+        if (cellTexts.length >= startIdx + 2) {
+          const rawLabel = cellTexts[startIdx];
+          let val = "";
+          let nextIdx = startIdx + 1;
 
-        // 3. Process secondary key-value pair if 4+ columns exist (e.g. [Date, 12/10, Time, 10:00])
-        if (cellTexts.length >= nextIdx + 2) {
-          const secondLabel = cellTexts[nextIdx];
-          let secondVal = "";
           if (
-            cellTexts.length >= nextIdx + 3 &&
-            (cellTexts[nextIdx + 1] === ":" || cellTexts[nextIdx + 1] === "-" || cellTexts[nextIdx + 1] === "")
+            cellTexts.length >= startIdx + 3 &&
+            (cellTexts[startIdx + 1] === ":" || cellTexts[startIdx + 1] === "-" || cellTexts[startIdx + 1] === "")
           ) {
-            secondVal = cellTexts[nextIdx + 2];
+            val = cellTexts[startIdx + 2];
+            nextIdx = startIdx + 3;
           } else {
-            secondVal = cellTexts[nextIdx + 1];
+            val = cellTexts[startIdx + 1];
+            nextIdx = startIdx + 2;
           }
-          if (secondLabel) {
-            registerField(secondLabel, secondVal, `Table secondary column "${secondLabel}" in ${partName}`);
+
+          if (rawLabel) {
+            registerField(rawLabel, val, `Table row "${rawLabel}" in ${partName}`);
+          }
+
+          // 3. Process secondary key-value pair if 4+ columns exist (e.g. [Date, 12/10, Time, 10:00])
+          if (cellTexts.length >= nextIdx + 2) {
+            const secondLabel = cellTexts[nextIdx];
+            let secondVal = "";
+            if (
+              cellTexts.length >= nextIdx + 3 &&
+              (cellTexts[nextIdx + 1] === ":" || cellTexts[nextIdx + 1] === "-" || cellTexts[nextIdx + 1] === "")
+            ) {
+              secondVal = cellTexts[nextIdx + 2];
+            } else {
+              secondVal = cellTexts[nextIdx + 1];
+            }
+            if (secondLabel) {
+              registerField(secondLabel, secondVal, `Table secondary column "${secondLabel}" in ${partName}`);
+            }
           }
         }
-      }
 
-      // 4. Check if individual cells contain embedded "Label: Value"
-      for (const cText of cellTexts) {
-        if (cText.includes(":") && !cText.startsWith("http")) {
-          const m = cText.match(/^([A-Za-z0-9\s/&()-]{2,40}):\s*(.*)$/);
-          if (m && m[1] && m[1].length < 40) {
-            registerField(m[1].trim(), m[2]?.trim() || "", `Table cell text "${m[1].trim()}" in ${partName}`);
+        // 4. Check if individual cells contain embedded "Label: Value"
+        for (const cText of cellTexts) {
+          if (cText.includes(":") && !cText.startsWith("http")) {
+            const m = cText.match(/^([A-Za-z0-9\s/&()-]{2,40}):\s*(.*)$/);
+            if (m && m[1] && m[1].length < 40) {
+              registerField(m[1].trim(), m[2]?.trim() || "", `Table cell text "${m[1].trim()}" in ${partName}`);
+            }
           }
         }
       }
@@ -421,6 +509,7 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
         const rawKey = match[1] || match[2];
         if (!rawKey) continue;
         const normalizedKey = normalizeFieldKey(rawKey);
+        if (isStaticInstitutionalMetadata(rawKey, normalizedKey)) continue;
 
         if (fieldsMap.has(normalizedKey)) {
           const existing = fieldsMap.get(normalizedKey)!;
@@ -450,10 +539,13 @@ export async function analyzeDocxTemplate(buffer: Buffer): Promise<AnalysisResul
             confidence: 0.98,
             adminConfirmed: true,
             sourceEvidence: `Explicit placeholder {${rawKey}} in ${partName}`,
-            repeatedFieldKeys: [rawKey, label],
           });
         }
       }
+
+      // If this paragraph is in a header or footer, only explicit placeholders (above) are processed.
+      // Skip normal text matching to prevent college letterheads/addresses from becoming form fields.
+      if (isHeaderOrFooter) continue;
 
       // 2. Normal text fields and labeled blanks in paragraphs
       // Handles single or multiple fields on a line: e.g. "Event Name: Hackathon", "Date: 12/10/2026   Time: 10:00 AM"
@@ -645,6 +737,7 @@ export async function analyzePdfTemplate(buffer: Buffer): Promise<AnalysisResult
           const rawKey = match[1] || match[2];
           if (!rawKey) continue;
           const normalizedKey = normalizeFieldKey(rawKey);
+          if (isStaticInstitutionalMetadata(rawKey, normalizedKey)) continue;
 
           if (!fieldsMap.has(normalizedKey)) {
             const label = rawKey
@@ -686,6 +779,7 @@ export async function analyzePdfTemplate(buffer: Buffer): Promise<AnalysisResult
           if (!cleanLabel || cleanLabel.length < 2 || cleanLabel.length > 50) continue;
 
           const normalizedKey = normalizeFieldKey(cleanLabel);
+          if (isStaticInstitutionalMetadata(cleanLabel, normalizedKey)) continue;
           if (!fieldsMap.has(normalizedKey)) {
             const cleanVal = rawVal.replace(/^[_\s\.\–—-]+|[_\s\.\–—-]+$/g, "").trim();
             const fType = inferFieldType(normalizedKey, cleanLabel);

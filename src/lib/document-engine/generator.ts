@@ -653,10 +653,10 @@ export async function fillDocxTemplate(
           const valStr = String(val).trim();
           if (valStr === "") continue;
 
-          // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: ...."
+          // Replace pattern like "Label: _____" or "Label: [   ]" or "Label: Old Normal Value"
           const escapedLabel = f.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const labelPattern = new RegExp(
-            `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\])`,
+            `(${escapedLabel}):\\s*(_{2,}|\\.{3,}|—+|–+|\\[\\s*\\]|[^\\n\\r]+|$)`,
             "i"
           );
           if (labelPattern.test(pText)) {
@@ -688,26 +688,72 @@ export async function fillDocxTemplate(
     }
 
     // C. INJECT ANY UNPLACED / EXTRA FIELDS INTO DOCUMENT
-    if (partName === "word/document.xml" && template.fields) {
-      const unplaced = template.fields.filter((f) => {
+    if (partName === "word/document.xml") {
+      interface ExtraItem {
+        id: string;
+        name: string;
+        label: string;
+        val: any;
+        isSignature: boolean;
+      }
+      const unplaced: ExtraItem[] = [];
+
+      for (const f of template.fields || []) {
         if (
           placedFieldKeys.has(f.id) ||
           placedFieldKeys.has(f.name) ||
           placedFieldKeys.has(f.label.toLowerCase()) ||
           (f.repeatedFieldKeys && f.repeatedFieldKeys.some((k) => placedFieldKeys.has(k) || placedFieldKeys.has(k.toLowerCase())))
         ) {
-          return false;
+          continue;
         }
+        const isSig = f.type === "signature" || f.isSignature || /signature|sign/i.test(f.label || f.name);
         const val = f.isFixed ? f.fixedValue : (fieldValues[f.name] ?? fieldValues[f.id] ?? fieldValues[f.label] ?? context[f.name]);
-        return val !== undefined && val !== null && String(val).trim() !== "";
-      });
+        if (isSig || (val !== undefined && val !== null && String(val).trim() !== "")) {
+          unplaced.push({
+            id: f.id,
+            name: f.name,
+            label: f.label || f.name,
+            val,
+            isSignature: isSig,
+          });
+        }
+      }
+
+      // Also check fieldValues for any extra custom fields added by user not present in template.fields
+      for (const [k, v] of Object.entries(fieldValues || {})) {
+        if (
+          k === "formattedBudget" ||
+          k === "formattedDateRange" ||
+          k === "currentDate" ||
+          placedFieldKeys.has(k) ||
+          placedFieldKeys.has(k.toLowerCase())
+        ) {
+          continue;
+        }
+        const isSig = /signature|sign/i.test(k) || (typeof v === "string" && /signature/i.test(v));
+        const valStr = v !== undefined && v !== null ? String(v).trim() : "";
+        if (isSig || valStr !== "") {
+          const formattedLabel = k.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/^./, (s) => s.toUpperCase()).trim();
+          unplaced.push({
+            id: `custom_${k}`,
+            name: k,
+            label: formattedLabel,
+            val: v,
+            isSignature: isSig,
+          });
+        }
+      }
 
       if (unplaced.length > 0) {
-        if (primaryKeyValueTable && primarySampleRow) {
-          // Append as table rows to existing key-value table
-          for (const extra of unplaced) {
-            const val = extra.isFixed ? extra.fixedValue : (fieldValues[extra.name] ?? fieldValues[extra.id] ?? fieldValues[extra.label] ?? context[extra.name]);
-            const valStr = String(val).trim();
+        // Group fields into regular data fields and signature placeholders
+        const regularFields = unplaced.filter((it) => !it.isSignature);
+        const signatureFields = unplaced.filter((it) => it.isSignature);
+
+        if (regularFields.length > 0 && primaryKeyValueTable && primarySampleRow) {
+          // Append regular fields as table rows to existing key-value table
+          for (const extra of regularFields) {
+            const valStr = extra.val !== undefined && extra.val !== null ? String(extra.val).trim() : "";
             if (!valStr) continue;
 
             const newTr = primarySampleRow.cloneNode(true);
@@ -728,8 +774,8 @@ export async function fillDocxTemplate(
               placedFieldKeys.add(extra.name);
             }
           }
-        } else {
-          // Append as styled paragraphs before sectPr / signature tables
+        } else if (regularFields.length > 0) {
+          // Append regular fields as styled paragraphs before signature tables or sectPr
           const body = doc.getElementsByTagName("w:body")[0];
           if (body) {
             let directSectPr: any = null;
@@ -762,9 +808,8 @@ export async function fillDocxTemplate(
               }
             }
 
-            for (const extra of unplaced) {
-              const val = extra.isFixed ? extra.fixedValue : (fieldValues[extra.name] ?? fieldValues[extra.id] ?? fieldValues[extra.label] ?? context[extra.name]);
-              const valStr = String(val).trim();
+            for (const extra of regularFields) {
+              const valStr = extra.val !== undefined && extra.val !== null ? String(extra.val).trim() : "";
               if (!valStr) continue;
 
               const p = doc.createElement("w:p");
@@ -792,6 +837,91 @@ export async function fillDocxTemplate(
               modified = true;
               placedFieldKeys.add(extra.id);
               placedFieldKeys.add(extra.name);
+            }
+          }
+        }
+
+        // Inject Signature Placeholders (where signature will be done online or offline)
+        if (signatureFields.length > 0) {
+          const body = doc.getElementsByTagName("w:body")[0];
+          if (body) {
+            let directSectPr: any = null;
+            for (let c = 0; c < body.childNodes.length; c++) {
+              if (body.childNodes[c].nodeName === "w:sectPr") {
+                directSectPr = body.childNodes[c];
+                break;
+              }
+            }
+
+            for (const sigField of signatureFields) {
+              const sigLabel = sigField.label || sigField.name;
+
+              // 1. Signature line paragraph
+              const pLine = doc.createElement("w:p");
+              const pPrLine = doc.createElement("w:pPr");
+              const spLine = doc.createElement("w:spacing");
+              spLine.setAttribute("w:before", "360");
+              spLine.setAttribute("w:after", "40");
+              pPrLine.appendChild(spLine);
+              pLine.appendChild(pPrLine);
+              const rLine = doc.createElement("w:r");
+              const tLine = doc.createElement("w:t");
+              tLine.textContent = "_____________________________________________";
+              rLine.appendChild(tLine);
+              pLine.appendChild(rLine);
+
+              // 2. Signatory designation/title paragraph
+              const pTitle = doc.createElement("w:p");
+              const pPrTitle = doc.createElement("w:pPr");
+              const spTitle = doc.createElement("w:spacing");
+              spTitle.setAttribute("w:before", "0");
+              spTitle.setAttribute("w:after", "20");
+              pPrTitle.appendChild(spTitle);
+              pTitle.appendChild(pPrTitle);
+              const rTitle = doc.createElement("w:r");
+              const rPrTitle = doc.createElement("w:rPr");
+              rPrTitle.appendChild(doc.createElement("w:b"));
+              rTitle.appendChild(rPrTitle);
+              const tTitle = doc.createElement("w:t");
+              tTitle.textContent = sigLabel.toLowerCase().includes("signature") ? sigLabel : `Signature of ${sigLabel}`;
+              rTitle.appendChild(tTitle);
+              pTitle.appendChild(rTitle);
+
+              // 3. Online or Offline signature caption paragraph
+              const pCaption = doc.createElement("w:p");
+              const pPrCaption = doc.createElement("w:pPr");
+              const spCaption = doc.createElement("w:spacing");
+              spCaption.setAttribute("w:before", "0");
+              spCaption.setAttribute("w:after", "180");
+              pPrCaption.appendChild(spCaption);
+              pCaption.appendChild(pPrCaption);
+              const rCaption = doc.createElement("w:r");
+              const rPrCaption = doc.createElement("w:rPr");
+              const szCaption = doc.createElement("w:sz");
+              szCaption.setAttribute("w:val", "16");
+              rPrCaption.appendChild(szCaption);
+              const colorCaption = doc.createElement("w:color");
+              colorCaption.setAttribute("w:val", "666666");
+              rPrCaption.appendChild(colorCaption);
+              rCaption.appendChild(rPrCaption);
+              const tCaption = doc.createElement("w:t");
+              tCaption.textContent = "(Signature: Online or Offline)";
+              rCaption.appendChild(tCaption);
+              pCaption.appendChild(rCaption);
+
+              if (directSectPr) {
+                body.insertBefore(pLine, directSectPr);
+                body.insertBefore(pTitle, directSectPr);
+                body.insertBefore(pCaption, directSectPr);
+              } else {
+                body.appendChild(pLine);
+                body.appendChild(pTitle);
+                body.appendChild(pCaption);
+              }
+
+              modified = true;
+              placedFieldKeys.add(sigField.id);
+              placedFieldKeys.add(sigField.name);
             }
           }
         }

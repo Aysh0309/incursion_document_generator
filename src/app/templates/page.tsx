@@ -244,10 +244,14 @@ export default function TemplateManagementPage() {
   };
 
   const handleUpdateField = (id: string, updates: Partial<TemplateField>) => {
+    let signatureToSync: TemplateSignatureField | null = null;
+    let signatureNameToRemove: string | null = null;
+
     setEditableFields(
       editableFields.map((f) => {
         if (f.id !== id) return f;
         const updated = { ...f, ...updates };
+
         if (updates.label !== undefined && (!f.name || f.name.startsWith("field_"))) {
           const autoKey = updates.label
             .toLowerCase()
@@ -258,13 +262,76 @@ export default function TemplateManagementPage() {
             updated.name = autoKey;
           }
         }
+
+        const isSigType = updated.type === "signature";
+        const isSigLabel = /signature|sign\b/i.test(updated.label || "") || /signature|sign\b/i.test(updated.name || "");
+        if (isSigType || isSigLabel) {
+          updated.type = "signature";
+          updated.isSignature = true;
+          updated.signMethod = updated.signMethod || "BOTH";
+
+          const sigId = `sig_${updated.name || updated.id.replace(/^fld_/, "")}`;
+          const designation = (updated.label || "Signature").toLowerCase().includes("signature")
+            ? updated.label
+            : `Signature of ${updated.label}`;
+          const assignedRole = (updated.name || "AUTHORITY").toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+
+          const order = editableSigFields.length + 1;
+          const isLeft = order % 2 === 1;
+
+          signatureToSync = {
+            id: sigId,
+            name: updated.name,
+            printedName: "",
+            designation,
+            assignedRole,
+            pageNumber: updated.pageNumber || 1,
+            position: updated.boundingBox || { x: isLeft ? 72 : 380, y: 120, width: 140, height: 45 },
+            required: updated.required,
+            signingOrder: order,
+            actionType: "SIGNATURE_ONLY",
+            signMethod: updated.signMethod || "BOTH",
+          };
+        } else if (f.type === "signature" && updates.type && updates.type !== "signature") {
+          updated.isSignature = false;
+          signatureNameToRemove = f.name;
+        }
+
         return updated;
       })
     );
+
+    if (signatureToSync) {
+      const sigToPlace = signatureToSync as TemplateSignatureField;
+      setEditableSigFields((prev) => {
+        const idx = prev.findIndex((s) => s.id === sigToPlace.id || s.name === sigToPlace.name);
+        if (idx >= 0) {
+          const updatedList = [...prev];
+          updatedList[idx] = {
+            ...updatedList[idx],
+            designation: sigToPlace.designation,
+            name: sigToPlace.name,
+            pageNumber: sigToPlace.pageNumber,
+            position: sigToPlace.position,
+            signMethod: sigToPlace.signMethod,
+          };
+          return updatedList;
+        }
+        return [...prev, sigToPlace];
+      });
+    }
+
+    if (signatureNameToRemove) {
+      setEditableSigFields((prev) => prev.filter((s) => s.name !== signatureNameToRemove && s.id !== `sig_${signatureNameToRemove}`));
+    }
   };
 
   const handleRemoveField = (id: string) => {
+    const target = editableFields.find((f) => f.id === id);
     setEditableFields(editableFields.filter((f) => f.id !== id));
+    if (target && (target.type === "signature" || target.isSignature)) {
+      setEditableSigFields((prev) => prev.filter((s) => s.name !== target.name && s.id !== `sig_${target.name}` && s.id !== `sig_${target.id.replace(/^fld_/, "")}`));
+    }
     if (selectedFieldId === id) {
       setSelectedFieldId(editableFields.find((f) => f.id !== id)?.id || null);
     }
@@ -689,7 +756,7 @@ export default function TemplateManagementPage() {
                               <select
                                 value={field.type}
                                 onChange={(e) => handleUpdateField(field.id, { type: e.target.value as FieldDataType })}
-                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs"
+                                className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs font-medium"
                               >
                                 <option value="text">Text (Single Line)</option>
                                 <option value="textarea">Text Area (Multi-line)</option>
@@ -699,9 +766,39 @@ export default function TemplateManagementPage() {
                                 <option value="currency">Currency / Budget</option>
                                 <option value="email">Email Address</option>
                                 <option value="phone">Phone Number</option>
+                                <option value="signature">Signature Placeholder (Online / Offline)</option>
                               </select>
                             </div>
                           </div>
+
+                          {(field.type === "signature" || field.isSignature) && (
+                            <div className="p-2 rounded-md bg-[#E7F3ED] border border-[#BCD8CB] text-xs flex flex-wrap items-center justify-between gap-2 text-[#1A5A48]">
+                              <div className="flex items-center gap-2">
+                                <PenTool className="h-3.5 w-3.5 text-[#1F6954]" />
+                                <span className="font-semibold">
+                                  Signature Placeholder: Authority can sign online (e-sign portal) or offline (physical signature on paper)
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={field.signMethod || "BOTH"}
+                                  onChange={(e) => handleUpdateField(field.id, { signMethod: e.target.value as any })}
+                                  className="text-[11px] p-1 rounded border border-[#BCD8CB] bg-white text-[#1A5A48]"
+                                >
+                                  <option value="BOTH">Online or Offline</option>
+                                  <option value="ONLINE">Online E-Sign Only</option>
+                                  <option value="OFFLINE">Offline / Physical Only</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => setStudioTab("signatures")}
+                                  className="text-[11px] font-semibold text-[#1F6954] underline hover:text-[#175342]"
+                                >
+                                  View in Signature Blocks →
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
                             <div className="flex items-center gap-4">
@@ -803,27 +900,20 @@ export default function TemplateManagementPage() {
 
                             <div className="sm:col-span-4">
                               <label className="text-[10px] font-semibold text-[#7A8A81] block mb-0.5">
-                                Default Directory Authority
+                                Signatory Name
                               </label>
-                              <select
-                                value={sig.defaultAuthorityId || ""}
-                                onChange={(e) => {
-                                  const auth = authoritiesList.find((a) => a.id === e.target.value);
+                              <input
+                                type="text"
+                                value={sig.printedName || ""}
+                                onChange={(e) =>
                                   handleUpdateSigField(sig.id, {
-                                    defaultAuthorityId: e.target.value,
-                                    assignedRole: auth?.role || sig.assignedRole,
-                                    printedName: auth?.name || sig.printedName,
-                                  });
-                                }}
+                                    printedName: e.target.value,
+                                    defaultAuthorityId: "",
+                                  })
+                                }
+                                placeholder="Enter signatory name"
                                 className="w-full p-1.5 rounded border border-[#E5DFD5] text-xs font-medium"
-                              >
-                                <option value="">-- Unassigned (Role-based) --</option>
-                                {authoritiesList.map((a) => (
-                                  <option key={a.id} value={a.id}>
-                                    {a.name} ({a.designation})
-                                  </option>
-                                ))}
-                              </select>
+                              />
                             </div>
 
                             <div className="sm:col-span-3">

@@ -7,12 +7,14 @@ import {
   AlertCircle,
   Copy,
   Check,
-  Send,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
   ShieldCheck,
   History,
+  PenTool,
+  FileCheck,
+  Send,
+  ExternalLink,
 } from "lucide-react";
 import { DocumentRecord, SignatureRequest } from "@/types";
 
@@ -26,12 +28,46 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
   const [showHistory, setShowHistory] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
+  // Offline signing modal state
+  const [offlineReq, setOfflineReq] = useState<SignatureRequest | null>(null);
+  const [offlineSigner, setOfflineSigner] = useState("");
+  const [offlineNote, setOfflineNote] = useState("Physically signed on printed copy");
+  const [recordingOffline, setRecordingOffline] = useState(false);
+
   const requests = document.signatureRequests || [];
   if (requests.length === 0) return null;
 
   const total = requests.length;
   const completed = requests.filter((r) => r.status === "SIGNED").length;
   const percentage = Math.round((completed / total) * 100);
+
+  const handleOfflineSignSubmit = async () => {
+    if (!offlineReq) return;
+    setRecordingOffline(true);
+    try {
+      const res = await fetch("/api/signatures/offline-sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: document.id,
+          requestId: offlineReq.id,
+          offlineSignerName: offlineSigner.trim() || offlineReq.authorityName,
+          offlineNote: offlineNote.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOfflineReq(null);
+        onRefresh();
+      } else {
+        alert(data.error?.message || "Failed to record offline signature");
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error while recording offline signature");
+    } finally {
+      setRecordingOffline(false);
+    }
+  };
 
   const handleCopyLink = (req: SignatureRequest) => {
     // req.tokenHash is used as valid token identifier for direct access
@@ -162,39 +198,60 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
 
                 <div className="pt-2 border-t border-[#E5DFD5]/70 flex items-center justify-between text-[10px]">
                   {isSigned ? (
-                    <span className="text-[#1A5A48] font-medium">
-                      Signed: {new Date(req.signedAt || "").toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-[#1A5A48] font-medium flex items-center gap-1">
+                        <FileCheck className="h-3 w-3 text-[#1F6954]" />
+                        <span>
+                          {req.signatureMethod === "OFFLINE" ? "Signed Offline (Physical)" : "Signed Online (e-Sign)"}:{" "}
+                          {new Date(req.signedAt || "").toLocaleDateString()}
+                        </span>
+                      </span>
+                    </div>
                   ) : (
-                    <div className="flex items-center gap-2 w-full justify-between">
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <div className="flex items-center gap-2 w-full justify-between">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(req)}
+                          className="flex items-center gap-1 text-[#1F6954] hover:text-[#175342] font-semibold transition-colors"
+                          title="Copy direct secure signing link"
+                        >
+                          {copiedId === req.id ? (
+                            <>
+                              <Check className="h-3 w-3 text-[#1F6954]" />
+                              <span className="text-[#1F6954]">Link Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3" />
+                              <span>Copy Link (Online)</span>
+                            </>
+                          )}
+                        </button>
+
+                        <a
+                          href={`/sign/${req.tokenHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-0.5 transition-colors"
+                        >
+                          <span>Open</span>
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => handleCopyLink(req)}
-                        className="flex items-center gap-1 text-[#1F6954] hover:text-[#175342] font-semibold transition-colors"
-                        title="Copy direct secure signing link"
+                        onClick={() => {
+                          setOfflineReq(req);
+                          setOfflineSigner(req.authorityName);
+                          setOfflineNote("Physically signed on printed copy");
+                        }}
+                        className="w-full py-1 px-2 rounded-md bg-white border border-[#BCD8CB] hover:bg-[#E7F3ED] text-[#1F6954] font-medium text-[10px] flex items-center justify-center gap-1 transition-colors"
                       >
-                        {copiedId === req.id ? (
-                          <>
-                            <Check className="h-3 w-3 text-[#1F6954]" />
-                            <span className="text-[#1F6954]">Link Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3" />
-                            <span>Copy Signing Link</span>
-                          </>
-                        )}
+                        <PenTool className="h-2.5 w-2.5" />
+                        <span>Record Offline Sign-off</span>
                       </button>
-
-                      <a
-                        href={`/sign/${req.tokenHash}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[#7A8A81] hover:text-[#1C2622] flex items-center gap-0.5 transition-colors"
-                      >
-                        <span>Open</span>
-                        <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
                     </div>
                   )}
                 </div>
@@ -202,6 +259,73 @@ export function SignatureProgressCard({ document, onRefresh }: SignatureProgress
             );
           })}
       </div>
+
+      {/* Offline Sign Confirmation Modal */}
+      {offlineReq && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-5 space-y-4 shadow-xl border border-[#E5DFD5]">
+            <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-3">
+              <div className="flex items-center gap-2">
+                <PenTool className="h-4 w-4 text-[#1F6954]" />
+                <h4 className="font-bold text-sm text-[#1C2622]">Record Offline Signature</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOfflineReq(null)}
+                className="text-xs text-[#7A8A81] hover:text-[#1C2622]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-[#55645C]">
+              Confirm physical ink signature on paper copy for <strong>{offlineReq.authorityName}</strong> (
+              {offlineReq.designation}). This will stamp an official offline verification badge onto the PDF artifact.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-semibold text-[#1C2622] block mb-1">Signer / Signatory Name</label>
+                <input
+                  type="text"
+                  value={offlineSigner}
+                  onChange={(e) => setOfflineSigner(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-[#E5DFD5] text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-[#1C2622] block mb-1">Verification Note</label>
+                <input
+                  type="text"
+                  value={offlineNote}
+                  onChange={(e) => setOfflineNote(e.target.value)}
+                  placeholder="e.g. Physically signed on hard copy document"
+                  className="w-full p-2 rounded-lg border border-[#E5DFD5] text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-[#E5DFD5]">
+              <button
+                type="button"
+                onClick={handleOfflineSignSubmit}
+                disabled={recordingOffline}
+                className="flex-1 py-2 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white font-semibold text-xs transition-colors disabled:opacity-50"
+              >
+                {recordingOffline ? "Recording Verification..." : "Confirm & Stamp Offline Signature"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOfflineReq(null)}
+                className="py-2 px-3 rounded-lg border border-[#E5DFD5] text-xs text-[#55645C] hover:bg-[#FAF8F4]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Workflow Audit Trail Toggle */}
       {document.workflowEvents && document.workflowEvents.length > 0 && (

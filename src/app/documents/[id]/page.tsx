@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Download,
   Trash2,
+  Plus,
+  PenTool,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DocumentRecord, DocumentVersionRecord, StructuredEventData, UserRole } from "@/types";
@@ -40,6 +42,36 @@ function DocumentReviewContent({ id }: { id: string }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
   const router = useRouter();
+
+  // Additional field creation state
+  const [showAddField, setShowAddField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState("");
+  const [isSignatureField, setIsSignatureField] = useState(false);
+
+  const handleAddNewField = () => {
+    if (!newFieldLabel.trim()) return;
+    const clean = newFieldLabel.trim();
+    const key = clean
+      .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+      .replace(/^[A-Z]/, (c) => c.toLowerCase())
+      .replace(/[^a-zA-Z0-9]/g, "");
+
+    const finalKey = key || `customField_${Date.now()}`;
+    const finalVal = isSignatureField
+      ? (newFieldValue.trim() || clean)
+      : (newFieldValue.trim() || "");
+
+    setEditableData((prev) => ({
+      ...prev,
+      [finalKey]: finalVal,
+    }));
+
+    setNewFieldLabel("");
+    setNewFieldValue("");
+    setIsSignatureField(false);
+    setShowAddField(false);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("incursion_user_role") as UserRole;
@@ -403,7 +435,11 @@ function DocumentReviewContent({ id }: { id: string }) {
                     key === "currentDate" ||
                     key === "universityName" ||
                     key === "department" ||
-                    key === "clubName"
+                    key === "clubName" ||
+                    key === "collegeName" ||
+                    key === "branch" ||
+                    key.toLowerCase().includes("college") ||
+                    key.toLowerCase().includes("branch")
                   ) {
                     return null;
                   }
@@ -424,11 +460,25 @@ function DocumentReviewContent({ id }: { id: string }) {
                     key.toLowerCase().includes("budget") ||
                     key.toLowerCase().includes("participants");
 
+                  const isSigField =
+                    key.toLowerCase().includes("signature") ||
+                    key.toLowerCase().includes("sign") ||
+                    (typeof value === "string" && value.toLowerCase().includes("signature"));
+
                   return (
-                    <div key={key}>
-                      <label className="font-semibold text-[#1C2622] block mb-1">
-                        {formattedLabel}
-                      </label>
+                    <div key={key} className="p-2.5 rounded-lg border border-[#E5DFD5]/80 bg-[#FAF8F4]/50 hover:bg-[#FAF8F4] transition-colors">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <label className="font-semibold text-[#1C2622]">
+                            {formattedLabel}
+                          </label>
+                          {isSigField && (
+                            <span className="text-[9px] font-semibold text-[#1A5A48] bg-[#E7F3ED] border border-[#BCD8CB] px-1.5 py-0.5 rounded">
+                              Signature Placeholder (Online / Offline)
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       {isMultiline ? (
                         <textarea
                           rows={2}
@@ -436,7 +486,7 @@ function DocumentReviewContent({ id }: { id: string }) {
                           onChange={(e) =>
                             setEditableData({ ...editableData, [key]: e.target.value })
                           }
-                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-[#FAF8F4] focus:bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all"
+                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all text-xs"
                         />
                       ) : (
                         <input
@@ -448,13 +498,110 @@ function DocumentReviewContent({ id }: { id: string }) {
                               [key]: isNumberField && e.target.value !== "" ? Number(e.target.value) : e.target.value,
                             })
                           }
-                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-[#FAF8F4] focus:bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all"
+                          placeholder={isSigField ? "e.g. Signature of Dean (Online or Offline)" : ""}
+                          className="w-full p-2 rounded-lg border border-[#E5DFD5] bg-white focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden transition-all text-xs"
                         />
                       )}
                     </div>
                   );
                 })
               )}
+
+              {/* Add Additional Field Section */}
+              <div className="pt-2 border-t border-dashed border-[#E5DFD5]">
+                {!showAddField ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddField(true)}
+                    className="w-full py-2 px-3 rounded-lg border border-dashed border-[#BCD8CB] bg-[#F4F9F6] hover:bg-[#E7F3ED] text-[#1F6954] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Additional Field / Signature</span>
+                  </button>
+                ) : (
+                  <div className="p-3 rounded-xl border border-[#BCD8CB] bg-[#F4F9F6] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#1C2622] text-xs">Add New Document Field</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddField(false)}
+                        className="text-[#7A8A81] hover:text-[#1C2622] text-xs"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-[#55645C] block">
+                        Field Label or Authority Designation
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dean Academics Signature or Mode of Event"
+                        value={newFieldLabel}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewFieldLabel(val);
+                          if (/signature|sign\b/i.test(val)) {
+                            setIsSignatureField(true);
+                          }
+                        }}
+                        className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-[#55645C] block">
+                        Field Value / Initial Content
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={isSignatureField ? "(Signature: Online or Offline)" : "Value or text content"}
+                        value={newFieldValue}
+                        onChange={(e) => setNewFieldValue(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-[#BCD8CB] bg-white text-xs focus:ring-1 focus:ring-[#1F6954] focus:outline-hidden"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="isSigCheckbox"
+                        checked={isSignatureField}
+                        onChange={(e) => setIsSignatureField(e.target.checked)}
+                        className="rounded border-[#BCD8CB] text-[#1F6954] focus:ring-[#1F6954] h-3.5 w-3.5"
+                      />
+                      <label htmlFor="isSigCheckbox" className="text-xs font-semibold text-[#1C2622] cursor-pointer flex items-center gap-1">
+                        <PenTool className="h-3 w-3 text-[#1F6954]" />
+                        <span>Treat as Signature Placeholder (Online or Offline sign-off)</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleAddNewField}
+                        disabled={!newFieldLabel.trim()}
+                        className="flex-1 py-1.5 rounded-lg bg-[#1F6954] hover:bg-[#175342] text-white font-semibold text-xs transition-colors disabled:opacity-50"
+                      >
+                        Insert Field into Document
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddField(false);
+                          setNewFieldLabel("");
+                          setNewFieldValue("");
+                          setIsSignatureField(false);
+                        }}
+                        className="py-1.5 px-3 rounded-lg border border-[#E5DFD5] bg-white hover:bg-[#FAF8F4] text-[#55645C] text-xs transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div className="pt-3 border-t border-[#E5DFD5] space-y-2">

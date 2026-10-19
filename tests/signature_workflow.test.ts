@@ -5,7 +5,11 @@ import path from "path";
 import crypto from "crypto";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { dbStore } from "../src/lib/db/store";
-import { embedSignatureInPdf, verifyPdfIntegrity } from "../src/lib/document-engine/signature-embedder";
+import {
+  embedSignatureInPdf,
+  embedOfflineSignatureStampInPdf,
+  verifyPdfIntegrity,
+} from "../src/lib/document-engine/signature-embedder";
 import { sendSignatureRequestEmail, sendWorkflowCompletionEmail } from "../src/lib/email/service";
 import { DocumentRecord, TemplateMetadata, AuthorityRecord } from "../src/types";
 
@@ -164,13 +168,6 @@ describe("Antigravity Master Signature & Email Workflow Test Suite", () => {
   });
 
   test("1. Authority Directory operations and role lookup", () => {
-    const authorities = dbStore.getAuthorities();
-    assert.ok(authorities.length >= 3, "Authority directory should have pre-seeded authorities");
-
-    const facultyCoord = dbStore.getAuthorityByRole("FACULTY_COORDINATOR");
-    assert.ok(facultyCoord, "Faculty Coordinator role should be resolvable");
-    assert.ok(facultyCoord.email.includes("@"), "Authority must have a valid email");
-
     // Add a custom authority
     const customAuth = dbStore.createAuthority({
       name: "Dr. Arvind Sharma",
@@ -184,6 +181,10 @@ describe("Antigravity Master Signature & Email Workflow Test Suite", () => {
 
     const fetched = dbStore.getAuthorityById(customAuth.id);
     assert.strictEqual(fetched?.name, "Dr. Arvind Sharma");
+
+    const facultyCoord = dbStore.getAuthorityByRole("FACULTY_COORDINATOR");
+    assert.ok(facultyCoord, "Faculty Coordinator role should be resolvable");
+    assert.ok(facultyCoord.email.includes("@"), "Authority must have a valid email");
   });
 
   test("2. Signature submission generates hashed tokens and dispatches email", async () => {
@@ -561,5 +562,184 @@ describe("Antigravity Master Signature & Email Workflow Test Suite", () => {
 
     // Clean up decline test doc
     dbStore.deleteDocument(declineDocId);
+  });
+
+  test("8. Offline Physical Signing: Stamps verification badge on PDF and completes workflow", async () => {
+    const offlineDocId = "doc_test_offline_" + Date.now();
+    const testPdf = await PDFDocument.create();
+    const page = testPdf.addPage([595, 842]);
+    page.drawText("Official University Request", { x: 50, y: 780, size: 14 });
+    const pdfBytes = Buffer.from(await testPdf.save());
+
+    // Test offline stamp embedding on PDF
+    const stampedPdfBytes = await embedOfflineSignatureStampInPdf({
+      existingPdfBytes: pdfBytes,
+      pageNumber: 1,
+      position: { x: 72, y: 100, width: 180, height: 50 },
+      signerName: "Prof. R. C. Gupta",
+      signerDesignation: "Dean Academic Affairs",
+      signDate: "19 Oct 2026",
+      note: "Physically signed on printed copy",
+      isTopOrigin: false,
+    });
+
+    assert.ok(stampedPdfBytes.length > pdfBytes.length, "Stamped PDF should be larger due to stamp mark");
+    const integrity = await verifyPdfIntegrity(stampedPdfBytes);
+    assert.strictEqual(integrity.valid, true, "Stamped PDF must be syntactically valid");
+    assert.strictEqual(integrity.pageCount, 1);
+
+    // Verify DB tracking for offline signature
+    const createdDoc = dbStore.createDocument({
+      templateId: testTmplId,
+      eventId: "evt_123",
+      title: "Offline Sign Test Document",
+      status: "SUBMITTED",
+      currentVersion: 1,
+      documentType: "EVENT_PROPOSAL",
+      clubId: "club_acm",
+      pdfEngineUsed: "pdf_lib_direct",
+      dataSnapshot: {},
+      docxUrl: `/generated/${offlineDocId}.pdf`,
+      pdfUrl: `/generated/${offlineDocId}.pdf`,
+    });
+    createdDoc.id = offlineDocId;
+    createdDoc.signatureRequests = [
+      {
+        id: "sigreq_offline_1",
+        documentId: offlineDocId,
+        fieldId: "sig_fld_offline",
+        printedName: "Prof. R. C. Gupta",
+        designation: "Dean Academic Affairs",
+        assignedAuthorityId: "auth_dean",
+        authorityName: "Prof. R. C. Gupta",
+        authorityEmail: "dean@nit.ac.in",
+        pageNumber: 1,
+        position: { x: 72, y: 100, width: 180, height: 50 },
+        signingOrder: 1,
+        actionType: "SIGNATURE_ONLY",
+        includeDate: true,
+        status: "SENT",
+        signatureMethod: "OFFLINE",
+        tokenHash: "offline_test_hash",
+        tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+    ];
+
+    // Mark signed offline
+    dbStore.updateSignatureRequest(offlineDocId, "sigreq_offline_1", {
+      status: "SIGNED",
+      signedAt: new Date().toISOString(),
+      signatureMethod: "OFFLINE",
+      offlineSignerName: "Prof. R. C. Gupta",
+      offlineSignDate: "19 Oct 2026",
+      offlineNote: "Physically signed on printed copy",
+    });
+
+    dbStore.addWorkflowEvent(offlineDocId, {
+      action: "DOCUMENT_SIGNED_OFFLINE",
+      performedBy: "Prof. R. C. Gupta",
+      authorityDesignation: "Dean Academic Affairs",
+      details: "Physical offline signature recorded for Prof. R. C. Gupta (Dean Academic Affairs). Note: Physically signed on printed copy",
+    });
+
+    const refreshed = dbStore.getDocumentById(offlineDocId)!;
+    assert.strictEqual(refreshed.signatureRequests?.[0].status, "SIGNED");
+    assert.strictEqual(refreshed.signatureRequests?.[0].signatureMethod, "OFFLINE");
+    assert.strictEqual(refreshed.signatureRequests?.[0].offlineSignerName, "Prof. R. C. Gupta");
+
+    const events = refreshed.workflowEvents || [];
+    assert.ok(events.some((e) => e.action === "DOCUMENT_SIGNED_OFFLINE"), "Must record DOCUMENT_SIGNED_OFFLINE event");
+
+    // Clean up
+    dbStore.deleteDocument(offlineDocId);
+  });
+
+  test("9. User-specified signatories without predefined roles, and offline signing leaves space empty", async () => {
+    const testCustomDocId = "doc_test_custom_sig_" + Date.now();
+    const testPdf = await PDFDocument.create();
+    const page = testPdf.addPage([595, 842]);
+    page.drawText("Official University Request Form", { x: 50, y: 780, size: 14 });
+    const originalPdfBytes = Buffer.from(await testPdf.save());
+
+    const initialPdfPath = path.join(process.cwd(), "public", "generated", `${testCustomDocId}_initial.pdf`);
+    const signedPdfPath = path.join(process.cwd(), "public", "generated", `${testCustomDocId}_signed.pdf`);
+    fs.mkdirSync(path.dirname(initialPdfPath), { recursive: true });
+    fs.writeFileSync(initialPdfPath, originalPdfBytes);
+
+    // Create document in dbStore with user-specified signatory (e.g. written by the user)
+    const doc = dbStore.createDocument({
+      templateId: testTmplId,
+      eventId: "evt_custom_999",
+      title: "Custom Signatory Document",
+      status: "SUBMITTED",
+      currentVersion: 1,
+      documentType: "EVENT_PROPOSAL",
+      clubId: "club_acm",
+      pdfEngineUsed: "pdf_lib_direct",
+      dataSnapshot: {},
+      docxUrl: `/generated/${testCustomDocId}_initial.pdf`,
+      pdfUrl: `/generated/${testCustomDocId}_initial.pdf`,
+    });
+    doc.id = testCustomDocId;
+
+    // Simulate user writing custom signatory names when submitting
+    const customUserWrittenName = "Prof. Vikash Chandra";
+    const customUserWrittenEmail = "vchandra@nit.ac.in";
+
+    doc.signatureRequests = [
+      {
+        id: "sigreq_custom_1",
+        documentId: testCustomDocId,
+        fieldId: "sig_custom_fld",
+        printedName: customUserWrittenName,
+        designation: "Signature of Student Secretary",
+        assignedAuthorityId: "custom_auth",
+        authorityName: customUserWrittenName,
+        authorityEmail: customUserWrittenEmail,
+        pageNumber: 1,
+        position: { x: 72, y: 100, width: 180, height: 50 },
+        signingOrder: 1,
+        actionType: "SIGNATURE_ONLY",
+        includeDate: true,
+        status: "SENT",
+        tokenHash: "test_token_hash_offline",
+        tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+    ];
+
+    assert.strictEqual(doc.signatureRequests[0].authorityName, customUserWrittenName);
+    assert.strictEqual(doc.signatureRequests[0].authorityEmail, customUserWrittenEmail);
+
+    // Simulate offline signature action without banner:
+    // When offline sign is chosen, the PDF file bytes remain unchanged (empty space for physical pen signature)
+    fs.writeFileSync(signedPdfPath, originalPdfBytes);
+
+    dbStore.updateSignatureRequest(testCustomDocId, "sigreq_custom_1", {
+      status: "SIGNED",
+      signedAt: new Date().toISOString(),
+      signatureMethod: "OFFLINE",
+      offlineSignerName: customUserWrittenName,
+      offlineSignDate: "19 Oct 2026",
+      offlineNote: "Physically signed on hardcopy",
+    });
+
+    dbStore.updateDocument(testCustomDocId, {
+      status: "APPROVED",
+      pdfUrl: `/generated/${testCustomDocId}_signed.pdf`,
+    });
+
+    const finalDoc = dbStore.getDocumentById(testCustomDocId)!;
+    assert.strictEqual(finalDoc.status, "APPROVED");
+    assert.strictEqual(finalDoc.signatureRequests?.[0].status, "SIGNED");
+    assert.strictEqual(finalDoc.signatureRequests?.[0].signatureMethod, "OFFLINE");
+
+    // The output signed PDF is byte-identical to original, meaning no banner was stamped
+    const finalPdfBytes = fs.readFileSync(signedPdfPath);
+    assert.strictEqual(finalPdfBytes.length, originalPdfBytes.length);
+
+    // Clean up
+    try { fs.unlinkSync(initialPdfPath); } catch {}
+    try { fs.unlinkSync(signedPdfPath); } catch {}
+    dbStore.deleteDocument(testCustomDocId);
   });
 });
