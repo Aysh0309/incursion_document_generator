@@ -1,5 +1,193 @@
 [
   {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.comhgj",
+    "authorityName": "b nm",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Faculty Co-Chairman\nSignature of Fa",
+    "signingUrl": "http://localhost:3000/sign/1fc3516ca4dcb48d96d33fae6d7317c07502c2c361e4d4fa64105865e48db1bf",
+    "sentAt": "2026-10-20T05:55:40.693Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "bndfgh@gmail.com",
+    "authorityName": "bn",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Student HeadSignature of Student Se",
+    "signingUrl": "http://localhost:3000/sign/7774d6b037327fabd168f9b5e8c73a8aa9115956e64fafd75a638718c70740d7",
+    "sentAt": "2026-10-20T05:55:40.284Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "bndfgh@gmail.com",
+    "authorityName": "b nm",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Dean (Student Welfare)",
+    "signingUrl": "http://localhost:3000/sign/15fe5c3d3cd7496af7e7240ad186301b511674dff9e1f4485a3249c15572e55b",
+    "sentAt": "2026-10-20T05:55:39.873Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.com",
+    "authorityName": "bnm",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Associate Dean",
+    "signingUrl": "http://localhost:3000/sign/a6a1b773b7058866878dc5204ad2c8ab7fc84a24a98d30c517356f504cb7bf04",
+    "sentAt": "2026-10-20T05:55:39.465Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.com",
+    "authorityName": "nm",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Faculty Chairman",
+    "signingUrl": "http://localhost:3000/sign/7e8cbf45a4a7e653e2b4b82791e9d434aaa8fa813cb9bb4821ff0ca266b3ee60",
+    "sentAt": "2026-10-20T05:55:39.075Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.com",
+    "authorityName": "bn",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Faculty Co-Chairman",
+    "signingUrl": "http://localhost:3000/sign/fb0b48793de03f54e174e7e1591fdef50816e33c00e7c6ee5c6497a18247347b",
+    "sentAt": "2026-10-20T05:55:38.757Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.com",
+    "authorityName": "hb",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Student Secretary",
+    "signingUrl": "http://localhost:3000/sign/d0208b5efc5ef5dab0d19be22cf47510469a88f351ba8c92603e744e390985f9",
+    "sentAt": "2026-10-20T05:55:38.443Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "dfgh@gmail.com",
+    "authorityName": "dfgh",
+    "subject": "Signature Required: Permission-Doc - gvhbj — Signature of Student Head",
+    "signingUrl": "http://localhost:3000/sign/c9a0aa083c2f098420136a4e9d5dee61e649866755e03f27923de69793cbb23b",
+    "sentAt": "2026-10-20T05:55:38.025Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "temp",
+    "subject": "Signature Required: Permission-Doc - Incursion which is a Hackathon — Signature of Faculty Chairman",
+    "signingUrl": "http://localhost:3000/sign/4a4bc0ad9591c7327e453ce59b0cdabcf3cc63929a265c07a1ffe52c69f1a0a2",
+    "sentAt": "2026-10-20T05:35:55.597Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "temp",
+    "subject": "Signature Required: Permission-Doc - Incursion which is a Hackathon — Signature of Student Secretary",
+    "signingUrl": "http://localhost:3000/sign/8cdbbe96a949717b2351f641cfae568f5a66ad29cf289b74d3de55dcc310d679",
+    "sentAt": "2026-10-20T05:11:42.452Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "aayushawasthi311@gmail.com",
+    "subject": "Signature Required: Permission-Doc - Incursion which is a Hackathon — Signature of Student Head",
+    "signingUrl": "http://localhost:3000/sign/d11237c0d38853ba8e2267fdce3572f749ccd92d8d6ec5f4caf2e5c641ce6857",
+    "sentAt": "2026-10-20T05:11:14.490Z",
+    "provider": "resend",
+    "resendId": "01a157b8-8af1-78d6-a407-30495da8b701"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Faculty Co-Chairman\nSignature of Fa",
+    "signingUrl": "http://localhost:3000/sign/fd2a2368ecdc2d2907ccc4c7f8ab0cf746a4f3e3d4aa1b098adc9e5877f1ae88",
+    "sentAt": "2026-10-20T03:33:36.173Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Student HeadSignature of Student Se",
+    "signingUrl": "http://localhost:3000/sign/a6e46defc52b5e69a65f59dbffdceaad4e83faa7bf061dd1653123d021a784d2",
+    "sentAt": "2026-10-20T03:33:35.810Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Dean (Student Welfare)",
+    "signingUrl": "http://localhost:3000/sign/6bbb82e4f863e24c835e557846cd8cd3992c1fd5d21570e88ef66eb00c57dd9b",
+    "sentAt": "2026-10-20T03:33:35.461Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Associate Dean",
+    "signingUrl": "http://localhost:3000/sign/582b11b0ceff3154ab78bcb7acea0593cf77980acc6e7922c61cc8cb0ec06729",
+    "sentAt": "2026-10-20T03:33:35.143Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Faculty Chairman",
+    "signingUrl": "http://localhost:3000/sign/a4ce607ac3bc2fdd9e5c175213b8b583fcfe0d40a5f8bf2f2a8a15630e0b489b",
+    "sentAt": "2026-10-20T03:33:34.734Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Faculty Co-Chairman",
+    "signingUrl": "http://localhost:3000/sign/66dd54b27788240570efba16b81dac7bb3694fbe9a80a70839e46ab18076ba69",
+    "sentAt": "2026-10-20T03:33:34.418Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "temp@gmail.com",
+    "authorityName": "aayush",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Student Secretary",
+    "signingUrl": "http://localhost:3000/sign/1492dc587aed6b85aa40c5d034463a7f81767767b722aaec38d7ed5e99f766a2",
+    "sentAt": "2026-10-20T03:33:33.981Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "aayushawasthi311@gmail.com",
+    "subject": "Signature Required: Permission-Doc - SIH — Signature of Student Head",
+    "signingUrl": "http://localhost:3000/sign/ecc2a70f72263f72ad36ef5e3ec2ee75b53af5d5af561d5318adb38afdd1aec6",
+    "sentAt": "2026-10-20T03:33:33.636Z",
+    "provider": "resend",
+    "resendId": "01a1575f-1ca6-77e5-9afd-b45bb0806f26"
+  },
+  {
+    "type": "WORKFLOW_COMPLETED",
+    "to": "gdsc.leads@nit.ac.in",
+    "subject": "Completed: Bill-Certificate-Doc - Untitled Event — All Signatures Affixed",
+    "pdfDownloadUrl": "http://localhost:3000/generated/doc_ngbgk0j4_signed.pdf",
+    "sentAt": "2026-10-20T03:22:25.057Z",
+    "provider": "local_institutional_logger"
+  },
+  {
+    "type": "SIGNATURE_REQUEST",
+    "to": "aayushawasthi311@gmail.com",
+    "authorityName": "Aayush",
+    "subject": "Signature Required: Bill-Certificate-Doc - Untitled Event — Signature of A Clerk/Staff\nName of the FacultyCh",
+    "signingUrl": "http://localhost:3000/sign/c8978076741056f4e2177216b59c5d11e4812b81460c7f1269da222caf3c6829",
+    "sentAt": "2026-10-20T03:21:12.203Z",
+    "provider": "local_institutional_logger"
+  },
+  {
     "type": "WORKFLOW_COMPLETED",
     "to": "requester@nit.ac.in",
     "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
@@ -682,189 +870,6 @@
     "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
     "signingUrl": "http://localhost:3000/sign/a807b415647b13d8f0c4a6ec6fccb23dff68f995dd0826f1d4e223d2679112dc",
     "sentAt": "2026-10-19T11:53:28.326Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "student.head@nit.ac.in",
-    "authorityName": "Rohan Verma",
-    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
-    "signingUrl": "http://localhost:3000/sign/c64ae3eec1e8916de5052c89635c2f38d048dbf8ad38ed398ace2ed18ba899da",
-    "sentAt": "2026-10-19T11:53:28.314Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "WORKFLOW_COMPLETED",
-    "to": "requester@nit.ac.in",
-    "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
-    "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792410171292_signed.pdf",
-    "sentAt": "2026-10-19T11:42:51.337Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "arvind.sharma@nit.ac.in",
-    "authorityName": "Dr. Arvind Sharma",
-    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
-    "signingUrl": "http://localhost:3000/sign/861d63d09000b5d3d3d34970acdf3fa19648aa3a07b6cd1a21eaf10fcf5c0ed9",
-    "sentAt": "2026-10-19T11:42:51.329Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "student.head@nit.ac.in",
-    "authorityName": "Rohan Verma",
-    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
-    "signingUrl": "http://localhost:3000/sign/374c55114c77a6b4a0ff90f1ab3f84140f54359266e0fbb16857e7b9b517b8d6",
-    "sentAt": "2026-10-19T11:42:51.321Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "ananya.iyer@nit.ac.in",
-    "authorityName": "Ananya Iyer",
-    "subject": "Signature Required: sih - grgr — Signature of Student Secretary",
-    "signingUrl": "http://localhost:3000/sign/0429a942dafd734f29093c11c24ec5cbe6087b5eb44c52b8e27853012956b590",
-    "sentAt": "2026-10-18T17:19:37.059Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "aayushawasthi311@gmail.com",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/bd4c61c26c647f82b5ad002b7f5d76b3d75b3dab6a8fd7d2d14349a3236503c0",
-    "sentAt": "2026-10-18T17:19:22.119Z",
-    "provider": "resend",
-    "resendId": "01a15006-725d-71a0-adff-acfc3e9550bf"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "dean.sw@nit.ac.in",
-    "authorityName": "Prof. B. N. Mukherjee",
-    "subject": "Signature Required: sih - grgr — Signature of Dean (Student Welfare)",
-    "signingUrl": "http://localhost:3000/sign/fe74920960c74f7a0fc735af676527822a5402f4dec2e959a514516e6d6088e2",
-    "sentAt": "2026-10-18T17:17:02.128Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "dean.sw@nit.ac.in",
-    "authorityName": "Prof. B. N. Mukherjee",
-    "subject": "Signature Required: sih - grgr — Signature of Associate Dean",
-    "signingUrl": "http://localhost:3000/sign/f9c5df72a6a44e09fc5518ce8e98c8d42f082911398b7ab50d02cf225d02b707",
-    "sentAt": "2026-10-18T17:17:01.672Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "arvind.mehta@nit.ac.in",
-    "authorityName": "Dr. Arvind K. Mehta",
-    "subject": "Signature Required: sih - grgr — Signature of Faculty Chairman",
-    "signingUrl": "http://localhost:3000/sign/c2ba24613497c0d3b32218558b65e32c153c595c7b8a8280bee88e2526be02fe",
-    "sentAt": "2026-10-18T17:17:01.263Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "rajesh.verma@nit.ac.in",
-    "authorityName": "Prof. Rajesh Verma",
-    "subject": "Signature Required: sih - grgr — Signature of Faculty Co-Chairman",
-    "signingUrl": "http://localhost:3000/sign/a8b4d0aa0bbba990654b769f864ca6af1727c8868aa84680cb07f9e9848d14ea",
-    "sentAt": "2026-10-18T17:17:00.432Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "ananya.iyer@nit.ac.in",
-    "authorityName": "Ananya Iyer",
-    "subject": "Signature Required: sih - grgr — Signature of Student Secretary",
-    "signingUrl": "http://localhost:3000/sign/0f32602bb3541ec413f8066480c6b2aad8a183b54ac441d1c6f1e00c21729236",
-    "sentAt": "2026-10-18T17:17:00.137Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "u25cs064@coed.svnit.ac.in",
-    "authorityName": "Aarav Patel",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/f4bea0f5e22e8b3b9ec78986e77e1a14fec619a71e332ab91eb0b0f61618cc00",
-    "sentAt": "2026-10-18T17:16:59.116Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "u25cs064@coed.svnit.ac.in",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/6035fd7f25582b8a70b847b3676ff47a44bca1081e6ba1af693ab543acb0ce32",
-    "sentAt": "2026-10-18T13:57:16.884Z",
-    "provider": "resend"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "rajesh.verma@nit.ac.in",
-    "subject": "Signature Required: sih - grgr — Signature of Faculty Co-Chairman",
-    "signingUrl": "http://localhost:3000/sign/06b0b576be2a8070416631f4f5545dc076a5e10b26790eacdd9f60fcc2b64c74",
-    "sentAt": "2026-10-18T13:54:59.990Z",
-    "provider": "resend"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "ananya.iyer@nit.ac.in",
-    "subject": "Signature Required: sih - grgr — Signature of Student Secretary",
-    "signingUrl": "http://localhost:3000/sign/8fc4187fb44ec55e3ecb7bd8fd62401519a48fb896e4a55f3561ec0659efab6b",
-    "sentAt": "2026-10-18T13:43:57.512Z",
-    "provider": "resend"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "aarav.patel@nit.ac.in",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/71ebf2847482ac2ce8957f0f76a0c075fd045315176f8e983c0b142fe99d36d3",
-    "sentAt": "2026-10-18T13:43:31.889Z",
-    "provider": "resend"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "u25cs064@coed.svnit.ac.in",
-    "authorityName": "Aarav Patel",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/c561095a38a982e609bef01aec5a91f98bb03de82e1b8d1025b26930233e0d9c",
-    "sentAt": "2026-10-18T13:34:50.356Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "u25cs064@coed.svnit.ac.in",
-    "authorityName": "Aarav Patel",
-    "subject": "Signature Required: sih - grgr — Signature of Student Head",
-    "signingUrl": "http://localhost:3000/sign/53149f4c90c16627f518beca6d5cf7816fc6341ce9dfcaf16abf5099a206b3f7",
-    "sentAt": "2026-10-18T13:34:36.985Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "WORKFLOW_COMPLETED",
-    "to": "requester@nit.ac.in",
-    "subject": "Completed: Annual Tech Fest 2026 Proposal — All Signatures Affixed",
-    "pdfDownloadUrl": "http://localhost:3000/generated/doc_test_e2e_1792329108852_signed.pdf",
-    "sentAt": "2026-10-18T13:11:48.901Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "arvind.sharma@nit.ac.in",
-    "authorityName": "Dr. Arvind Sharma",
-    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Faculty Coordinator",
-    "signingUrl": "http://localhost:3000/sign/7c4ddd5f814da6221d08f5f655fa09e7b8da1d0cdc72c3c40f1518cd0132f528",
-    "sentAt": "2026-10-18T13:11:48.892Z",
-    "provider": "local_institutional_logger"
-  },
-  {
-    "type": "SIGNATURE_REQUEST",
-    "to": "student.head@nit.ac.in",
-    "authorityName": "Rohan Verma",
-    "subject": "Signature Required: Annual Tech Fest 2026 Proposal — Student Head",
-    "signingUrl": "http://localhost:3000/sign/fec3d263e9ec6496c2d0ae9e8a247ec12d02d853d553ea59705135a9309330a0",
-    "sentAt": "2026-10-18T13:11:48.881Z",
     "provider": "local_institutional_logger"
   }
 ]
