@@ -5,13 +5,16 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { EventRecord, UserRole } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 export default function EventsListingPage() {
+  const { user, isAdmin: authIsAdmin } = useAuth();
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentRole, setCurrentRole] = useState<UserRole>("CLUB_ADMIN");
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [eventDocsMap, setEventDocsMap] = useState<Record<string, any[]>>({});
 
@@ -46,7 +49,28 @@ export default function EventsListingPage() {
     };
   }, []);
 
-  const isAdmin = currentRole === "CLUB_ADMIN";
+  const isAdmin = authIsAdmin || currentRole === "CLUB_ADMIN" || user?.role === "CLUB_ADMIN";
+
+  const handleDeleteEvent = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete event "${name}" and all associated documents?`)) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setEvents((prev) => prev.filter((e) => e.id !== id));
+        setSelectedEventIds((prev) => prev.filter((eId) => eId !== id));
+      } else {
+        alert(data.error?.message || "Failed to delete event.");
+      }
+    } catch (err: any) {
+      alert("Error deleting event: " + err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const toggleSelect = (id: string) => {
     if (selectedEventIds.includes(id)) {
@@ -158,6 +182,7 @@ export default function EventsListingPage() {
                     <th className="py-2.5 px-3 font-medium">Date & Schedule</th>
                     <th className="py-2.5 px-3 font-medium">Venue</th>
                     <th className="py-2.5 px-4 font-medium">Status</th>
+                    <th className="py-2.5 px-4 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5DFD5]">
@@ -209,6 +234,26 @@ export default function EventsListingPage() {
                         >
                           {evt.completenessStatus === "INCOMPLETE" ? "INCOMPLETE" : "COMPLETED"}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/events/new?eventId=${evt.id}`}
+                            className="px-2 py-1 rounded-md border border-[#E5DFD5] hover:bg-[#EFECE6] text-[#55645C] text-[10px] font-medium transition-colors"
+                          >
+                            Edit
+                          </Link>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteEvent(evt.id, evt.eventName)}
+                              disabled={deletingId === evt.id}
+                              className="p-1 rounded text-[#A3B0A8] hover:text-[#C24138] hover:bg-[#FDF2F0] transition-colors ml-1 disabled:opacity-50"
+                              title="Delete Event (Admin)"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

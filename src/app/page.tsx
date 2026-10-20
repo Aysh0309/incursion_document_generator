@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { FileText, ArrowRight, LayoutDashboard, PlusCircle, Heart, ShieldCheck, LogOut } from "lucide-react";
+import { FileText, ArrowRight, Heart, ShieldCheck, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInModal";
 
@@ -392,6 +392,11 @@ export default function LandingPage() {
               Doc - Doctor
             </h1>
 
+            {/* Intro description of the project */}
+            <p className="mt-3 text-sm sm:text-base text-[#66756D] max-w-md mx-auto leading-relaxed">
+              Instant verified document generation and institutional approval workflows for campus events and clubs.
+            </p>
+
             {/* Signed-in badge or Welcome info */}
             {user ? (
               <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E7F3ED] border border-[#BCD8CB] text-xs text-[#1A5A48]">
@@ -408,37 +413,9 @@ export default function LandingPage() {
               </div>
             ) : null}
 
-            {/* Call to Actions */}
-            <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
-              {!user ? (
-                <GoogleSignInButton size="large" className="w-full sm:w-auto" />
-              ) : null}
-
-              <Link
-                href="/events/new"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#1F6954] hover:bg-[#175342] text-white text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <PlusCircle className="h-4 w-4 text-white" />
-                <span>Create Document</span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#E7F3ED] hover:bg-[#DDF0E6] border border-[#BCD8CB] text-[#1A5A48] text-sm font-semibold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <LayoutDashboard className="h-4 w-4 text-[#1F6954]" />
-                <span>Dashboard</span>
-              </Link>
-
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-sm font-semibold transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <ShieldCheck className="h-4 w-4 text-purple-600" />
-                  <span>Admin Portal</span>
-                </Link>
-              )}
+            {/* Call to Actions - Continue with Google only */}
+            <div className="mt-7 flex items-center justify-center">
+              <GoogleSignInButton size="large" variant="dark" className="w-full sm:w-auto" />
             </div>
           </div>
         </main>

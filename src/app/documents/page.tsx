@@ -12,8 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { DocumentRecord, UserRole } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DocumentsLibraryPage() {
+  const { user, isAdmin: authIsAdmin } = useAuth();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -48,7 +50,7 @@ export default function DocumentsLibraryPage() {
     };
   }, []);
 
-  const isAdmin = currentRole === "CLUB_ADMIN";
+  const isAdmin = authIsAdmin || currentRole === "CLUB_ADMIN" || user?.role === "CLUB_ADMIN";
 
   const filteredDocs = documents.filter((d) => {
     if (statusFilter === "ALL") return true;

@@ -488,19 +488,19 @@
       "role": "CLUB_ADMIN",
       "googleId": "109103404886081457082",
       "createdAt": "2026-10-19T14:56:03.239Z",
-      "updatedAt": "2026-10-19T16:06:05.801Z",
-      "lastLoginAt": "2026-10-19T16:06:05.801Z"
+      "updatedAt": "2026-10-19T17:49:27.765Z",
+      "lastLoginAt": "2026-10-19T17:49:27.765Z"
     },
     {
       "id": "usr_plukl5nu",
-      "name": "aayush",
+      "name": "Aayush Awasthi",
       "email": "aayushawasthi311@gmail.com",
       "image": "https://lh3.googleusercontent.com/a/ACg8ocLmIQGWh80ngCcRkLV26bdEeTmi0MicuYcSbReBXQUnQh9-BsAw=s96-c",
       "role": "MEMBER",
       "googleId": "100966657626077416993",
       "createdAt": "2026-10-19T15:21:09.845Z",
-      "updatedAt": "2026-10-19T15:42:02.582Z",
-      "lastLoginAt": "2026-10-19T15:42:02.582Z"
+      "updatedAt": "2026-10-19T17:49:11.997Z",
+      "lastLoginAt": "2026-10-19T17:49:11.997Z"
     }
   ]
 }
